@@ -358,19 +358,8 @@ document.querySelectorAll('.state-deck').forEach(deck=>{
 
 /* Two query rows by two keys per tile. Keep the display and the recurrence on the same operands. */
 (() => {
- const Q=[[1,0],[0,1],[1,1],[-1,1]], K=[[0,0],[1,0],[0,1],[1,1]], V=[[2,0],[0,4],[2,2],[4,-2]];
- const S=Q.map(q=>K.map(k=>(q[0]*k[0]+q[1]*k[1])/Math.sqrt(2)));
  const fmt=n=>n===-Infinity?'−∞':Number(n.toFixed(2)).toString().replace('-','−');
  const div=(cls,txt)=>{const el=document.createElement('div');el.className=cls;if(txt!==undefined)el.textContent=txt;return el;};
- function rowStep(row,block,causal,old){
-   const keys=[2*block,2*block+1];
-   const scores=keys.map(j=>causal&&j>row?-Infinity:S[row][j]);
-   const m=Math.max(old.m,...scores);
-   const alpha=old.z?Math.exp(old.m-m):0;
-   const weights=scores.map(s=>s===-Infinity?0:Math.exp(s-m));
-   const local=[0,1].map(d=>weights.reduce((u,w,t)=>u+w*V[keys[t]][d],0));
-   return {m,alpha,weights,local,z:alpha*old.z+weights[0]+weights[1],u:local.map((v,d)=>v+alpha*old.u[d])};
- }
  function matrix(title,values,rows,cols,style){
    const figure=div('mx-matrix');figure.append(div('mx-label',title));
    const table=document.createElement('table');table.setAttribute('aria-label',title);
@@ -383,6 +372,17 @@ document.querySelectorAll('.state-deck').forEach(deck=>{
    });});figure.append(table);return figure;
  }
  for(const lab of document.querySelectorAll('[data-matrix-lab]')){
+   const [Q,K,V]=['q','k','v'].map(key=>JSON.parse(lab.dataset[key]));
+   const S=Q.map(q=>K.map(k=>(q[0]*k[0]+q[1]*k[1])/Math.sqrt(2)));
+   function rowStep(row,block,causal,old){
+     const keys=[2*block,2*block+1];
+     const scores=keys.map(j=>causal&&j>row?-Infinity:S[row][j]);
+     const m=Math.max(old.m,...scores);
+     const alpha=old.z?Math.exp(old.m-m):0;
+     const weights=scores.map(s=>s===-Infinity?0:Math.exp(s-m));
+     const local=[0,1].map(d=>weights.reduce((u,w,t)=>u+w*V[keys[t]][d],0));
+     return {m,alpha,weights,local,z:alpha*old.z+weights[0]+weights[1],u:local.map((v,d)=>v+alpha*old.u[d])};
+   }
    const pick=lab.querySelectorAll('button[data-tile]'),mask=lab.querySelector('input'),slot=lab.querySelector('.mx-output');
    let qr=1,kb=1,selected=null;
    function render(){
