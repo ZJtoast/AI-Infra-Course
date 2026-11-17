@@ -33,7 +33,7 @@ function revealTarget() {
   const target = document.getElementById(location.hash.slice(1));
   if (!target) return;
   const parent = target.closest("details");
-  if (parent && !parent.open) {
+  if (parent && !parent.open && !parent.classList.contains("solution")) {
     parent.open = true;
     target.scrollIntoView({block:"nearest"});
   }
@@ -51,9 +51,9 @@ if (draftFields.length) {
     try {
       const draft = localStorage.getItem(prefix + field.dataset.exercise) || "";
       if (field.value !== draft) field.value = draft;
-      showStatus(field, draft ? "草稿已保存到此浏览器" : "草稿自动保存在此浏览器");
+      showStatus(field, draft ? "已保存在本机" : "");
     } catch {
-      showStatus(field, "浏览器存储不可用，作答仅在本页保留");
+      showStatus(field, "仅本页暂存");
     }
   }
   function saveDraft(field) {
@@ -62,10 +62,10 @@ if (draftFields.length) {
       if (field.value) localStorage.setItem(key, field.value);
       else localStorage.removeItem(key);
       unsaved.delete(field);
-      showStatus(field, field.value ? "草稿已保存到此浏览器" : "草稿自动保存在此浏览器");
+      showStatus(field, field.value ? "已保存在本机" : "");
     } catch {
       unsaved.add(field);
-      showStatus(field, "草稿未能保存，可复制后留存");
+      showStatus(field, "未保存，可复制留存");
     }
   }
   document.addEventListener("input", event => {
