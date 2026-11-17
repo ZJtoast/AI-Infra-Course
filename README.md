@@ -6,10 +6,6 @@
 
 [在线阅读](https://zjtoast.github.io/AI-Infra-Course/)　·　[学习路线](https://zjtoast.github.io/AI-Infra-Course/roadmap.html)　·　[知识点合订本](https://zjtoast.github.io/AI-Infra-Course/handbook.html)　·　[下载 Word 合订本](word/ai-infra-course-handbook.docx)
 
-## 专题索引
-
-　　[手写 PTX](https://zjtoast.github.io/AI-Infra-Course/lessons/03-cuda-ptx-and-tiled-kernels.html#l03-s004)　·　[NCCL](https://zjtoast.github.io/AI-Infra-Course/lessons/05-collective-communication-and-rdma.html#l05-s006)　·　[RDMA](https://zjtoast.github.io/AI-Infra-Course/lessons/05-collective-communication-and-rdma.html#l05-s007)　·　[量化](https://zjtoast.github.io/AI-Infra-Course/lessons/10-quantization-and-optimizer-design.html#l10-s014)　·　[DeepSeek-V4.1-Flash](https://zjtoast.github.io/AI-Infra-Course/lessons/11-long-context-attention-and-state-reuse.html#l11-s008)　·　[CUDA Graph](https://zjtoast.github.io/AI-Infra-Course/lessons/13-inference-engine-execution.html#l13-s008)　·　[Nsight Systems](https://zjtoast.github.io/AI-Infra-Course/lessons/18-gpu-profiling-and-performance-analysis.html#l18-s007)　·　[Nsight Compute](https://zjtoast.github.io/AI-Infra-Course/lessons/18-gpu-profiling-and-performance-analysis.html#l18-s013)　·　[Roofline](https://zjtoast.github.io/AI-Infra-Course/lessons/18-gpu-profiling-and-performance-analysis.html#l18-s020)
-
 ## 课程目录
 
 ### 计算与 GPU 编程
