@@ -8,6 +8,8 @@
 
 [**在线阅读 →**](https://zjtoast.github.io/AI-Infra-Course/)　 ·　 [学习路线](https://zjtoast.github.io/AI-Infra-Course/roadmap.html)　 ·　 [知识点导航](https://zjtoast.github.io/AI-Infra-Course/handbook.html)　 ·　 [下载 Word 合订本](word/ai-infra-course-handbook.docx)
 
+　　在每道随堂练习的「我的作答」中写下思路，再点「查看答案与推导」逐步核对。在线版会将草稿保存在当前浏览器，同一道题可以在分课页与合订本之间接着写。
+
 ## 按问题开始
 
 | 实际问题 | 阅读入口 |
