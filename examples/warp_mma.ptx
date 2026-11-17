@@ -1,0 +1,22 @@
+.version 7.0
+.target sm_80
+.address_size 64
+
+.visible .entry ones_mma(.param .u64 output_ptr)
+{
+    .reg .b32 %lane, %one;
+    .reg .b64 %base, %offset, %address;
+    .reg .f32 %zero, %d<4>;
+    ld.param.u64 %base, [output_ptr];
+    mov.u32 %lane, %laneid;
+    mov.b32 %one, 0x3c003c00;
+    mov.f32 %zero, 0f00000000;
+    mma.sync.aligned.m16n8k16.row.col.f32.f16.f16.f32
+        {%d0,%d1,%d2,%d3},
+        {%one,%one,%one,%one}, {%one,%one},
+        {%zero,%zero,%zero,%zero};
+    mul.wide.u32 %offset, %lane, 16;
+    add.u64 %address, %base, %offset;
+    st.global.v4.f32 [%address], {%d0,%d1,%d2,%d3};
+    ret;
+}

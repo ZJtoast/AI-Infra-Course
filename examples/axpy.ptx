@@ -1,0 +1,37 @@
+.version 7.0
+.target sm_80
+.address_size 64
+
+.visible .entry axpy(
+    .param .u64 x_ptr, .param .u64 y_ptr, .param .u64 out_ptr,
+    .param .u32 n_val, .param .f32 alpha_val
+)
+{
+    .reg .pred %p;
+    .reg .b32 %r<5>;
+    .reg .b64 %rd<8>;
+    .reg .f32 %f<5>;
+
+    ld.param.u64 %rd0, [x_ptr];
+    ld.param.u64 %rd1, [y_ptr];
+    ld.param.u64 %rd2, [out_ptr];
+    ld.param.u32 %r0, [n_val];
+    ld.param.f32 %f0, [alpha_val];
+    mov.u32 %r1, %ctaid.x;
+    mov.u32 %r2, %ntid.x;
+    mov.u32 %r3, %tid.x;
+    mad.lo.u32 %r4, %r1, %r2, %r3;
+    setp.ge.u32 %p, %r4, %r0;
+    @%p bra DONE;
+
+    mul.wide.u32 %rd3, %r4, 4;
+    add.u64 %rd4, %rd0, %rd3;
+    add.u64 %rd5, %rd1, %rd3;
+    add.u64 %rd6, %rd2, %rd3;
+    ld.global.f32 %f1, [%rd4];
+    ld.global.f32 %f2, [%rd5];
+    fma.rn.f32 %f3, %f0, %f1, %f2;
+    st.global.f32 [%rd6], %f3;
+DONE:
+    ret;
+}

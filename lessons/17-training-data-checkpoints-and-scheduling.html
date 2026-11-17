@@ -1,0 +1,185 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light"><title>训练数据管线、检查点与调度 · AI Infra Course</title><link rel="stylesheet" href="../assets/course.css"><script defer src="../assets/index-data.js"></script><script defer src="../assets/course.js"></script></head><body class="articlepage" data-root="../"><a href="#main" class="skip">跳至正文</a><header class="top"><div class="bar"><a class="brand" href="../index.html"><span class="brandmark" aria-hidden="true"><i></i><i></i><i></i></span>AI Infra Course</a><nav aria-label="主导航"><a href="../index.html">课程</a><a href="../roadmap.html">学习路线</a><a href="../handbook.html">合订本</a><a href="https://github.com/ZJtoast/AI-Infra-Course">GitHub ↗</a></nav></div></header><main id="main" class="reader"><div class="articlehero"><div class="eyebrow">第 17 课　/　训练平台与性能工程</div><h1>训练数据管线、检查点与调度</h1><p>把输入字节换算成有效训练 token，核对预取、持久化与恢复中的状态。</p><div class="actions"><a class="btn" href="../word/17-training-data-checkpoints-and-scheduling.docx">下载 Word ↓</a></div></div><div class="layout"><aside><details class="tocbox" open><summary>本页知识点 <small>8</small></summary><ol class="toc"><li class="lv2" id="idx-l17-s001"><a href="#l17-s001">1  从一条文档算出 GPU 真正收到的监督位置</a></li><li class="lv2" id="idx-l17-s002"><a href="#l17-s002">2  数据读到了哪里 与参数已经训练到哪里</a></li><li class="lv2" id="idx-l17-s003"><a href="#l17-s003">3  分片随机化和本地 NVMe 缓存共用一个工作集</a></li><li class="lv2" id="idx-l17-s004"><a href="#l17-s004">4  一次 checkpoint 有两个完成时刻</a></li><li class="lv2" id="idx-l17-s005"><a href="#l17-s005">5  从实际存储语义确定哪个目录可恢复</a></li><li class="lv2" id="idx-l17-s006"><a href="#l17-s006">6  从 256 张 GPU 的配额 到能启动的 32 个节点</a></li><li class="lv2" id="idx-l17-s007"><a href="#l17-s007">7  把逻辑 rank 放到实际的 NVLink NIC 与故障域</a></li><li class="lv2" id="idx-l17-s008"><a href="#l17-s008">8  当机架失联 平台应该恢复哪一个训练步</a></li></ol></details></aside><article><p class="prose">把输入字节换算成有效训练 token，核对预取、持久化与恢复中的状态。</p><p class="prose">代码块旁的行号链接指向本课采用的提交，仓库及许可见课末。</p><section class="topic" id="l17-s001"><h2><strong>1  从一条文档算出 GPU 真正收到的监督位置</strong></h2><p class="prose">训练样本依次经过解码、分词、排序、packing、主存队列和设备传输。比较数据管线时分别报告入口读取率（原始字节/秒）和有效监督吞吐率。后者的分子是实际参与 loss 的 token 位置数，分母是同一观察窗口的墙钟秒数。padding 和被 mask 的 prompt 不计入分子。即使读取率相同，文本组成与分词结果也会改变每秒获得的有效位置数。</p><p class="caption"><strong>代码 1　</strong>TorchTitan 对同一 token 序列分别切出输入与标签</p><figure class="code"><figcaption><span><strong>Python    </strong><a href="https://github.com/pytorch/torchtitan/blob/e8d94c2d2b421dd94fa37dbb374b40fd18a731fa/torchtitan/components/data/text_datasets.py#L52-L65">torchtitan / text_datasets.py    L52–65</a></span><button type="button" data-copy>复制代码</button></figcaption><pre><code><span class="cl" data-line="52"><span class="kw">def</span> __call__(</span>
+<span class="cl" data-line="53">    self, sample: dict[str, Any], rng: np.random.Generator</span>
+<span class="cl" data-line="54">) -&gt; TextSequence | <span class="kw">None</span>:</span>
+<span class="cl" data-line="55">    <span class="kw">del</span> rng</span>
+<span class="cl" data-line="56">    input_ids = np.asarray(</span>
+<span class="cl" data-line="57">        self._tokenizer.encode(self._text_fn(sample), add_bos=<span class="kw">True</span>, add_eos=<span class="kw">True</span>),</span>
+<span class="cl" data-line="58">        dtype=np.int64,</span>
+<span class="cl" data-line="59">    )</span>
+<span class="cl" data-line="60">    <span class="kw">if</span> len(input_ids) &lt; <span class="fn">2</span>:</span>
+<span class="cl" data-line="61">        <span class="kw">return</span> <span class="kw">None</span></span>
+<span class="cl" data-line="62">    <span class="kw">return</span> TextSequence(</span>
+<span class="cl" data-line="63">        input_ids=input_ids[:-<span class="fn">1</span>],</span>
+<span class="cl" data-line="64">        labels=input_ids[<span class="fn">1</span>:],</span>
+<span class="cl" data-line="65">    )</span></code></pre></figure><p class="prose">例如 [BOS,甲,乙,EOS] 产生输入 [BOS,甲,乙] 和标签 [甲,乙,EOS]。一个长度 4 的编码产生 3 个训练位置。chat 分支还需按移位后的 assistant mask 屏蔽标签。</p><p class="prose">两段已经对齐的训练序列各长 5 和 3。逐条 pad 到 8 要占 16 个槽位，8 个有用。装进一行 8 个位置可把槽位利用率从 50% 提到 100%。若训练定义要求文档相互隔离，attention 还要携带 segment 边界。仅将第二段 position 重新从零开始，attention kernel 仍需要实际的分段 mask 或 cu_seqlens 才能隔开前一段。</p><p class="caption"><strong>代码 2　</strong>每次切相同的 token 与 label 区间，移动剩余偏移</p><figure class="code"><figcaption><span><strong>Python    </strong><a href="https://github.com/pytorch/torchtitan/blob/e8d94c2d2b421dd94fa37dbb374b40fd18a731fa/torchtitan/components/data/packing.py#L156-L176">torchtitan / packing.py    L156–176</a></span><button type="button" data-copy>复制代码</button></figcaption><pre><code><span class="cl" data-line="156">available_tokens = self._num_tokens_per_row - num_tokens</span>
+<span class="cl" data-line="157">num_segment_tokens = min(</span>
+<span class="cl" data-line="158">    segment_end - self._remainder_offset,</span>
+<span class="cl" data-line="159">    available_tokens,</span>
+<span class="cl" data-line="160">)</span>
+<span class="cl" data-line="161"></span>
+<span class="cl" data-line="162">token_slice = slice(</span>
+<span class="cl" data-line="163">    self._remainder_offset,</span>
+<span class="cl" data-line="164">    self._remainder_offset + num_segment_tokens,</span>
+<span class="cl" data-line="165">)</span>
+<span class="cl" data-line="166">input_parts.append(np.asarray(sequence.input_ids[token_slice]))</span>
+<span class="cl" data-line="167">label_parts.append(np.asarray(sequence.labels[token_slice]))</span>
+<span class="cl" data-line="168">position_parts.append(np.arange(num_segment_tokens, dtype=np.int64))</span>
+<span class="cl" data-line="169"># Keep padding from an upstream packer marked as padding.</span>
+<span class="cl" data-line="170">mask_parts.append(</span>
+<span class="cl" data-line="171">    np.zeros(num_segment_tokens, dtype=np.bool_)</span>
+<span class="cl" data-line="172">    <span class="kw">if</span> sequence.padding_mask <span class="kw">is</span> <span class="kw">None</span></span>
+<span class="cl" data-line="173">    <span class="kw">else</span> np.asarray(sequence.padding_mask[token_slice], dtype=np.bool_)</span>
+<span class="cl" data-line="174">)</span>
+<span class="cl" data-line="175">num_tokens += num_segment_tokens</span>
+<span class="cl" data-line="176">self._remainder_offset += num_segment_tokens</span></code></pre></figure><p class="prose">available_tokens 是本行空位，num_segment_tokens 取剩余文档区间与空位的较小值。position_parts 从当前片段起点编号。跨行的下一段能看多长历史由所选训练样本构造决定。</p><a class="back" href="#idx-l17-s001">↑ 返回知识点目录</a></section><section class="topic" id="l17-s002"><h2><strong>2  数据读到了哪里 与参数已经训练到哪里</strong></h2><p class="prose">假设训练步 80 已消费 800 条样本，预取线程已解码到 832。若把 832 存成恢复游标，而模型权重只包括前 800 条，重启会跳过 32 条。相反，若权重已经更新到 832 却恢复到 800，会再做一遍更新。可恢复边界应关联 optimizer step、样本顺序和已提交样本数。</p><p class="caption"><strong>代码 3　</strong>保存 epoch 内消费进度及重建 shuffle 所需的参数</p><figure class="code"><figcaption><span><strong>Python    </strong><a href="https://github.com/mosaicml/streaming/blob/1381ca1213fc95b6573efb44e5ec9f85c765ce1c/streaming/base/dataset.py#L794-L813">streaming / dataset.py    L794–813</a></span><button type="button" data-copy>复制代码</button></figcaption><pre><code><span class="cl" data-line="794">world = self._parallel_rank_world</span>
+<span class="cl" data-line="795">epoch = self.next_epoch - <span class="fn">1</span></span>
+<span class="cl" data-line="796">epoch, offset = self._resume(world, epoch)</span>
+<span class="cl" data-line="797"><span class="kw">if</span> from_beginning:</span>
+<span class="cl" data-line="798">    sample_in_epoch = num_samples</span>
+<span class="cl" data-line="799"><span class="kw">else</span>:</span>
+<span class="cl" data-line="800">    sample_in_epoch = offset + num_samples</span>
+<span class="cl" data-line="801"></span>
+<span class="cl" data-line="802"># If `self.initial_physical_nodes` is None, we are running for the first time, so we set</span>
+<span class="cl" data-line="803"># initial_physical_nodes to the current number of physical nodes. Otherwise, we persist</span>
+<span class="cl" data-line="804"># initial_physical_nodes as the value loaded and set from the resumption state.</span>
+<span class="cl" data-line="805">initial_physical_nodes = world.num_nodes <span class="kw">if</span> self.initial_physical_nodes <span class="kw">is</span> <span class="kw">None</span> \</span>
+<span class="cl" data-line="806">    <span class="kw">else</span> self.initial_physical_nodes</span>
+<span class="cl" data-line="807"></span>
+<span class="cl" data-line="808"><span class="kw">return</span> {</span>
+<span class="cl" data-line="809">    <span class="str">&#x27;epoch&#x27;</span>: epoch,</span>
+<span class="cl" data-line="810">    <span class="str">&#x27;sample_in_epoch&#x27;</span>: sample_in_epoch,</span>
+<span class="cl" data-line="811">    <span class="str">&#x27;num_canonical_nodes&#x27;</span>: self.num_canonical_nodes,</span>
+<span class="cl" data-line="812">    <span class="str">&#x27;shuffle_seed&#x27;</span>: self.shuffle_seed,</span>
+<span class="cl" data-line="813">    <span class="str">&#x27;initial_physical_nodes&#x27;</span>: initial_physical_nodes,</span></code></pre></figure><p class="prose">from_beginning 区分绝对进度和相对上次恢复点的增量。还保存 canonical nodes、shuffle seed 和最初的物理节点数，使逻辑分区在后续恢复时可追溯。</p><p class="caption"><strong>代码 4　</strong>半条文档通过父迭代器状态与文内偏移一起恢复</p><figure class="code"><figcaption><span><strong>Python    </strong><a href="https://github.com/pytorch/torchtitan/blob/e8d94c2d2b421dd94fa37dbb374b40fd18a731fa/torchtitan/components/data/packing.py#L206-L228">torchtitan / packing.py    L206–228</a></span><button type="button" data-copy>复制代码</button></figcaption><pre><code><span class="cl" data-line="206"><span class="kw">def</span> get_state(self) -&gt; dict[str, Any]:</span>
+<span class="cl" data-line="207">    <span class="kw">if</span> self._remainder <span class="kw">is</span> <span class="kw">None</span>:</span>
+<span class="cl" data-line="208">        parent_state = self._parent.get_state()</span>
+<span class="cl" data-line="209">    <span class="kw">else</span>:</span>
+<span class="cl" data-line="210">        <span class="kw">assert</span> self._remainder_parent_state <span class="kw">is</span> <span class="kw">not</span> <span class="kw">None</span></span>
+<span class="cl" data-line="211">        parent_state = self._remainder_parent_state</span>
+<span class="cl" data-line="212">    <span class="kw">return</span> {</span>
+<span class="cl" data-line="213">        <span class="str">&quot;parent&quot;</span>: parent_state,</span>
+<span class="cl" data-line="214">        <span class="str">&quot;has_remainder&quot;</span>: self._remainder <span class="kw">is</span> <span class="kw">not</span> <span class="kw">None</span>,</span>
+<span class="cl" data-line="215">        <span class="str">&quot;remainder_offset&quot;</span>: self._remainder_offset,</span>
+<span class="cl" data-line="216">        <span class="str">&quot;finished&quot;</span>: self._finished,</span>
+<span class="cl" data-line="217">    }</span>
+<span class="cl" data-line="218"></span>
+<span class="cl" data-line="219"><span class="kw">def</span> set_state(self, state: dict[str, Any]) -&gt; <span class="kw">None</span>:</span>
+<span class="cl" data-line="220">    self._parent.set_state(state[<span class="str">&quot;parent&quot;</span>])</span>
+<span class="cl" data-line="221">    self._remainder = <span class="kw">None</span></span>
+<span class="cl" data-line="222">    self._remainder_parent_state = <span class="kw">None</span></span>
+<span class="cl" data-line="223">    self._remainder_offset = <span class="fn">0</span></span>
+<span class="cl" data-line="224">    self._finished = state[<span class="str">&quot;finished&quot;</span>]</span>
+<span class="cl" data-line="225">    <span class="kw">if</span> state[<span class="str">&quot;has_remainder&quot;</span>]:</span>
+<span class="cl" data-line="226">        self._remainder_parent_state = state[<span class="str">&quot;parent&quot;</span>]</span>
+<span class="cl" data-line="227">        self._remainder = next(self._parent)</span>
+<span class="cl" data-line="228">        self._remainder_offset = state[<span class="str">&quot;remainder_offset&quot;</span>]</span></code></pre></figure><p class="prose">长度 11 的样本在第一行用掉 8 个位置。保存读取该文档之前的父状态，恢复时重取同一文档并移到 offset=8，余下 3 个位置恰好进入下一行。只保存下一文档号将漏掉它们。</p><p class="prose">改变 DP 数量后，样本到 rank 的映射可能改变。复核弹性恢复可固定数据清单、tokenizer 版本、shuffle seed、epoch 和全局有效样本游标，重建若干步的全局样本 ID 与片段区间。即使序列覆盖一致，新的梯度归约顺序仍会影响浮点结果。</p><div class="exercise question" id="Q17_01"><div class="qtitle"><strong>随堂练习 01　数据游标的粒度</strong><a href="#A17_01">　查看推导</a></div><p><strong>情境　</strong>一篇文档有 10 个可训练位置，从零编号，提交的训练步已消费前 4 个。</p><p><strong>问题　</strong>若从头重启或直接跳到下一篇，各重复或遗漏哪些位置？正确 offset 是多少？</p></div><div class="exercise answer" id="A17_01"><div class="qtitle"><strong>参考解答 01　数据游标的粒度</strong><a href="#Q17_01">　回看题干</a></div><p><strong>结论　</strong>会重复 0…3 或遗漏 4…9，正确 offset=4。</p><p><strong>推导　</strong>从头开始会重复位置 0–3，跳到下一篇会遗漏 4–9。应恢复到同一文档的 offset=4，再结合全局 shuffle、packing 缓冲及 tokenizer 版本恢复相同逻辑流。用重启前后的若干样本 ID、位置和标签序列核对。</p></div><a class="back" href="#idx-l17-s002">↑ 返回知识点目录</a></section><section class="topic" id="l17-s003"><h2><strong>3  分片随机化和本地 NVMe 缓存共用一个工作集</strong></h2><p class="prose">大数据集常把许多样本合并为 shard，以减轻对象存储的请求和元数据负担。全局逐样本随机读会同时触碰许多 shard。缓存装不下活跃集合时，节点会反复下载同一对象。按 shard 或块打乱可改善局部性，代价是相邻样本的来源可能更相关。应检查各训练窗口内的数据源和难度分布。</p><p class="caption"><strong>代码 5　</strong>在 canonical node 边界处切分 shard 的样本编号区间</p><figure class="code"><figcaption><span><strong>Python    </strong><a href="https://github.com/mosaicml/streaming/blob/1381ca1213fc95b6573efb44e5ec9f85c765ce1c/streaming/base/shuffle/py1s.py#L50-L63">streaming / py1s.py    L50–63</a></span><button type="button" data-copy>复制代码</button></figcaption><pre><code><span class="cl" data-line="50"># spans are (begin, end excl)</span>
+<span class="cl" data-line="51">samples_this_span = span[<span class="fn">1</span>] - span[<span class="fn">0</span>]</span>
+<span class="cl" data-line="52"># check if the shard span contains more samples than the part (canonical node) can fit</span>
+<span class="cl" data-line="53"><span class="kw">if</span> part_end &lt; samples_so_far + samples_this_span:</span>
+<span class="cl" data-line="54">    # if there is space left in the part, split the span</span>
+<span class="cl" data-line="55">    <span class="kw">if</span> samples_so_far &lt; part_end:</span>
+<span class="cl" data-line="56">        split = part_end - samples_so_far</span>
+<span class="cl" data-line="57">        # create a span, filling up with as many samples as possible from shard span</span>
+<span class="cl" data-line="58">        new_span = span[<span class="fn">0</span>], span[<span class="fn">0</span>] + split</span>
+<span class="cl" data-line="59">        out_spans.append(new_span)</span>
+<span class="cl" data-line="60">        # modify the old shard span to reflect that it&#x27;s been split</span>
+<span class="cl" data-line="61">        spans[span_index] = span[<span class="fn">0</span>] + split, span[<span class="fn">1</span>]</span>
+<span class="cl" data-line="62">        samples_so_far += split</span>
+<span class="cl" data-line="63">    <span class="kw">break</span></span></code></pre></figure><p class="prose">对 10 条样本划 3 个逻辑分区，右端点依次为 3、6、10。若一个 shard 覆盖 [2,7)，它会被切成 [2,3)、[3,6)、[6,7)。分配的是同一对象内的逻辑范围，物理下载仍可按完整 shard 发生。</p><p class="caption"><strong>代码 6　</strong>下载前按解压峰值预留，释放锁后再做 I/O</p><figure class="code"><figcaption><span><strong>Python    </strong><a href="https://github.com/mosaicml/streaming/blob/1381ca1213fc95b6573efb44e5ec9f85c765ce1c/streaming/base/dataset.py#L1175-L1187">streaming / dataset.py    L1175–1187</a></span><button type="button" data-copy>复制代码</button></figcaption><pre><code><span class="cl" data-line="1175"># If cache_limit is enabled, we first may have to make space for the new shard.</span>
+<span class="cl" data-line="1176"><span class="kw">if</span> self.cache_limit:</span>
+<span class="cl" data-line="1177">    # Evict one shard at a time until our download will stay under the cache limit.</span>
+<span class="cl" data-line="1178">    # This means both the raw and zip forms of the shard due to decompressing.</span>
+<span class="cl" data-line="1179">    shard_max_cache_usage = shard.get_max_size()</span>
+<span class="cl" data-line="1180">    <span class="kw">while</span> self.cache_limit &lt; self.cache_usage + shard_max_cache_usage:</span>
+<span class="cl" data-line="1181">        self._evict_coldest_shard()</span>
+<span class="cl" data-line="1182"></span>
+<span class="cl" data-line="1183"># With the above preamble done, we can release the cache lock.</span>
+<span class="cl" data-line="1184">lock.release()</span>
+<span class="cl" data-line="1185"></span>
+<span class="cl" data-line="1186"># Perform the download (shard will not be modified by others in PREPARING state).</span>
+<span class="cl" data-line="1187">delta = stream.prepare_shard(shard)</span></code></pre></figure><p class="prose">256 MiB 压缩文件解压到 768 MiB 时，两份共存可需要约 1 GiB。以 768 MiB 作准入预算会低估峰值。释放锁让其他线程继续查询缓存，PREPARING 状态承担同一 shard 的排他准备责任。</p><p class="caption"><strong>代码 7　</strong>预取窗口比较准备位置和交付位置</p><figure class="code"><figcaption><span><strong>Python    </strong><a href="https://github.com/mosaicml/streaming/blob/1381ca1213fc95b6573efb44e5ec9f85c765ce1c/streaming/base/dataset.py#L1345-L1355">streaming / dataset.py    L1345–1355</a></span><button type="button" data-copy>复制代码</button></figcaption><pre><code><span class="cl" data-line="1345"># If we are requested to only pre-download so many samples, if we have as many or more</span>
+<span class="cl" data-line="1346"># downloaded already, we wait and check again later.</span>
+<span class="cl" data-line="1347"><span class="kw">if</span> self.predownload <span class="kw">is</span> <span class="kw">not</span> <span class="kw">None</span>:</span>
+<span class="cl" data-line="1348">    samples_ahead = it.prepare_index - it.yield_index</span>
+<span class="cl" data-line="1349">    <span class="kw">if</span> self.predownload &lt; samples_ahead:</span>
+<span class="cl" data-line="1350">        sleep(TICK)</span>
+<span class="cl" data-line="1351">        <span class="kw">continue</span></span>
+<span class="cl" data-line="1352"></span>
+<span class="cl" data-line="1353"># If we hit -1, we skip.</span>
+<span class="cl" data-line="1354">sample_id = it.sample_ids[it.prepare_index]</span>
+<span class="cl" data-line="1355"><span class="kw">if</span> sample_id == -<span class="fn">1</span>:</span></code></pre></figure><p class="prose">此处单位是样本。相同窗口碰到长短样本或不同 shard 大小，实际字节和时间跨度会不同。64 路 worker 同时调大窗口还可能把压力集中到同一份对象存储。</p><p class="prose">设单节点每秒消费 1.2 GiB 有效数据，远端遇到最长 2 秒间歇，本地至少要预存约 2.4 GiB 可立即消费的数据才能跨过去。若长期有效供给只有 1 GiB/s，再大的预取队列最终也会见底。先看稳态输入率，再用队列吸收短期波动。</p><a class="back" href="#idx-l17-s003">↑ 返回知识点目录</a></section><section class="topic" id="l17-s004"><h2><strong>4  一次 checkpoint 有两个完成时刻</strong></h2><p class="prose">训练到步 k 时，参数和 optimizer moments 会在 k+1 步原地变化。异步保存需要先冻结同一逻辑步的状态，例如把它复制到独立主存缓冲，再从那里并行写存储。训练能继续更新的时刻取决于 staging 完成；故障恢复能选用 k 的时刻还取决于上传、完整元数据和存储后端的持久性。</p><p class="caption"><strong>代码 8　</strong>在返回此响应类型的路径中，两个 Future 暴露不同完成事件</p><figure class="code"><figcaption><span><strong>Python    </strong><a href="https://github.com/pytorch/pytorch/blob/8494b157890dfb90df1d13cf080eda5efdf7e522/torch/distributed/checkpoint/state_dict_saver.py#L207-L217">pytorch / state_dict_saver.py    L207–217</a></span><button type="button" data-copy>复制代码</button></figcaption><pre><code><span class="cl" data-line="207"><span class="kw">class</span> AsyncSaveResponse:</span>
+<span class="cl" data-line="208">    <span class="str">&quot;&quot;&quot;This class contains futures for staging and upload completion.</span></span>
+<span class="cl" data-line="209"><span class="str">    It is returned by async_save().</span></span>
+<span class="cl" data-line="210"><span class="str">    staging_completion is a future that indicates when local copy</span></span>
+<span class="cl" data-line="211"><span class="str">    of state_dict is complete.</span></span>
+<span class="cl" data-line="212"><span class="str">    upload_completion is a future that indicates when a checkpoint</span></span>
+<span class="cl" data-line="213"><span class="str">    completed saving.</span></span>
+<span class="cl" data-line="214"><span class="str">    &quot;&quot;&quot;</span></span>
+<span class="cl" data-line="215"></span>
+<span class="cl" data-line="216">    staging_completion: Future[<span class="kw">None</span>]</span>
+<span class="cl" data-line="217">    upload_completion: Future[<span class="kw">None</span>]</span></code></pre></figure><p class="prose">staging_completion 表示本地复制完成，upload_completion 才对应保存操作完成。其他配置可能返回单个 Future。调度器需要按所用返回类型选择正确等待点。</p><figure class="diagram"><img loading="lazy" src="../assets/figures/1f658a22aedfda3380.png" alt="课程示意图"></figure><p class="caption">图 17-1　同一快照的稳定副本与可恢复提交点。</p><p class="prose">假设模型、优化器及其他状态合计 4 TiB，集群实际共享写带宽 64 GiB/s，仅载荷就需要 64 秒。每 300 秒保存一次，长期平均需要约 13.65 GiB/s。后台上传与训练读取共用网络，当高峰吞吐超过出口时，即使训练线程不等待 Future，也可能出现 step 时间抖动。</p><p class="eq"><math xmlns="http://www.w3.org/1998/Math/MathML"><msub><mrow><mtext>T</mtext></mrow><mrow><mtext>w</mtext><mtext>r</mtext><mtext>i</mtext><mtext>t</mtext><mtext>e</mtext></mrow></msub><mtext> ≥ </mtext><mfrac><mrow><mtext>C</mtext></mrow><mrow><mtext>W</mtext></mrow></mfrac><mtext>,</mtext><mtext>    </mtext><msub><mrow><mtext>W</mtext></mrow><mrow><mtext>a</mtext><mtext>v</mtext><mtext>e</mtext><mtext>r</mtext><mtext>a</mtext><mtext>g</mtext><mtext>e</mtext></mrow></msub><mtext> = </mtext><mfrac><mrow><mtext>C</mtext></mrow><mrow><mtext>I</mtext></mrow></mfrac></math></p><p class="prose">有空间容纳一个 staging 副本时，下一次保存若早于上一次上传结束，就要等缓冲释放、跳过本次或申请第二份。并发两份可改善短时阻塞，也会让主存峰值近乎加倍。增量保存仅在能识别稳定的未变内容时节约字节，还需要保存基线版本并验证整条恢复依赖。</p><a class="back" href="#idx-l17-s004">↑ 返回知识点目录</a></section><section class="topic" id="l17-s005"><h2><strong>5  从实际存储语义确定哪个目录可恢复</strong></h2><p class="caption"><strong>代码 9　</strong>汇总各 rank 的 WriteResult，构造索引到存储位置的元数据</p><figure class="code"><figcaption><span><strong>Python    </strong><a href="https://github.com/pytorch/pytorch/blob/8494b157890dfb90df1d13cf080eda5efdf7e522/torch/distributed/checkpoint/filesystem.py#L766-L782">pytorch / filesystem.py    L766–782</a></span><button type="button" data-copy>复制代码</button></figcaption><pre><code><span class="cl" data-line="766"><span class="kw">def</span> finish(self, metadata: Metadata, results: list[list[WriteResult]]) -&gt; <span class="kw">None</span>:</span>
+<span class="cl" data-line="767">    metadata.version = CURRENT_DCP_VERSION</span>
+<span class="cl" data-line="768"></span>
+<span class="cl" data-line="769">    storage_md = {}</span>
+<span class="cl" data-line="770">    <span class="kw">for</span> wr_list <span class="kw">in</span> results:</span>
+<span class="cl" data-line="771">        storage_md.update({wr.index: wr.storage_data <span class="kw">for</span> wr <span class="kw">in</span> wr_list})</span>
+<span class="cl" data-line="772">    metadata.storage_data = storage_md</span>
+<span class="cl" data-line="773"></span>
+<span class="cl" data-line="774">    metadata.storage_meta = self.storage_meta()</span>
+<span class="cl" data-line="775">    tmp_filename = (</span>
+<span class="cl" data-line="776">        <span class="str">f&quot;__</span>{self.rank}{_metadata_fn}<span class="str">.tmp&quot;</span></span>
+<span class="cl" data-line="777">        <span class="kw">if</span> <span class="kw">not</span> self.use_collectives <span class="kw">and</span> self.rank <span class="kw">is</span> <span class="kw">not</span> <span class="kw">None</span></span>
+<span class="cl" data-line="778">        <span class="kw">else</span> <span class="str">f&quot;</span>{_metadata_fn}<span class="str">.tmp&quot;</span></span>
+<span class="cl" data-line="779">    )</span>
+<span class="cl" data-line="780">    tmp_path = cast(Path, self.fs.concat_path(self.path, tmp_filename))</span>
+<span class="cl" data-line="781">    <span class="kw">with</span> self.fs.create_stream(tmp_path, <span class="str">&quot;wb&quot;</span>) <span class="kw">as</span> metadata_file:</span>
+<span class="cl" data-line="782">        pickle.dump(metadata, metadata_file)</span></code></pre></figure><p class="prose">权重分片存在只证明某次写操作产生了文件。完整索引还要能覆盖预期的全局张量范围、optimizer slot 和训练状态，恢复端才能重分片。</p><p class="caption"><strong>代码 10　</strong>元数据最后才移动到正式路径</p><figure class="code"><figcaption><span><strong>Python    </strong><a href="https://github.com/pytorch/pytorch/blob/8494b157890dfb90df1d13cf080eda5efdf7e522/torch/distributed/checkpoint/filesystem.py#L793-L802">pytorch / filesystem.py    L793–802</a></span><button type="button" data-copy>复制代码</button></figcaption><pre><code><span class="cl" data-line="793"># delete in-case other checkpoints were present.</span>
+<span class="cl" data-line="794"><span class="kw">if</span> <span class="kw">not</span> self.use_collectives <span class="kw">and</span> self.rank <span class="kw">is</span> <span class="kw">not</span> <span class="kw">None</span>:</span>
+<span class="cl" data-line="795">    metadata_path = self._get_metadata_path(self.rank)</span>
+<span class="cl" data-line="796"><span class="kw">else</span>:</span>
+<span class="cl" data-line="797">    metadata_path = self._get_metadata_path()</span>
+<span class="cl" data-line="798"></span>
+<span class="cl" data-line="799"><span class="kw">if</span> self.fs.exists(metadata_path):</span>
+<span class="cl" data-line="800">    self.fs.rm_file(metadata_path)</span>
+<span class="cl" data-line="801"></span>
+<span class="cl" data-line="802">self.fs.rename(tmp_path, metadata_path)</span></code></pre></figure><p class="prose">本地文件系统代码对已有 metadata 先删除后 rename。每代检查点写到独立目录能避免覆盖旧代时产生缺口。对象存储的 rename 通常有不同语义，应采用对象后端实际提供的完成清单和版本协议。</p><p class="prose">同一次检查点经过的存储层</p><div class="tablewrap"><table><thead><tr><th><strong>位置</strong></th><th><strong>适合放什么</strong></th><th><strong>故障后的实际边界</strong></th></tr></thead><tbody><tr><td>节点 NVMe</td><td>热数据、staging、临时副本</td><td>节点失联时须从其他故障域恢复</td></tr><tr><td>并行文件系统</td><td>各 rank 分片和可共享的目录</td><td>条带带宽与目录元数据吞吐均可能成为瓶颈</td></tr><tr><td>对象存储</td><td>独立版本的 shard 与 manifest</td><td>按校验、长度和版本确认对象齐全后发布指针</td></tr></tbody></table></div><p class="prose">把每个小 tensor 写成独立文件，16 万个文件即使每个只有少量字节，也可能耗在 create/open/stat 上。合并成较大对象后，manifest 必须带 offset、length 和 dtype，随机恢复可以只读取所需区间。若一个新 rank 需要全局行 [3,7)，而原分片为 [0,4) 与 [4,8)，应分别读取 [3,4) 与 [4,7)，再按全局位置拼接，不能按旧 rank 号整份装载。</p><a class="back" href="#idx-l17-s005">↑ 返回知识点目录</a></section><section class="topic" id="l17-s006"><h2><strong>6  从 256 张 GPU 的配额 到能启动的 32 个节点</strong></h2><p class="prose">一个固定 world size 的 MoE 训练作业要求 32 个节点，每节点 8 卡。集群有 64 个节点各剩 4 卡，计数上共 256 卡，却无法满足每节点完整 8 卡的约束。若先绑定一部分 Pod，让它们长期占卡等待同伴，会造成碎片并阻塞后续作业。队列配额、拓扑可行性、成组准入与进程实际就绪对应四个判断。</p><p class="caption"><strong>代码 11　</strong>Volcano 核对有效任务数能否达到 MinAvailable</p><figure class="code"><figcaption><span><strong>Go    </strong><a href="https://github.com/volcano-sh/volcano/blob/9cca912a5e90fad0f05cf8f72c9d2b8cd0cdf133/pkg/scheduler/plugins/gang/gang.go#L83-L92">volcano / gang.go    L83–92</a></span><button type="button" data-copy>复制代码</button></figcaption><pre><code><span class="cl" data-line="83">vtn := job.ValidTaskNum()</span>
+<span class="cl" data-line="84">if vtn &lt; job.MinAvailable {</span>
+<span class="cl" data-line="85">	return &amp;api.ValidateResult{</span>
+<span class="cl" data-line="86">		Pass:   false,</span>
+<span class="cl" data-line="87">		Reason: v1beta1.NotEnoughPodsReason,</span>
+<span class="cl" data-line="88">		Message: fmt.Sprintf(&quot;Not enough valid tasks for gang-scheduling, valid: %d, min: %d&quot;,</span>
+<span class="cl" data-line="89">			vtn, job.MinAvailable),</span>
+<span class="cl" data-line="90">	}</span>
+<span class="cl" data-line="91">}</span>
+<span class="cl" data-line="92">return nil</span></code></pre></figure><p class="prose">valid task 数达到下限是作业具备可调度性的前提，后续仍要找到节点资源。固定 256 rank 的同步训练应把最小可用集合配置成足以运行一个完整 mesh。</p><p class="caption"><strong>代码 12　</strong>实际就绪还检查任务、子组与作业状态</p><figure class="code"><figcaption><span><strong>Go    </strong><a href="https://github.com/volcano-sh/volcano/blob/9cca912a5e90fad0f05cf8f72c9d2b8cd0cdf133/pkg/scheduler/plugins/gang/gang.go#L191-L197">volcano / gang.go    L191–197</a></span><button type="button" data-copy>复制代码</button></figcaption><pre><code><span class="cl" data-line="191">ssn.AddJobReadyFn(gp.Name(), func(obj interface{}) bool {</span>
+<span class="cl" data-line="192">	ji := obj.(*api.JobInfo)</span>
+<span class="cl" data-line="193">	if ji.CheckTaskReady() &amp;&amp; ji.CheckSubJobReady() &amp;&amp; ji.IsReady() {</span>
+<span class="cl" data-line="194">		return true</span>
+<span class="cl" data-line="195">	}</span>
+<span class="cl" data-line="196">	return false</span>
+<span class="cl" data-line="197">})</span></code></pre></figure><p class="prose">准备充分后才允许作业进入相应就绪状态。允许动态 membership 的训练还要在应用内支持重新 rendezvous、重建通信组和恢复状态。</p><p class="caption"><strong>代码 13　</strong>Kueue 检查 flavor 的拓扑信息及所需层级</p><figure class="code"><figcaption><span><strong>Go    </strong><a href="https://github.com/kubernetes-sigs/kueue/blob/31a8411e3c701b140baebf82ba3dbcdd1ee98cc6/pkg/scheduler/flavorassigner/tas_flavorassigner.go#L201-L211">kueue / tas_flavorassigner.go    L201–211</a></span><button type="button" data-copy>复制代码</button></figcaption><pre><code><span class="cl" data-line="201">s := cq.TASFlavors[kueue.ResourceFlavorReference(flavor.Name)]</span>
+<span class="cl" data-line="202">if s == nil {</span>
+<span class="cl" data-line="203">	// Skip Flavors if they don&#x27;t have TAS information. This should generally</span>
+<span class="cl" data-line="204">	// not happen, but possible in race-situation when the ResourceFlavor</span>
+<span class="cl" data-line="205">	// API object was recently added but is not cached yet.</span>
+<span class="cl" data-line="206">	return new(fmt.Sprintf(&quot;Flavor %q information missing in TAS cache&quot;, flavor.Name))</span>
+<span class="cl" data-line="207">}</span>
+<span class="cl" data-line="208">if !s.HasLevel(ps.TopologyRequest) {</span>
+<span class="cl" data-line="209">	// Skip flavors which don&#x27;t have the requested level</span>
+<span class="cl" data-line="210">	return new(fmt.Sprintf(&quot;Flavor %q does not contain the requested level&quot;, flavor.Name))</span>
+<span class="cl" data-line="211">}</span></code></pre></figure><p class="prose">已有名义 quota 仍可能缺 topology cache 或所请求的层级。Scheduler 需能在 node、rack 等正确层次表达约束，后续绑定还要与实际设备分配一致。</p><p class="prose">队列可把名义配额分给多个团队，再在有闲置时允许借用。抢占应核对受害作业的重做成本、能否及时写出快照、腾出的资源能否凑成完整新 gang。一个跨机架分散的低优先级作业即使释放 64 卡，也可能没有腾出八个完整节点。</p><a class="back" href="#idx-l17-s006">↑ 返回知识点目录</a></section><section class="topic" id="l17-s007"><h2><strong>7  把逻辑 rank 放到实际的 NVLink NIC 与故障域</strong></h2><p class="prose">教学机型设为每节点一个 8 卡高速域、两张分别接入 rail 0/1 的 NIC，每架 8 个节点。先为 dense 层设 TP8 节点内，DP32 跨节点，PP=1。在 MoE 层把相同 32 个数据 rank 按 4 个连续节点组成 EP4，剩余轴为专家数据并行 8。EP 在 dense DP 这条轴上重新分组，设备总数仍为 256。</p><figure class="diagram"><img loading="lazy" src="../assets/figures/101688ab7f921e5c02.png" alt="课程示意图"></figure><p class="caption">图 17-2　256 卡示例中，专家交换限制在 4 节点组，dense 梯度同步沿 32 个数据 rank 发生。</p><p class="prose">每个 4 节点 EP 组放在同一机架，每架放两组，降低专家 all-to-all 跨架竞争。固定 TP lane 的 32 rank dense 数据组跨 4 架同步。按每条 rail 的实际 GPU/NIC 亲和位置选传输路径，确认两张 NIC 的有效带宽和交换机上行。节点有两张 NIC 本身无法推导可用聚合带宽翻倍。</p><p class="caption"><strong>代码 14　</strong>Slurm GRES 将设备探测结果与配置清单合并</p><figure class="code"><figcaption><span><strong>C    </strong><a href="https://github.com/SchedMD/slurm/blob/4d15e3a04b4878d3594d8fe27d71d2ec4fca7ddb/src/plugins/gres/gpu/gres_gpu.c#L707-L722">slurm / gres_gpu.c    L707–722</a></span><button type="button" data-copy>复制代码</button></figcaption><pre><code><span class="cl" data-line="707">gres_list_system = gpu_g_get_system_gpu_list(node_config);</span>
+<span class="cl" data-line="708"></span>
+<span class="cl" data-line="709"><span class="kw">if</span> (slurm_conf.debug_flags &amp; DEBUG_FLAG_GRES)</span>
+<span class="cl" data-line="710">	log_lvl = LOG_LEVEL_VERBOSE;</span>
+<span class="cl" data-line="711"><span class="kw">else</span></span>
+<span class="cl" data-line="712">	log_lvl = LOG_LEVEL_DEBUG;</span>
+<span class="cl" data-line="713"><span class="kw">if</span> (gres_list_system) {</span>
+<span class="cl" data-line="714">	<span class="kw">if</span> (list_is_empty(gres_list_system))</span>
+<span class="cl" data-line="715">		log_var(log_lvl,</span>
+<span class="cl" data-line="716">			<span class="str">&quot;There were 0 GPUs detected on the system&quot;</span>);</span>
+<span class="cl" data-line="717">	log_var(log_lvl,</span>
+<span class="cl" data-line="718">		<span class="str">&quot;%s: Merging configured GRES with system GPUs&quot;</span>,</span>
+<span class="cl" data-line="719">		plugin_name);</span>
+<span class="cl" data-line="720">	rc2 = _merge_system_gres_conf(gres_conf_list, gres_list_system);</span>
+<span class="cl" data-line="721">	<span class="kw">if</span> (rc == SLURM_SUCCESS)</span>
+<span class="cl" data-line="722">		rc = rc2;</span></code></pre></figure><p class="prose">依据调度器所见 GPU 的类型、数量与绑定信息分配任务。MIG slice、整卡及同型号不同拓扑需要用对应资源描述；实际 rank 到 GPU 到 NIC 映射还要与作业内启动器核对。</p><p class="prose">在 Kubernetes，device plugin 报告可分配的扩展资源，Pod 的 GPU limit 决定请求的设备数量。Kueue 管队列与准入，节点调度和 kubelet 分配设备随后发生。Ray placement group 把 actor 资源写成 bundles，PACK/SPREAD 约束描述 bundles 的相对位置；KubeRay 负责管理 Ray 集群与作业，仍依赖底层节点和 GPU 资源。指定高速域需要真实标签与实际设备拓扑。</p><p class="prose"><a href="https://kubernetes.io/docs/tasks/manage-gpus/scheduling-gpus/">Kubernetes GPU 设备资源与 Pod 请求</a></p><p class="prose"><a href="https://slurm.schedmd.com/gres.html">Slurm GRES 配置、发现与 GPU 绑定</a></p><p class="prose"><a href="https://docs.ray.io/en/latest/ray-core/scheduling/placement-group.html">Ray placement group 的 bundle 与放置策略</a></p><a class="back" href="#idx-l17-s007">↑ 返回知识点目录</a></section><section class="topic" id="l17-s008"><h2><strong>8  当机架失联 平台应该恢复哪一个训练步</strong></h2><p class="prose">沿一次故障演练检查设计。步 1000 已提交到另一故障域，步 1020 的部分 rank 仍在写入。机架 A 故障后旧 world 中的同步 collective 会等待缺失成员。协调器选择完整的步 1000，确认所有旧 rank 退出，并以新作业代数重建进程组。如果备用机架少了一个完整节点，原先的 TP8×DP32 布局暂时无法重建。</p><p class="prose">两种可评审的选择是等待第 32 个节点，或在算法和 checkpoint reader 支持的情况下缩小 DP。后一条路径重新解释全局 batch、gradient accumulation、样本游标和学习率调度。专家所有权也要重新分配，TP 和 EP 的整除条件逐一核实。仅换一行 world_size 可能让数据重复或专家缺失。</p><p class="prose">平台评审交付的证据</p><div class="tablewrap"><table><thead><tr><th><strong>待验收问题</strong></th><th><strong>可复核记录</strong></th></tr></thead><tbody><tr><td>数据是否接对</td><td>全局 step、样本 ID、tokenizer 版本、文内 offset 与后续数步有效 token</td></tr><tr><td>是否真的可恢复</td><td>版本清单、每块大小和校验、完整恢复试读与进入下一有效步的时间</td></tr><tr><td>放置是否符合通信路径</td><td>每 rank 的节点、GPU、TP/EP/DP 组、NIC/rail、rack 与共享出口</td></tr><tr><td>存储是否影响通信</td><td>checkpoint 写入、shard miss 与 collective 的重叠时间及同出口字节</td></tr></tbody></table></div><p class="prose">如果所有 GPU 均在等待某个 rank，先检查该 rank 的下一 batch 是否已经就绪，再看它何时进入 collective。一次远端 shard miss 可以最终表现为全体通信等待。把样本 ID、shard、rank、step 和 checkpoint 写入时段连在一起，就能把排查交给正确的一层。</p><div class="exercise question" id="Q17_02"><div class="qtitle"><strong>随堂练习 02　恢复点和故障域</strong><a href="#A17_02">　查看推导</a></div><p><strong>情境　</strong>步 1000 已完整提交至另一故障域；步 1020 仍有分片在写，此时一个机架失联。</p><p><strong>问题　</strong>选恢复点，写出恢复前以及恢复后的验证动作。</p></div><div class="exercise answer" id="A17_02"><div class="qtitle"><strong>参考解答 02　恢复点和故障域</strong><a href="#Q17_02">　回看题干</a></div><p><strong>结论　</strong>从步 1000 恢复，校验清单和分片并跑通下一个有效步。</p><p><strong>推导　</strong>选择 1000。读取已提交清单，检查所有逻辑分片、大小、内容校验以及优化器和数据游标属于同一步，然后试读并运行到下一有效步。1020 的目录可能已出现，缺任何必要分片都不能当作完整版本。</p></div><div class="exercise question" id="Q17_03"><div class="qtitle"><strong>随堂练习 03　拓扑残缺后能否继续</strong><a href="#A17_03">　查看推导</a></div><p><strong>情境　</strong>作业固定 TP8×DP32。故障后只有 31 个健康的八卡节点，模型和每节点 GPU 数不变。</p><p><strong>问题　</strong>算剩余卡数，判断能否原样启动；若改为 DP31，需核对哪些训练语义？</p></div><div class="exercise answer" id="A17_03"><div class="qtitle"><strong>参考解答 03　拓扑残缺后能否继续</strong><a href="#Q17_03">　回看题干</a></div><p><strong>结论　</strong>剩 248 卡，只能容纳 31 个 TP8 组；调整 DP 时还须重建状态与训练批量语义。</p><p><strong>推导　</strong>31×8=248，比原布局少一整组 TP8，无法原样满足 32 份数据副本。可等待备用节点；若框架和算法支持，改用 31 份时须重建进程组、检查专家整除与放置、按新布局恢复分片。全局 batch、累积步数和样本分发也需重算，不能只更改 world size。</p></div><a class="back" href="#idx-l17-s008">↑ 返回知识点目录</a></section><div class="adjacent"><a href="../lessons/16-agentic-rl-training-systems.html">← 智能体强化学习训练系统</a><a href="../lessons/18-gpu-profiling-and-performance-analysis.html">GPU 性能剖析与瓶颈诊断 →</a></div></article></div></main><footer><span>AI Infra Course</span><a href="https://github.com/ZJtoast/AI-Infra-Course">ZJtoast / GitHub ↗</a></footer></body></html>
