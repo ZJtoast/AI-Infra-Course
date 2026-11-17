@@ -24,6 +24,7 @@ from course import (
 )
 from lxml import html
 from PIL import Image
+from source_highlight import css as syntax_css
 
 
 def markup(node):
@@ -102,7 +103,11 @@ def toc(ch):
 
 
 def reader(title, eyebrow, lead, download, aside, body, prefix):
-    s = (HERE / "reader.html").read_text("utf8")
+    s = (
+        (HERE / "reader.html")
+        .read_text("utf8")
+        .replace("</head>", f"<style>{syntax_css()}</style></head>")
+    )
     s = re.sub(
         r'((?:href|src)=")(?=(?:assets/|index.html|handbook.html|roadmap.html))',
         r"\g<1>" + prefix,

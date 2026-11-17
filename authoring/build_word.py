@@ -20,6 +20,7 @@ from course import (
     write,
 )
 from PIL import Image
+from source_highlight import COLORS
 
 W = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}"
 R = "{http://schemas.openxmlformats.org/officeDocument/2006/relationships}"
@@ -198,12 +199,9 @@ class Document:
                 if tag == "a" and e.get("class") == "term":
                     fmt["dotted"] = True
                 if tag == "span" and opts.get("mono"):
-                    fmt["color"] = {
-                        "kw": "D5BAFF",
-                        "str": "A6DDAE",
-                        "fn": "97D7FB",
-                        "lit": "FFD196",
-                    }.get(e.get("class"), opts.get("color"))
+                    role = e.get("class", "").removeprefix("tok-")
+                    if role in COLORS:
+                        fmt["color"] = COLORS[role][0]
                 if tag in ("strong", "b"):
                     fmt["bold"] = True
                 if tag in ("em", "i"):
@@ -258,6 +256,11 @@ class Document:
         pr = w(tbl, "tblPr")
         w(pr, "tblStyle", val="TableGrid")
         w(pr, "tblW", w="5000", type="pct")
+        if code:
+            number_width = max(len(row.get("data-line", "")) for row in rows)
+            borders = w(pr, "tblBorders")
+            for edge in ("top", "left", "bottom", "right", "insideH", "insideV"):
+                w(borders, edge, val="nil")
         grid = w(tbl, "tblGrid")
         cols = 1 if code else max(len(r) for r in rows)
         for _ in range(cols):
@@ -277,7 +280,12 @@ class Document:
                 p = paragraph(cell, "SourceCode" if code else None)
                 if code:
                     w(p[0], "spacing", before=0, after=0)
-                    run(p, c.get("data-line", "") + "    ", mono=True, color="94ABA8")
+                    run(
+                        p,
+                        c.get("data-line", "").rjust(number_width) + "    ",
+                        mono=True,
+                        color="94ABA8",
+                    )
                     self.inline(p, c, mono=True, color="ECF3F2")
                 else:
                     self.inline(p, c, bold=c.tag == "th")

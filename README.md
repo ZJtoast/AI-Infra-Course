@@ -71,8 +71,23 @@ python authoring/build_word.py
 | --- | --- | --- |
 | 小节标题和正文 | 在对应 `section class="topic"` 中修改 `h2`、`h3` 或 `p`，保留已有的 `id` | 单课和合订本同步更新，目录链接继续有效 |
 | 公式与上下标 | 公式用带有 MathML 命名空间的 `math`；行文里的简单上下标用 `sub` 和 `sup` | 网页排印数学符号，Word 中的公式可继续编辑 |
+| 代码 | 在 `listing` 内粘贴 Markdown 围栏代码块，源码链接填入可选的 `src` 属性 | 自动按文件类型或代码语法着色，两个版本保留缩进、行号和源码链接 |
 | 练习与解析 | 每道 `exercise` 内依次写情境、带 `prompt-` 标识的问题、`answer` 内的推导 | 网页保留笔记输入框和折叠答案；Word 就地排列题解，题干和答案可互跳 |
 | 术语释义 | 在本课对应的 `dt` 后修改 `dd` | 网页词条、Word 术语提示与释义同步更新 |
 | 插图与演算 | 普通插图引用 `assets/figures/` 下的共享图片；FlashAttention 演算的三个输入矩阵写在 `data-q`、`data-k`、`data-v` 中 | 同一插图进入两个版本；矩阵改值后，网页可重新演算，Word 自动绘制因果掩码下的示例块 |
 
-　　构建环境为 Python 3.10 或更高版本，首次运行可用 `python -m pip install lxml Pillow` 安装依赖。Word 公式转换使用桌面版 Microsoft Office 附带的 `MML2OMML.XSL`，自定义安装位置可通过环境变量 `MML2OMML_XSL` 指定。矩阵插图默认使用 Windows 的微软雅黑与 Times New Roman，其他系统可用 `COURSE_CJK_FONT` 和 `COURSE_LATIN_FONT` 指向相应字体文件。
+　　添加代码时可以留空围栏开头的语言名。下面这段会被识别为 Python；若片段涉及多种语言，可在起始围栏后写 `cuda`、`ptx` 或其他语言名来指定。带有 `#L382-L386` 这类行号的源码链接会自动设置起始行。
+
+````xml
+<listing><![CDATA[
+```
+import torch
+q = torch.ones(2, 4)
+k = torch.eye(4)
+scores = q @ k.T
+print(scores.shape)
+```
+]]></listing>
+````
+
+　　构建环境为 Python 3.10 或更高版本，首次运行可用 `python -m pip install lxml Pillow "Pygments>=2.19,<3"` 安装依赖。Word 公式转换使用桌面版 Microsoft Office 附带的 `MML2OMML.XSL`，自定义安装位置可通过环境变量 `MML2OMML_XSL` 指定。矩阵插图默认使用 Windows 的微软雅黑与 Times New Roman，其他系统可用 `COURSE_CJK_FONT` 和 `COURSE_LATIN_FONT` 指向相应字体文件。

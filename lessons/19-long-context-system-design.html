@@ -1,28 +1,28 @@
 <!doctype html>
-<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light"><title>长上下文服务的容量与系统设计 · AI Infra Course</title><style>.response textarea{box-sizing:border-box;width:100%;max-width:100%}</style><link rel="stylesheet" href="../assets/course.css?v=1d44bb5810ec"><script defer src="../assets/index-data.js?v=09042a38dcfe"></script><script defer src="../assets/course.js?v=b58933c84ead"></script></head><body class="articlepage" data-root="../"><a href="#main" class="skip">跳至正文</a><header class="top"><div class="bar"><a class="brand" href="../index.html"><span class="brandmark" aria-hidden="true"><i></i><i></i><i></i></span>AI Infra Course</a><button class="toc-toggle" type="button" data-toc-toggle aria-controls="reader-toc" aria-expanded="true" hidden>收起目录</button><nav aria-label="主导航"><a href="../index.html">课程</a><a href="../roadmap.html">学习路线</a><a href="../handbook.html">合订本</a><a href="https://github.com/ZJtoast/AI-Infra-Course">GitHub ↗</a></nav></div></header><main id="main" class="reader"><div class="articlehero"><div class="eyebrow">第 19 课　/　训练平台与性能工程</div><h1>长上下文服务的容量与系统设计</h1><p>为百万 token 的 MoE 服务估算每卡 KV 容量、跨机流量和副本数，再用首 token 时延与故障恢复条件检验这些预算。</p><div class="actions"><a class="btn" href="../word/19-long-context-system-design.docx">下载 Word ↓</a></div></div><div class="layout"><aside id="reader-toc" aria-label="知识点目录"><details class="tocbox" open><summary>本页知识点 <small>11</small></summary><ol class="toc"><li class="lv2" id="idx-l19-s001"><a class="" href="#l19-s001">1　服务负载与目标</a></li><li class="lv2" id="idx-l19-s002"><a class="" href="#l19-s002">2　模型参数与每 token 成本</a></li><li class="lv2" id="idx-l19-s003"><a class="" href="#l19-s003">3　百万上下文的逐层状态</a></li><li class="lv2" id="idx-l19-s004"><a class="" href="#l19-s004">4　256 卡训练的数据布局</a></li><li class="lv2" id="idx-l19-s005"><a class="" href="#l19-s005">5　冷请求的跨池 KV 传输</a></li><li class="lv2" id="idx-l19-s006"><a class="" href="#l19-s006">6　远端前缀恢复与重算</a></li><li class="lv2" id="idx-l19-s007"><a class="" href="#l19-s007">7　推测解码的准入预算</a></li><li class="lv2" id="idx-l19-s008"><a class="" href="#l19-s008">8　在线策略与持续训练的版本边界</a></li><li class="lv2" id="idx-l19-s009"><a class="" href="#l19-s009">9　训练与服务的故障恢复</a></li><li class="lv2" id="idx-l19-s010"><a class="" href="#l19-s010">10　系统设计的案例对照</a></li><li class="lv2" id="idx-l19-s011"><a class="" href="#l19-s011">11　容量设计与验收条件</a></li></ol></details></aside><div class="toc-divider" role="separator" tabindex="0" aria-label="目录宽度" aria-controls="reader-toc" aria-orientation="vertical" aria-valuemin="180" aria-valuemax="560" aria-valuenow="300" title="拖动调宽，也可用左右方向键" hidden></div><div class="toc-shade" aria-hidden="true" hidden></div><article><p class="prose">代码块旁的行号链接指向本课采用的提交，仓库及许可见课末。</p><nav class="practice-route" aria-label="第 19 课练习顺序" id="Route19"><strong>本课练习顺序</strong><ol><li><a href="#Q19_01">普通题</a><span>由各层保留位置算满上下文的单卡 KV 需求，再以最紧的 rank 判定可容纳条数。</span></li><li><a href="#Q19_02">进阶题</a><span>联立交接带宽、decode 驻留与恢复时长，计算准入余量并追踪首词慢点。</span></li><li><a href="#Q19_511">情景面试题</a><span>固定冷长与热短请求的负载组成，检验扩容后违约究竟来自传输、放置还是页池。</span></li></ol></nav><section class="topic" id="l19-s001">
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light"><title>长上下文服务的容量与系统设计 · AI Infra Course</title><style>.response textarea{box-sizing:border-box;width:100%;max-width:100%}</style><link rel="stylesheet" href="../assets/course.css?v=1d44bb5810ec"><script defer src="../assets/index-data.js?v=09042a38dcfe"></script><script defer src="../assets/course.js?v=b58933c84ead"></script><style>.code .tok-keyword{color:#CDB1FF}.code .tok-type{color:#82E0D1}.code .tok-function{color:#F6D78E}.code .tok-string{color:#F6B797}.code .tok-comment{color:#A2B9A0}.code .tok-number{color:#B6DEA3}.code .tok-variable{color:#9AD8FF}.code .tok-operator{color:#E5B2E9}.code .tok-added{color:#98DDA4}.code .tok-removed{color:#FF9F9F}@media print{.code .tok-keyword{color:#5E258F}.code .tok-type{color:#005C55}.code .tok-function{color:#714900}.code .tok-string{color:#85380D}.code .tok-comment{color:#3C6143}.code .tok-number{color:#345E26}.code .tok-variable{color:#154F7C}.code .tok-operator{color:#733B79}.code .tok-added{color:#1D6234}.code .tok-removed{color:#972F38}}</style></head><body class="articlepage" data-root="../"><a href="#main" class="skip">跳至正文</a><header class="top"><div class="bar"><a class="brand" href="../index.html"><span class="brandmark" aria-hidden="true"><i></i><i></i><i></i></span>AI Infra Course</a><button class="toc-toggle" type="button" data-toc-toggle aria-controls="reader-toc" aria-expanded="true" hidden>收起目录</button><nav aria-label="主导航"><a href="../index.html">课程</a><a href="../roadmap.html">学习路线</a><a href="../handbook.html">合订本</a><a href="https://github.com/ZJtoast/AI-Infra-Course">GitHub ↗</a></nav></div></header><main id="main" class="reader"><div class="articlehero"><div class="eyebrow">第 19 课　/　训练平台与性能工程</div><h1>长上下文服务的容量与系统设计</h1><p>为百万 token 的 MoE 服务估算每卡 KV 容量、跨机流量和副本数，再用首 token 时延与故障恢复条件检验这些预算。</p><div class="actions"><a class="btn" href="../word/19-long-context-system-design.docx">下载 Word ↓</a></div></div><div class="layout"><aside id="reader-toc" aria-label="知识点目录"><details class="tocbox" open><summary>本页知识点 <small>11</small></summary><ol class="toc"><li class="lv2" id="idx-l19-s001"><a class="" href="#l19-s001">1　服务负载与目标</a></li><li class="lv2" id="idx-l19-s002"><a class="" href="#l19-s002">2　模型参数与每 token 成本</a></li><li class="lv2" id="idx-l19-s003"><a class="" href="#l19-s003">3　百万上下文的逐层状态</a></li><li class="lv2" id="idx-l19-s004"><a class="" href="#l19-s004">4　256 卡训练的数据布局</a></li><li class="lv2" id="idx-l19-s005"><a class="" href="#l19-s005">5　冷请求的跨池 KV 传输</a></li><li class="lv2" id="idx-l19-s006"><a class="" href="#l19-s006">6　远端前缀恢复与重算</a></li><li class="lv2" id="idx-l19-s007"><a class="" href="#l19-s007">7　推测解码的准入预算</a></li><li class="lv2" id="idx-l19-s008"><a class="" href="#l19-s008">8　在线策略与持续训练的版本边界</a></li><li class="lv2" id="idx-l19-s009"><a class="" href="#l19-s009">9　训练与服务的故障恢复</a></li><li class="lv2" id="idx-l19-s010"><a class="" href="#l19-s010">10　系统设计的案例对照</a></li><li class="lv2" id="idx-l19-s011"><a class="" href="#l19-s011">11　容量设计与验收条件</a></li></ol></details></aside><div class="toc-divider" role="separator" tabindex="0" aria-label="目录宽度" aria-controls="reader-toc" aria-orientation="vertical" aria-valuemin="180" aria-valuemax="560" aria-valuenow="300" title="拖动调宽，也可用左右方向键" hidden></div><div class="toc-shade" aria-hidden="true" hidden></div><article><p class="prose">代码块旁的行号链接指向本课采用的提交，仓库及许可见课末。</p><nav class="practice-route" aria-label="第 19 课练习顺序" id="Route19"><strong>本课练习顺序</strong><ol><li><a href="#Q19_01">普通题</a><span>由各层保留位置算满上下文的单卡 KV 需求，再以最紧的 rank 判定可容纳条数。</span></li><li><a href="#Q19_02">进阶题</a><span>联立交接带宽、decode 驻留与恢复时长，计算准入余量并追踪首词慢点。</span></li><li><a href="#Q19_511">情景面试题</a><span>固定冷长与热短请求的负载组成，检验扩容后违约究竟来自传输、放置还是页池。</span></li></ol></nav><section class="topic" id="l19-s001">
 <h2><strong>1　服务负载与目标</strong></h2>
 <p class="prose">一名工程师上传<strong>设备手册</strong>和两张缺陷图片，请智能体查找可替换的零件，再调用库存工具。第二轮拿到库存返回值后，要沿着同一段材料继续回答。长输入、短输出、工具等待、前缀<a class="term" href="#Def19f465e0254961">复用</a>和持续更新的策略，在这个请求里会一起出现。下文选定一套可计算的教学配置。所有容量上限、服务时长与单价均为设计输入，工程实现与实测吞吐另行验证。</p>
 <p class="prose">上下文上限取 <span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><msup><mrow><mn>2</mn></mrow><mrow><mn>20</mn></mrow></msup><mo>=</mo><mn>1</mn><mo>,</mo><mn>048</mn><mo>,</mo><mn>576</mn></math></span> 个位置，包含输入、视觉占位与预留输出。若每张图编码为 576 个位置，另预留 2,048 个输出，文本及工具历史至多用 1,045,376 个位置。先运行对应版本的多模态处理器，再做<a class="term" href="#Def1984a10b079a41">准入</a>；把一张图只记成一个占位符会在 <a class="term" href="#Def198552a9d24381">GPU</a> 上少预留数百行。</p>
 <p class="caption"><strong>代码 1　</strong>vLLM 将展平的视觉向量写到文本嵌入中的指定位置</p>
-<figure class="code"><figcaption><span><strong>Python    </strong><a href="https://github.com/vllm-project/vllm/blob/93eeae695f5178eddff728fe50eb18e30c90c33a/vllm/model_executor/models/utils.py#L797-L815">vllm / utils.py    L797–815</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code><span class="cl" data-line="797"><span class="kw">if</span> len(multimodal_embeddings) == <span class="fn">0</span>:</span>
-<span class="cl" data-line="798">    <span class="kw">return</span> inputs_embeds</span>
+<figure class="code" data-language="python"><figcaption><span><strong>Python    </strong><a href="https://github.com/vllm-project/vllm/blob/93eeae695f5178eddff728fe50eb18e30c90c33a/vllm/model_executor/models/utils.py#L797-L815">vllm / utils.py    L797–815</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code class="language-python"><span class="cl" data-line="797"><span class="tok-keyword">if</span> <span class="tok-function">len</span>(multimodal_embeddings) <span class="tok-operator">==</span> <span class="tok-number">0</span>:</span>
+<span class="cl" data-line="798">    <span class="tok-keyword">return</span> inputs_embeds</span>
 <span class="cl" data-line="799"></span>
-<span class="cl" data-line="800">mm_embeds_flat = _flatten_embeddings(multimodal_embeddings)</span>
-<span class="cl" data-line="801">input_dtype = inputs_embeds.dtype</span>
+<span class="cl" data-line="800">mm_embeds_flat <span class="tok-operator">=</span> <span class="tok-function">_flatten_embeddings</span>(multimodal_embeddings)</span>
+<span class="cl" data-line="801">input_dtype <span class="tok-operator">=</span> inputs_embeds<span class="tok-operator">.</span>dtype</span>
 <span class="cl" data-line="802"></span>
-<span class="cl" data-line="803"><span class="kw">try</span>:</span>
-<span class="cl" data-line="804">    # If is_multimodal is on CPU this avoids a D2H sync</span>
-<span class="cl" data-line="805">    inputs_embeds[is_multimodal] = mm_embeds_flat.to(dtype=input_dtype)</span>
-<span class="cl" data-line="806"><span class="kw">except</span> RuntimeError <span class="kw">as</span> e:</span>
-<span class="cl" data-line="807">    num_actual_tokens = len(mm_embeds_flat)</span>
-<span class="cl" data-line="808">    num_expected_tokens = is_multimodal.sum().item()</span>
+<span class="cl" data-line="803"><span class="tok-keyword">try</span>:</span>
+<span class="cl" data-line="804">    <span class="tok-comment"># If is_multimodal is on CPU this avoids a D2H sync</span></span>
+<span class="cl" data-line="805">    inputs_embeds[is_multimodal] <span class="tok-operator">=</span> mm_embeds_flat<span class="tok-operator">.</span><span class="tok-function">to</span>(dtype<span class="tok-operator">=</span>input_dtype)</span>
+<span class="cl" data-line="806"><span class="tok-keyword">except</span> RuntimeError <span class="tok-keyword">as</span> e:</span>
+<span class="cl" data-line="807">    num_actual_tokens <span class="tok-operator">=</span> <span class="tok-function">len</span>(mm_embeds_flat)</span>
+<span class="cl" data-line="808">    num_expected_tokens <span class="tok-operator">=</span> is_multimodal<span class="tok-operator">.</span><span class="tok-function">sum</span>()<span class="tok-operator">.</span><span class="tok-function">item</span>()</span>
 <span class="cl" data-line="809"></span>
-<span class="cl" data-line="810">    <span class="kw">if</span> num_actual_tokens != num_expected_tokens:</span>
-<span class="cl" data-line="811">        expr = _embedding_count_expression(multimodal_embeddings)</span>
+<span class="cl" data-line="810">    <span class="tok-keyword">if</span> num_actual_tokens <span class="tok-operator">!=</span> num_expected_tokens:</span>
+<span class="cl" data-line="811">        expr <span class="tok-operator">=</span> <span class="tok-function">_embedding_count_expression</span>(multimodal_embeddings)</span>
 <span class="cl" data-line="812"></span>
-<span class="cl" data-line="813">        <span class="kw">raise</span> ValueError(</span>
-<span class="cl" data-line="814">            <span class="str">f"Attempted to assign </span>{expr}<span class="str"> = </span>{num_actual_tokens}<span class="str"> "</span></span>
-<span class="cl" data-line="815">            <span class="str">f"multimodal tokens to </span>{num_expected_tokens}<span class="str"> placeholders"</span></span></code></pre></figure>
+<span class="cl" data-line="813">        <span class="tok-keyword">raise</span> <span class="tok-function">ValueError</span>(</span>
+<span class="cl" data-line="814">            <span class="tok-string">f"Attempted to assign {</span>expr<span class="tok-string">} = {</span>num_actual_tokens<span class="tok-string">}</span> <span class="tok-string">"</span></span>
+<span class="cl" data-line="815">            <span class="tok-string">f"multimodal tokens to {</span>num_expected_tokens<span class="tok-string">} placeholders"</span></span></code></pre></figure>
 <p class="prose">每个视觉位置都要有与 decoder 输入宽度相容的向量。mask 选出的位置数与视觉向量行数不合，代码会报告两边数量。缓存身份须包括媒体内容、裁剪/分辨率、编码器及处理器版本。相同文字与相同占位符可对应两张不同图片。</p>
 <p class="prose">工作负载在设计点上每秒到达 0.6 个满长会话，<a class="term" href="#Def19f28fe0b0f9e5">decode</a> <a class="term" href="#Def19c0c8484528dc">驻留</a>均值先按 60 秒，长输入单独设 <a class="term" href="#Def19b9a844471798">TTFT</a> 目标。短请求另设队列和预算。答辩时要按冷热前缀、长度以及单轮/多轮分层呈现，避免容易满足的短请求掩盖最难的一类。</p>
 <p class="prose">若门口限流把 100 条长请求中的 20 条直接拒绝，服务内部成功处理的 80 条可能都有良好 TTFT。对客户承诺“每个到达请求”的 <a class="term" href="#Def1996d09541493e">SLO</a> 时，分母应保留原来的 100，并按约定把拒绝计失败。将到达、准入和完成分别计数，可以防止靠提前排除昂贵请求得到虚高的达标率。</p>
@@ -33,17 +33,17 @@
 <p class="prose">每个专家有三块 <span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><mn>4096</mn><mo>×</mo><mn>4096</mn></math></span> 权重。48 层共约 773.09 亿<strong>专家参数</strong>，每 <a class="term" href="#Def19397a73c4e319">token</a> 只选两个专家，对应约 48.32 亿专家参数参与。Q、O 投影各为 <span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><mi>D</mi><mo>×</mo><mi>D</mi></math></span>，K、V 各为 <span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><mi>D</mi><mo>×</mo><mn>1024</mn></math></span>，共约 20.13 亿。另有绑定词表 5.37 亿、路由约 629 万及视觉约 10 亿，合计约 808.66 亿，BF16 约 150.62 <a class="term" href="#Def19d027fdf77d2c">GiB</a>。这个口径略去归一化等小项。</p>
 <p class="eq"><span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><msub><mrow><mtext>P</mtext></mrow><mrow><mtext>e</mtext><mtext>x</mtext><mtext>p</mtext><mtext>e</mtext><mtext>r</mtext><mtext>t</mtext></mrow></msub><mtext> = </mtext><mtext>3</mtext><mtext>L</mtext><mtext>D</mtext><mtext>m</mtext><mtext>E</mtext></math></span></p>
 <p class="caption"><strong>代码 2　</strong>把 token 的两次选择重新排成按专家连续的行</p>
-<figure class="code"><figcaption><span><strong>Python    </strong><a href="https://github.com/pytorch/torchtitan/blob/e8d94c2d2b421dd94fa37dbb374b40fd18a731fa/torchtitan/models/common/moe/token_dispatcher.py#L135-L148">torchtitan / token_dispatcher.py    L135–148</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code><span class="cl" data-line="135"># Reorder the token indices to match the order of the experts where N = T*K</span>
-<span class="cl" data-line="136">token_indices_experts_sorted_N = torch.argsort(</span>
-<span class="cl" data-line="137">    topk_expert_ids_TK.view(-<span class="fn">1</span>).to(self._expert_ids_sort_dtype), stable=<span class="kw">True</span></span>
+<figure class="code" data-language="python"><figcaption><span><strong>Python    </strong><a href="https://github.com/pytorch/torchtitan/blob/e8d94c2d2b421dd94fa37dbb374b40fd18a731fa/torchtitan/models/common/moe/token_dispatcher.py#L135-L148">torchtitan / token_dispatcher.py    L135–148</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code class="language-python"><span class="cl" data-line="135"><span class="tok-comment"># Reorder the token indices to match the order of the experts where N = T*K</span></span>
+<span class="cl" data-line="136">token_indices_experts_sorted_N <span class="tok-operator">=</span> torch<span class="tok-operator">.</span><span class="tok-function">argsort</span>(</span>
+<span class="cl" data-line="137">    topk_expert_ids_TK<span class="tok-operator">.</span><span class="tok-function">view</span>(<span class="tok-operator">-</span><span class="tok-number">1</span>)<span class="tok-operator">.</span><span class="tok-function">to</span>(<span class="tok-type">self</span><span class="tok-operator">.</span>_expert_ids_sort_dtype), stable<span class="tok-operator">=</span><span class="tok-keyword">True</span></span>
 <span class="cl" data-line="138">)</span>
-<span class="cl" data-line="139">topk_scores_experts_sorted_N = topk_scores_TK.view(-<span class="fn">1</span>)[</span>
+<span class="cl" data-line="139">topk_scores_experts_sorted_N <span class="tok-operator">=</span> topk_scores_TK<span class="tok-operator">.</span><span class="tok-function">view</span>(<span class="tok-operator">-</span><span class="tok-number">1</span>)[</span>
 <span class="cl" data-line="140">    token_indices_experts_sorted_N</span>
 <span class="cl" data-line="141">]</span>
-<span class="cl" data-line="142">token_indices_experts_sorted_N = token_indices_experts_sorted_N // self.top_k</span>
-<span class="cl" data-line="143">routed_input_ND = x_TD[token_indices_experts_sorted_N]</span>
+<span class="cl" data-line="142">token_indices_experts_sorted_N <span class="tok-operator">=</span> token_indices_experts_sorted_N <span class="tok-operator">//</span> <span class="tok-type">self</span><span class="tok-operator">.</span>top_k</span>
+<span class="cl" data-line="143">routed_input_ND <span class="tok-operator">=</span> x_TD[token_indices_experts_sorted_N]</span>
 <span class="cl" data-line="144"></span>
-<span class="cl" data-line="145"><span class="kw">return</span> (</span>
+<span class="cl" data-line="145"><span class="tok-keyword">return</span> (</span>
 <span class="cl" data-line="146">    routed_input_ND,</span>
 <span class="cl" data-line="147">    token_indices_experts_sorted_N,</span>
 <span class="cl" data-line="148">    topk_scores_experts_sorted_N,</span></code></pre></figure>
@@ -64,95 +64,95 @@
 <h2><strong>4　256 卡训练的数据布局</strong></h2>
 <p class="prose">选 32 个八卡节点，<a class="term" href="#Def19d588600c22b5">TP8</a> 在节点内、PP4 将模型按层分为四段，每段 12 层，CP4 切同一条长序列，数据并行轴为 2。<span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><mn>8</mn><mo>×</mo><mn>4</mn><mo>×</mo><mn>4</mn><mo>×</mo><mn>2</mn><mo>=</mo><mn>256</mn></math></span>。专家分组 EP2 在已有坐标内组建，选取同 <a class="term" href="#Def19fd2527bf9bc2">PP</a>、<a class="term" href="#Def19727133c881c1">CP</a>、<a class="term" href="#Def1952298fab40d3">TP</a> 坐标的两个数据<a class="term" href="#Def193770e3485f96">分片</a>伙伴。本设计要求专家在每组按专家编号拆分，每个专家再按 TP8 切中间维；实际框架需打印这两种 group 与本地参数形状后核对。</p>
 <p class="caption"><strong>代码 3　</strong>TorchTitan 分别校验稠密 mesh 乘积与专家区域可整除性</p>
-<figure class="code"><figcaption><span><strong>Python    </strong><a href="https://github.com/pytorch/torchtitan/blob/e8d94c2d2b421dd94fa37dbb374b40fd18a731fa/torchtitan/distributed/parallelism_context.py#L219-L230">torchtitan / parallelism_context.py    L219–230</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code><span class="cl" data-line="219"><span class="kw">if</span> dp_replicate * dp_shard * cp * tp * pp != self.world_size:</span>
-<span class="cl" data-line="220">    <span class="kw">raise</span> ValueError(</span>
-<span class="cl" data-line="221">        <span class="str">f"Invalid parallelism: dp_replicate(</span>{dp_replicate}<span class="str">) * dp_shard(</span>{dp_shard}<span class="str">) * "</span></span>
-<span class="cl" data-line="222">        <span class="str">f"cp(</span>{cp}<span class="str">) * tp(</span>{tp}<span class="str">) * pp(</span>{pp}<span class="str">) != WORLD_SIZE(</span>{self.world_size}<span class="str">)"</span></span>
+<figure class="code" data-language="python"><figcaption><span><strong>Python    </strong><a href="https://github.com/pytorch/torchtitan/blob/e8d94c2d2b421dd94fa37dbb374b40fd18a731fa/torchtitan/distributed/parallelism_context.py#L219-L230">torchtitan / parallelism_context.py    L219–230</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code class="language-python"><span class="cl" data-line="219"><span class="tok-keyword">if</span> dp_replicate <span class="tok-operator">*</span> dp_shard <span class="tok-operator">*</span> cp <span class="tok-operator">*</span> tp <span class="tok-operator">*</span> pp <span class="tok-operator">!=</span> <span class="tok-type">self</span><span class="tok-operator">.</span>world_size:</span>
+<span class="cl" data-line="220">    <span class="tok-keyword">raise</span> <span class="tok-function">ValueError</span>(</span>
+<span class="cl" data-line="221">        <span class="tok-string">f"Invalid parallelism: dp_replicate({</span>dp_replicate<span class="tok-string">}) * dp_shard({</span>dp_shard<span class="tok-string">}) * "</span></span>
+<span class="cl" data-line="222">        <span class="tok-string">f"cp({</span>cp<span class="tok-string">}) * tp({</span>tp<span class="tok-string">}) * pp({</span>pp<span class="tok-string">}) != WORLD_SIZE({</span><span class="tok-type">self</span><span class="tok-operator">.</span>world_size<span class="tok-string">})"</span></span>
 <span class="cl" data-line="223">    )</span>
 <span class="cl" data-line="224"></span>
-<span class="cl" data-line="225">sparse_region = dp_shard * cp * tp</span>
-<span class="cl" data-line="226"><span class="kw">if</span> sparse_region % ep != <span class="fn">0</span>:</span>
-<span class="cl" data-line="227">    <span class="kw">raise</span> ValueError(</span>
-<span class="cl" data-line="228">        <span class="str">f"expert_parallel_degree (</span>{ep}<span class="str">) must divide "</span></span>
-<span class="cl" data-line="229">        <span class="str">f"dp_shard * cp * tp (</span>{sparse_region}<span class="str">)"</span></span>
+<span class="cl" data-line="225">sparse_region <span class="tok-operator">=</span> dp_shard <span class="tok-operator">*</span> cp <span class="tok-operator">*</span> tp</span>
+<span class="cl" data-line="226"><span class="tok-keyword">if</span> sparse_region <span class="tok-operator">%</span> ep <span class="tok-operator">!=</span> <span class="tok-number">0</span>:</span>
+<span class="cl" data-line="227">    <span class="tok-keyword">raise</span> <span class="tok-function">ValueError</span>(</span>
+<span class="cl" data-line="228">        <span class="tok-string">f"expert_parallel_degree ({</span>ep<span class="tok-string">}) must divide "</span></span>
+<span class="cl" data-line="229">        <span class="tok-string">f"dp_shard * cp * tp ({</span>sparse_region<span class="tok-string">})"</span></span>
 <span class="cl" data-line="230">    )</span></code></pre></figure>
 <p class="prose">设备总数有独立的约束。ep 可整除 <code class="inline-id">sparse_region</code> 只说明能构组，不能保证两个专家伙伴就在预期的链路上。用 <a class="term" href="#Def19c2aaec5fcdcc">rank</a> 到节点、<a class="term" href="#Def198552a9d24381">GPU</a>、<a class="term" href="#Def1966fdd6135d68">NIC</a> 的映射核对真实通信路径。</p>
 <p class="prose">一条满长序列、一个 <a class="term" href="#Def19fcbbd9b7732e">BF16</a> hidden 的形状为 <span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><mo>[</mo><mn>1048576,4096</mn><mo>]</mo></math></span>，共 8 <a class="term" href="#Def19d027fdf77d2c">GiB</a>。CP4 后每个上下文分片为 2 GiB，若另启<a class="term" href="#Def198d6c44586dba">序列并行</a>须按实际分片点重算。每个 PP 段在边界保留<a class="term" href="#Def19fe112bc935e2">激活</a>、段内选择性重算，记录 microbatch 同时<a class="term" href="#Def1973223db16fe4">在途</a>数。优化器一阶与二阶矩按 <a class="term" href="#Def1928c554f6c5e8">FP32</a>，每个受管参数两份共 8 字节，<a class="term" href="#Def19529e2f3bfb94">主权重</a>另计。按训练分片策略汇总唯一持有字节，不能把推理权重除以 256 当作训练峰值。</p>
 <p class="caption"><strong>代码 4　</strong>不同上下文分块的注意力结果通过归一化信息合并</p>
-<figure class="code"><figcaption><span><strong>Python    </strong><a href="https://github.com/pytorch/pytorch/blob/8494b157890dfb90df1d13cf080eda5efdf7e522/torch/distributed/tensor/experimental/_context_parallel/_attention.py#L178-L193">pytorch / _attention.py    L178–193</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code><span class="cl" data-line="178">    self._out.chunk(ROUND_ROBIN_CYCLE, dim=self._seq_dim)[<span class="fn">1</span>]</span>
-<span class="cl" data-line="179">    <span class="kw">if</span> partial</span>
-<span class="cl" data-line="180">    <span class="kw">else</span> self._out</span>
+<figure class="code" data-language="python"><figcaption><span><strong>Python    </strong><a href="https://github.com/pytorch/pytorch/blob/8494b157890dfb90df1d13cf080eda5efdf7e522/torch/distributed/tensor/experimental/_context_parallel/_attention.py#L178-L193">pytorch / _attention.py    L178–193</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code class="language-python"><span class="cl" data-line="178">    <span class="tok-type">self</span><span class="tok-operator">.</span>_out<span class="tok-operator">.</span><span class="tok-function">chunk</span>(ROUND_ROBIN_CYCLE, dim<span class="tok-operator">=</span><span class="tok-type">self</span><span class="tok-operator">.</span>_seq_dim)[<span class="tok-number">1</span>]</span>
+<span class="cl" data-line="179">    <span class="tok-keyword">if</span> partial</span>
+<span class="cl" data-line="180">    <span class="tok-keyword">else</span> <span class="tok-type">self</span><span class="tok-operator">.</span>_out</span>
 <span class="cl" data-line="181">)</span>
 <span class="cl" data-line="182"></span>
-<span class="cl" data-line="183"># The algorithm from</span>
-<span class="cl" data-line="184"># github.com/zhuzilin/ring-flash-attention/pull/34#issuecomment-2076126795</span>
-<span class="cl" data-line="185"># gives a relatively stable result.</span>
-<span class="cl" data-line="186">out = out - F.sigmoid(block_lse - lse) * (out - block_out)</span>
-<span class="cl" data-line="187">lse = lse - F.logsigmoid(lse - block_lse)</span>
-<span class="cl" data-line="188"><span class="kw">if</span> partial:</span>
-<span class="cl" data-line="189">    self._lse = _partial_update(</span>
-<span class="cl" data-line="190">        self._lse,</span>
+<span class="cl" data-line="183"><span class="tok-comment"># The algorithm from</span></span>
+<span class="cl" data-line="184"><span class="tok-comment"># github.com/zhuzilin/ring-flash-attention/pull/34#issuecomment-2076126795</span></span>
+<span class="cl" data-line="185"><span class="tok-comment"># gives a relatively stable result.</span></span>
+<span class="cl" data-line="186">out <span class="tok-operator">=</span> out <span class="tok-operator">-</span> F<span class="tok-operator">.</span><span class="tok-function">sigmoid</span>(block_lse <span class="tok-operator">-</span> lse) <span class="tok-operator">*</span> (out <span class="tok-operator">-</span> block_out)</span>
+<span class="cl" data-line="187">lse <span class="tok-operator">=</span> lse <span class="tok-operator">-</span> F<span class="tok-operator">.</span><span class="tok-function">logsigmoid</span>(lse <span class="tok-operator">-</span> block_lse)</span>
+<span class="cl" data-line="188"><span class="tok-keyword">if</span> partial:</span>
+<span class="cl" data-line="189">    <span class="tok-type">self</span><span class="tok-operator">.</span>_lse <span class="tok-operator">=</span> <span class="tok-function">_partial_update</span>(</span>
+<span class="cl" data-line="190">        <span class="tok-type">self</span><span class="tok-operator">.</span>_lse,</span>
 <span class="cl" data-line="191">        lse,</span>
-<span class="cl" data-line="192">        dim=self._seq_dim,</span>
-<span class="cl" data-line="193">        n_chunks=ROUND_ROBIN_CYCLE,</span></code></pre></figure>
+<span class="cl" data-line="192">        dim<span class="tok-operator">=</span><span class="tok-type">self</span><span class="tok-operator">.</span>_seq_dim,</span>
+<span class="cl" data-line="193">        n_chunks<span class="tok-operator">=</span>ROUND_ROBIN_CYCLE,</span></code></pre></figure>
 <p class="prose">CP 把 K/V 切到不同设备，对同一 <a class="term" href="#Def193b7755ef3059">query</a> 的局部 <a class="term" href="#Def192c44907a4775">softmax</a> 分母各异。合并要使用每块 log-sum-exp 重新加权，不能直接平均输出。全局层有跨块依赖，滑窗层可根据窗口和<a class="term" href="#Def19b409c80937d4">分块</a>边界选择较短的交换范围。</p>
 <p class="prose"><a class="term" href="#Def192000f5050fc2">EP</a> 路径按专家目的地 dispatch，再将输出 <a class="term" href="#Def19594bdce15d06">combine</a> 回原 <a class="term" href="#Def19397a73c4e319">token</a>。若一整行 BF16 hidden（8192 字节）必须发往一个远端 rank，去回各一行是 16 <a class="term" href="#Def19748b595647bb">KiB</a> 逻辑<a class="term" href="#Def196d186c04e9df">载荷</a>。两个专家同处远端能否<a class="term" href="#Def19f465e0254961">复用</a>同一发送行取决于实现；专家<a class="term" href="#Def1945bb44d04ce3">张量</a>并行和物理链路上的副本另算。优先把 TP <a class="term" href="#Def198de0dcc95ca5">归约</a>留在高速域内，跨节点的 CP 和 EP 分别检查 rail 争用。</p>
 <p class="caption"><strong>代码 5　</strong>DeepEP 同时保留按 rank 去重的数量和按专家对齐的数量</p>
-<figure class="code"><figcaption><span><strong>Python    </strong><a href="https://github.com/deepseek-ai/DeepEP/blob/f6aa38fe06cd4a0489e7730365d4e0114970a2f3/deep_ep/buffers/ep.py#L43-L56">DeepEP / ep.py    L43–56</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code><span class="cl" data-line="43"><span class="str">psum_num_recv_tokens_per_scaleup_rank: inclusive prefix sum of deduplicated received token counts</span></span>
-<span class="cl" data-line="44"><span class="str">    per scaleup rank, shape `[num_scaleup_ranks]`. A token is counted once per rank even if</span></span>
-<span class="cl" data-line="45"><span class="str">    multiple of its top-k experts land on the same rank. The last element equals the total number</span></span>
-<span class="cl" data-line="46"><span class="str">    of received tokens.</span></span>
-<span class="cl" data-line="47"><span class="str">psum_num_recv_tokens_per_expert: prefix sum of alignment-padded received token counts per local</span></span>
-<span class="cl" data-line="48"><span class="str">    expert, shape `[num_local_experts]`. Each expert's count is padded to `expert_alignment`.</span></span>
-<span class="cl" data-line="49"><span class="str">    In non-expand mode, this is the inclusive prefix sum. In expand mode, `psum[i]` equals</span></span>
-<span class="cl" data-line="50"><span class="str">    the aligned cumulative count of experts before `i` plus the actual (unaligned) token count</span></span>
-<span class="cl" data-line="51"><span class="str">    of expert `i` — so `psum[i] - align(psum[i-1], expert_alignment)` recovers the real</span></span>
-<span class="cl" data-line="52"><span class="str">    count for expert `i`, and `align(psum[i], expert_alignment)` gives expert `i+1`'s</span></span>
-<span class="cl" data-line="53"><span class="str">    starting offset.</span></span>
-<span class="cl" data-line="54"><span class="str">num_recv_tokens_per_expert_list: Python list of per-expert received token counts (CPU-side).</span></span>
-<span class="cl" data-line="55"><span class="str">num_unaligned_recv_tokens_per_expert: the actual (unaligned) number of tokens received per local</span></span>
-<span class="cl" data-line="56"><span class="str">    expert, shape `[num_local_experts]` with `torch.int`. Only populated in expand mode.</span></span></code></pre></figure>
+<figure class="code" data-language="python"><figcaption><span><strong>Python    </strong><a href="https://github.com/deepseek-ai/DeepEP/blob/f6aa38fe06cd4a0489e7730365d4e0114970a2f3/deep_ep/buffers/ep.py#L43-L56">DeepEP / ep.py    L43–56</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code class="language-python"><span class="cl" data-line="43">psum_num_recv_tokens_per_scaleup_rank: inclusive prefix <span class="tok-type">sum</span> of deduplicated received token counts</span>
+<span class="cl" data-line="44">    per scaleup rank, shape `[num_scaleup_ranks]`<span class="tok-operator">.</span> A token <span class="tok-keyword">is</span> counted once per rank even <span class="tok-keyword">if</span></span>
+<span class="cl" data-line="45">    multiple of its top<span class="tok-operator">-</span>k experts land on the same rank<span class="tok-operator">.</span> The last element equals the total number</span>
+<span class="cl" data-line="46">    of received tokens<span class="tok-operator">.</span></span>
+<span class="cl" data-line="47">psum_num_recv_tokens_per_expert: prefix <span class="tok-type">sum</span> of alignment<span class="tok-operator">-</span>padded received token counts per local</span>
+<span class="cl" data-line="48">    expert, shape `[num_local_experts]`<span class="tok-operator">.</span> Each expert<span class="tok-string">'s count is padded to `expert_alignment`.</span></span>
+<span class="cl" data-line="49">    In non<span class="tok-operator">-</span>expand mode, this <span class="tok-keyword">is</span> the inclusive prefix <span class="tok-type">sum</span><span class="tok-operator">.</span> In expand mode, `psum[i]` equals</span>
+<span class="cl" data-line="50">    the aligned cumulative count of experts before `i` plus the <span class="tok-function">actual</span> (unaligned) token count</span>
+<span class="cl" data-line="51">    of expert `i` — so `psum[i] <span class="tok-operator">-</span> <span class="tok-function">align</span>(psum[i<span class="tok-operator">-</span><span class="tok-number">1</span>], expert_alignment)` recovers the real</span>
+<span class="cl" data-line="52">    count <span class="tok-keyword">for</span> expert `i`, <span class="tok-keyword">and</span> `<span class="tok-function">align</span>(psum[i], expert_alignment)` gives expert `i<span class="tok-operator">+</span><span class="tok-number">1</span>`<span class="tok-string">'s</span></span>
+<span class="cl" data-line="53">    starting offset<span class="tok-operator">.</span></span>
+<span class="cl" data-line="54">num_recv_tokens_per_expert_list: Python <span class="tok-type">list</span> of per<span class="tok-operator">-</span>expert received token <span class="tok-function">counts</span> (CPU<span class="tok-operator">-</span>side)<span class="tok-operator">.</span></span>
+<span class="cl" data-line="55">num_unaligned_recv_tokens_per_expert: the <span class="tok-function">actual</span> (unaligned) number of tokens received per local</span>
+<span class="cl" data-line="56">    expert, shape `[num_local_experts]` <span class="tok-keyword">with</span> `torch<span class="tok-operator">.</span>int`<span class="tok-operator">.</span> Only populated <span class="tok-keyword">in</span> expand mode<span class="tok-operator">.</span></span></code></pre></figure>
 <p class="prose"><a class="term" href="#Def1933550f6bd57f">RDMA</a> 是网卡访问已注册缓冲区的传输路径，<a class="term" href="#Def1987b406bce49b">NCCL</a> 提供 collective 语义，DeepEP 的 dispatch 又有可变专家路由与计数。在选 GPU 发起或主机提交前，先检查缓冲区注册、流依赖、<a class="term" href="#Def19d66ac523350d">完成事件</a>及消费方何时可复用<a class="term" href="#Def19b39504bb5cc8">页</a>。</p>
 <p class="prose">检查一份并行设计时，先为一个 token 写出稠密层所在 TP 组，再写它选择专家后所到的 rank。两套划分可以重用同一物理卡，不能把所有组维度机械相乘。用携带全局 token 号的输入追一路 dispatch/combine，再在物理<a class="term" href="#Def19d9c80c5b0f4a">拓扑</a>上标出跨机边，既能验输出归属，也能数哪段通信真正使用了跨机带宽。</p>
 <a class="back" href="#idx-l19-s004">↑ 返回知识点目录</a></section><section class="topic" id="l19-s005">
 <h2><strong>5　冷请求的跨池 KV 传输</strong></h2>
 <p class="prose">把长提示处理和逐 <a class="term" href="#Def19397a73c4e319">token</a> 生成部署到两个资源池。一个 P 副本用 <span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><mi>T</mi><mi>P</mi><mn>8</mn><mo>×</mo><mi>C</mi><mi>P</mi><mn>4</mn></math></span> 做冷 <a class="term" href="#Def190247674f810d">prefill</a>，一个 D 副本用 <a class="term" href="#Def19d588600c22b5">TP8</a>、EP1，把全部专家的<a class="term" href="#Def1945bb44d04ce3">张量</a><a class="term" href="#Def193770e3485f96">分片</a>留在同一节点。这样 <a class="term" href="#Def19f28fe0b0f9e5">decode</a> 的专家路径避免跨节点 dispatch，但每个副本都要<a class="term" href="#Def19d74e2538f88c">常驻</a>完整模型的分片。视觉编码和工具执行由独立工作进程承接。P 的上下文分片在交付前需汇合到各自的目标 <a class="term" href="#Def19a3316f4dfe1c">KV 头</a>。</p>
 <p class="caption"><strong>代码 6　</strong>vLLM 的调度轮给长 prefill 限额</p>
-<figure class="code"><figcaption><span><strong>Python    </strong><a href="https://github.com/vllm-project/vllm/blob/93eeae695f5178eddff728fe50eb18e30c90c33a/vllm/v1/core/sched/scheduler.py#L807-L825">vllm / scheduler.py    L807–825</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code><span class="cl" data-line="807">num_new_tokens = (</span>
-<span class="cl" data-line="808">    request.num_tokens_with_spec</span>
-<span class="cl" data-line="809">    + request.num_output_placeholders</span>
-<span class="cl" data-line="810">    - request.num_computed_tokens</span>
+<figure class="code" data-language="python"><figcaption><span><strong>Python    </strong><a href="https://github.com/vllm-project/vllm/blob/93eeae695f5178eddff728fe50eb18e30c90c33a/vllm/v1/core/sched/scheduler.py#L807-L825">vllm / scheduler.py    L807–825</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code class="language-python"><span class="cl" data-line="807">num_new_tokens <span class="tok-operator">=</span> (</span>
+<span class="cl" data-line="808">    request<span class="tok-operator">.</span>num_tokens_with_spec</span>
+<span class="cl" data-line="809">    <span class="tok-operator">+</span> request<span class="tok-operator">.</span>num_output_placeholders</span>
+<span class="cl" data-line="810">    <span class="tok-operator">-</span> request<span class="tok-operator">.</span>num_computed_tokens</span>
 <span class="cl" data-line="811">)</span>
-<span class="cl" data-line="812"><span class="kw">if</span> <span class="fn">0</span> &lt; long_prefill_token_threshold &lt; num_new_tokens:</span>
-<span class="cl" data-line="813">    num_new_tokens = long_prefill_token_threshold</span>
-<span class="cl" data-line="814">num_new_tokens = min(</span>
-<span class="cl" data-line="815">    num_new_tokens, token_budget, input_budget - draft_slots</span>
+<span class="cl" data-line="812"><span class="tok-keyword">if</span> <span class="tok-number">0</span> <span class="tok-operator">&lt;</span> long_prefill_token_threshold <span class="tok-operator">&lt;</span> num_new_tokens:</span>
+<span class="cl" data-line="813">    num_new_tokens <span class="tok-operator">=</span> long_prefill_token_threshold</span>
+<span class="cl" data-line="814">num_new_tokens <span class="tok-operator">=</span> <span class="tok-function">min</span>(</span>
+<span class="cl" data-line="815">    num_new_tokens, token_budget, input_budget <span class="tok-operator">-</span> draft_slots</span>
 <span class="cl" data-line="816">)</span>
 <span class="cl" data-line="817"></span>
-<span class="cl" data-line="818"># Make sure the input position does not exceed the max model len.</span>
-<span class="cl" data-line="819"># This is necessary when using spec decoding.</span>
-<span class="cl" data-line="820">num_new_tokens = min(</span>
+<span class="cl" data-line="818"><span class="tok-comment"># Make sure the input position does not exceed the max model len.</span></span>
+<span class="cl" data-line="819"><span class="tok-comment"># This is necessary when using spec decoding.</span></span>
+<span class="cl" data-line="820">num_new_tokens <span class="tok-operator">=</span> <span class="tok-function">min</span>(</span>
 <span class="cl" data-line="821">    num_new_tokens,</span>
-<span class="cl" data-line="822">    self.max_model_len</span>
-<span class="cl" data-line="823">    - request.num_computed_tokens</span>
-<span class="cl" data-line="824">    - self.num_sampled_tokens_per_step,</span>
+<span class="cl" data-line="822">    <span class="tok-type">self</span><span class="tok-operator">.</span>max_model_len</span>
+<span class="cl" data-line="823">    <span class="tok-operator">-</span> request<span class="tok-operator">.</span>num_computed_tokens</span>
+<span class="cl" data-line="824">    <span class="tok-operator">-</span> <span class="tok-type">self</span><span class="tok-operator">.</span>num_sampled_tokens_per_step,</span>
 <span class="cl" data-line="825">)</span></code></pre></figure>
 <p class="prose">continuous batching 允许每轮更换参与请求。给大 prompt 分 chunk 能给短请求腾出调度轮次，已写入的<a class="term" href="#Def19b39504bb5cc8">页</a>仍要保留。chunk 过小会增加提交次数；过大又会拉长同池请求的等待。按服务类别同时看入队年龄与可用页数。</p>
 <p class="caption"><strong>代码 7　</strong>P 与 D 协商页大小、步幅、后端与缓冲地址</p>
-<figure class="code"><figcaption><span><strong>Python    </strong><a href="https://github.com/vllm-project/vllm/blob/93eeae695f5178eddff728fe50eb18e30c90c33a/vllm/distributed/kv_transfer/kv_connector/v1/nixl/metadata.py#L60-L73">vllm / metadata.py    L60–73</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code><span class="cl" data-line="60">@dataclass</span>
-<span class="cl" data-line="61"><span class="kw">class</span> NixlAgentMetadata:</span>
-<span class="cl" data-line="62">    engine_id: str</span>
-<span class="cl" data-line="63">    agent_metadata: bytes</span>
-<span class="cl" data-line="64">    kv_caches_base_addr: list[int]</span>
-<span class="cl" data-line="65">    device_id: int</span>
-<span class="cl" data-line="66">    num_blocks: int</span>
-<span class="cl" data-line="67">    block_lens: list[int]</span>
-<span class="cl" data-line="68">    block_strides: list[int]</span>
-<span class="cl" data-line="69">    kv_cache_layout: str</span>
-<span class="cl" data-line="70">    block_size: int</span>
-<span class="cl" data-line="71">    ssm_sizes: tuple[int, int]</span>
-<span class="cl" data-line="72">    attn_backend_name: str</span>
-<span class="cl" data-line="73">    physical_blocks_per_logical_kv_block: int</span></code></pre></figure>
+<figure class="code" data-language="python"><figcaption><span><strong>Python    </strong><a href="https://github.com/vllm-project/vllm/blob/93eeae695f5178eddff728fe50eb18e30c90c33a/vllm/distributed/kv_transfer/kv_connector/v1/nixl/metadata.py#L60-L73">vllm / metadata.py    L60–73</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code class="language-python"><span class="cl" data-line="60"><span class="tok-function">@dataclass</span></span>
+<span class="cl" data-line="61"><span class="tok-keyword">class</span> <span class="tok-type">NixlAgentMetadata</span>:</span>
+<span class="cl" data-line="62">    engine_id: <span class="tok-type">str</span></span>
+<span class="cl" data-line="63">    agent_metadata: <span class="tok-type">bytes</span></span>
+<span class="cl" data-line="64">    kv_caches_base_addr: <span class="tok-type">list</span>[<span class="tok-type">int</span>]</span>
+<span class="cl" data-line="65">    device_id: <span class="tok-type">int</span></span>
+<span class="cl" data-line="66">    num_blocks: <span class="tok-type">int</span></span>
+<span class="cl" data-line="67">    block_lens: <span class="tok-type">list</span>[<span class="tok-type">int</span>]</span>
+<span class="cl" data-line="68">    block_strides: <span class="tok-type">list</span>[<span class="tok-type">int</span>]</span>
+<span class="cl" data-line="69">    kv_cache_layout: <span class="tok-type">str</span></span>
+<span class="cl" data-line="70">    block_size: <span class="tok-type">int</span></span>
+<span class="cl" data-line="71">    ssm_sizes: <span class="tok-type">tuple</span>[<span class="tok-type">int</span>, <span class="tok-type">int</span>]</span>
+<span class="cl" data-line="72">    attn_backend_name: <span class="tok-type">str</span></span>
+<span class="cl" data-line="73">    physical_blocks_per_logical_kv_block: <span class="tok-type">int</span></span></code></pre></figure>
 <p class="prose">选择一个传输实现仍需对准 <a class="term" href="#Def19221e82c84d42">KV</a> <a class="term" href="#Def19bbaa2ba9297f">布局</a>。源端发起传输后持有页，D 等到目标数据可见才允许第一轮 decode。超时重试需同时保护旧传输使用的内存，避免晚到<a class="term" href="#Def19d66ac523350d">完成事件</a>破坏新请求。</p>
 <p class="prose">全冷交付 32.625 <a class="term" href="#Def19d027fdf77d2c">GiB</a>，假设两池之间对单请求的有效聚合带宽为 40 GiB/s，则只算搬运要 0.816 秒。每秒 0.6 个这样的请求，单向平均流量为 19.575 GiB/s。八个头已计入全请求字节，不能再把总时长除以八。若链路为该流量预留 20% 余量，可用 32 GiB/s，满长全<a class="term" href="#Def1988764fc839b0">冷请求</a>到 1 个/秒就越线。</p>
 <p class="eq"><span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><msub><mrow><mtext>T</mtext></mrow><mrow><mtext>h</mtext><mtext>a</mtext><mtext>n</mtext><mtext>d</mtext><mtext>o</mtext><mtext>f</mtext><mtext>f</mtext></mrow></msub><mtext> ≥ </mtext><mfrac><mrow><msub><mrow><mtext>M</mtext></mrow><mrow><mtext>m</mtext><mtext>i</mtext><mtext>s</mtext><mtext>s</mtext><mtext>i</mtext><mtext>n</mtext><mtext>g</mtext></mrow></msub></mrow><mrow><msub><mrow><mtext>B</mtext></mrow><mrow><mtext>e</mtext><mtext>f</mtext><mtext>f</mtext><mtext>e</mtext><mtext>c</mtext><mtext>t</mtext><mtext>i</mtext><mtext>v</mtext><mtext>e</mtext></mrow></msub></mrow></mfrac></math></span></p>
@@ -167,23 +167,23 @@
 <figure class="study-figure"><a href="../assets/figures/concept-prefix-break-even.png?v=26cb348bdd14" target="_blank" rel="noopener" aria-label="远端恢复和本地重算的交点，打开大图"><img loading="lazy" src="../assets/figures/concept-prefix-break-even.png?v=26cb348bdd14" alt="横轴为命中前缀长度，纵轴为耗时。恢复从较高截距开始、斜率较小，最终与重算线相交。" width="1740" height="591"></a><figcaption>图示假设两项成本在所画范围内近似线性，恢复有额外固定启动开销。比较同一前缀长度下两条线的纵坐标；链路拥塞会改变恢复曲线。</figcaption></figure>
 <p class="prose">前缀恢复的成本至少分为查找、传输、<a class="term" href="#Def19bbaa2ba9297f">布局</a>转换、等待<a class="term" href="#Def19b39504bb5cc8">页</a>和重算剩余部分。设本地重算需读前缀且花 80 ms，远端已命中但需等页 15 ms、搬运 40 ms、重排 10 ms，三段串行，则远端 65 ms。在缓存目录里“命中”只证明有候选数据，还要核对权重版本、分词与位置约定、层和<a class="term" href="#Def193770e3485f96">分片</a>布局。若只命中部分层或部分 token，缺失部分的成本仍要加回<a class="term" href="#Def197f8faf02bd76">关键路径</a>。选择时按请求真正能继续生成的时刻来比较两条路径。</p>
 <p class="caption"><strong>代码 8　</strong>vLLM 将父块标识、当前 token 和附加键纳入块身份</p>
-<figure class="code"><figcaption><span><strong>Python    </strong><a href="https://github.com/vllm-project/vllm/blob/93eeae695f5178eddff728fe50eb18e30c90c33a/vllm/v1/core/kv_cache_utils.py#L721-L727">vllm / kv_cache_utils.py    L721–727</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code><span class="cl" data-line="721"><span class="kw">if</span> <span class="kw">not</span> parent_block_hash:</span>
-<span class="cl" data-line="722">    parent_block_hash = NONE_HASH</span>
+<figure class="code" data-language="python"><figcaption><span><strong>Python    </strong><a href="https://github.com/vllm-project/vllm/blob/93eeae695f5178eddff728fe50eb18e30c90c33a/vllm/v1/core/kv_cache_utils.py#L721-L727">vllm / kv_cache_utils.py    L721–727</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code class="language-python"><span class="cl" data-line="721"><span class="tok-keyword">if</span> <span class="tok-keyword">not</span> parent_block_hash:</span>
+<span class="cl" data-line="722">    parent_block_hash <span class="tok-operator">=</span> NONE_HASH</span>
 <span class="cl" data-line="723"></span>
-<span class="cl" data-line="724">curr_block_token_ids_tuple = tuple(curr_block_token_ids)</span>
-<span class="cl" data-line="725"><span class="kw">return</span> BlockHash(</span>
-<span class="cl" data-line="726">    hash_function((parent_block_hash, curr_block_token_ids_tuple, extra_keys))</span>
+<span class="cl" data-line="724">curr_block_token_ids_tuple <span class="tok-operator">=</span> <span class="tok-function">tuple</span>(curr_block_token_ids)</span>
+<span class="cl" data-line="725"><span class="tok-keyword">return</span> <span class="tok-function">BlockHash</span>(</span>
+<span class="cl" data-line="726">    <span class="tok-function">hash_function</span>((parent_block_hash, curr_block_token_ids_tuple, extra_keys))</span>
 <span class="cl" data-line="727">)</span></code></pre></figure>
 <p class="prose">更换图片或视觉<strong>处理器</strong>后，即使占位符序列完全一致，提供给解码器的视觉向量也可能改变。上层负责提供区分这种变化的 <code class="inline-id">extra_keys</code>。模型换代后，旧 <a class="term" href="#Def19221e82c84d42">KV</a> 只在旧代请求中合法。</p>
 <p class="caption"><strong>代码 9　</strong>Dynamo 对设备、主机、磁盘和共享命中分别计分</p>
-<figure class="code"><figcaption><span><strong>Rust    </strong><a href="https://github.com/ai-dynamo/dynamo/blob/b43cd4a9dee83bce568dc5f157f333685e0f3439/lib/router/scheduler/src/selector/reference.rs#L243-L250">dynamo / reference.rs    L243–250</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code><span class="cl" data-line="243">let effective_overlap_score_credit = weights.overlap_score_credit * overlap_credit_decay;</span>
-<span class="cl" data-line="244">let overlap_credit_blocks = effective_overlap_score_credit * device_overlap_blocks</span>
-<span class="cl" data-line="245">    + kv_router_config.host_cache_hit_weight * cache.host_overlap_blocks</span>
-<span class="cl" data-line="246">    + kv_router_config.disk_cache_hit_weight * cache.disk_overlap_blocks</span>
-<span class="cl" data-line="247">    + shared_overlap_blocks;</span>
-<span class="cl" data-line="248">let decode_cost_blocks = load.decode_cost_blocks;</span>
-<span class="cl" data-line="249">let active_request_cost_blocks =</span>
-<span class="cl" data-line="250">    kv_router_config.decode_active_request_weight * load.active_requests as f64;</span></code></pre></figure>
+<figure class="code" data-language="rust"><figcaption><span><strong>Rust    </strong><a href="https://github.com/ai-dynamo/dynamo/blob/b43cd4a9dee83bce568dc5f157f333685e0f3439/lib/router/scheduler/src/selector/reference.rs#L243-L250">dynamo / reference.rs    L243–250</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code class="language-rust"><span class="cl" data-line="243"><span class="tok-keyword">let</span> effective_overlap_score_credit <span class="tok-operator">=</span> weights.overlap_score_credit <span class="tok-operator">*</span> overlap_credit_decay;</span>
+<span class="cl" data-line="244"><span class="tok-keyword">let</span> overlap_credit_blocks <span class="tok-operator">=</span> effective_overlap_score_credit <span class="tok-operator">*</span> device_overlap_blocks</span>
+<span class="cl" data-line="245">    <span class="tok-operator">+</span> kv_router_config.host_cache_hit_weight <span class="tok-operator">*</span> cache.host_overlap_blocks</span>
+<span class="cl" data-line="246">    <span class="tok-operator">+</span> kv_router_config.disk_cache_hit_weight <span class="tok-operator">*</span> cache.disk_overlap_blocks</span>
+<span class="cl" data-line="247">    <span class="tok-operator">+</span> shared_overlap_blocks;</span>
+<span class="cl" data-line="248"><span class="tok-keyword">let</span> decode_cost_blocks <span class="tok-operator">=</span> load.decode_cost_blocks;</span>
+<span class="cl" data-line="249"><span class="tok-keyword">let</span> active_request_cost_blocks <span class="tok-operator">=</span></span>
+<span class="cl" data-line="250">    kv_router_config.decode_active_request_weight <span class="tok-operator">*</span> load.active_requests <span class="tok-keyword">as</span> <span class="tok-type">f64</span>;</span></code></pre></figure>
 <p class="prose">点开一次路由决策，应该能看到本地等待时间和分层命中的估算收益。8.625 GiB 以 10 GiB/s 读回约 0.863 秒。若预计从头计算省 0.6 秒，且读回无法<a class="term" href="#Def196b4ca1a43b48">重叠</a>，这次命中反会拉长关键路径。</p>
 <p class="prose">容量示例取主存缓存 512 GiB、本地 NVMe 4 <a class="term" href="#Def1922a89af5fe0d">TiB</a>、远端池 16 TiB。全以互不共享的 8.625 GiB 快照计算，容量上限分别为 59、474、1899 个。实际还要扣索引、碎片和<a class="term" href="#Def1973223db16fe4">在途</a>副本。<a class="term" href="#Def199150ae85d1b5">HBM</a> 留给活跃请求，高<a class="term" href="#Def19f465e0254961">复用</a>系统前缀进入 <a class="term" href="#Def1986a02b7b9c8b">DRAM</a>，低频长会话可落 NVMe；跨节点重复利用能覆盖传输成本时才进共享池。淘汰时跳过在用或在传输中的块，恢复失败按缺失范围重算。</p>
 <p class="prose">只有部分层命中时，先确认余下层是否能在命中层传输进行时重算。如果依赖串行，增加部分重算时间；若两个分支可重叠，取它们在汇合点的较晚完成时刻，而不是直接相加。用相同请求做“全重算”“远端取回”“部分混合”三组，按第一次可继续生成的边界比较，较高命中率不必然产生较小的这个终点。</p>
@@ -191,23 +191,23 @@
 <h2><strong>7　推测解码的准入预算</strong></h2>
 <p class="prose">冷 <a class="term" href="#Def190247674f810d">prefill</a> 已占数秒时，缩短 <a class="term" href="#Def19f28fe0b0f9e5">decode</a> 未必能让首 <a class="term" href="#Def19397a73c4e319">token</a> 达标。对生成阶段较长的会话，可固定采样配置，单独比较开启和关闭推测解码的结果。假设原来一步 12 ms 产生一个已提交 token，推测轮含起草与验证共 20 ms、平均提交 2.1 个 token，有效速度约从 83.3 增至 105 token/s。若同批负载让每轮只交付 1.5 个，则降到 75 token/s。</p>
 <p class="caption"><strong>代码 10　</strong>DeepInfer 在 graph bucket 内按预期输出和耗时比较验证预算</p>
-<figure class="code"><figcaption><span><strong>C++    </strong><a href="https://github.com/deepseek-ai/DeepInfer/blob/a679bb86ce36e883a98a97733492b686e5b9a08e/csrc/engine/mtp_varlen.hpp#L231-L248">DeepInfer / mtp_varlen.hpp    L231–248</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code><span class="cl" data-line="231"><span class="kw">float</span> cur_expected = static_cast&lt;<span class="kw">float</span>&gt;(num_seqs);</span>
-<span class="cl" data-line="232"><span class="kw">int</span> cur_bsz = num_seqs;</span>
+<figure class="code" data-language="cpp"><figcaption><span><strong>C++    </strong><a href="https://github.com/deepseek-ai/DeepInfer/blob/a679bb86ce36e883a98a97733492b686e5b9a08e/csrc/engine/mtp_varlen.hpp#L231-L248">DeepInfer / mtp_varlen.hpp    L231–248</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code class="language-cpp"><span class="cl" data-line="231"><span class="tok-type">float</span> cur_expected <span class="tok-operator">=</span> <span class="tok-keyword">static_cast</span><span class="tok-operator">&lt;</span><span class="tok-type">float</span><span class="tok-operator">&gt;</span>(num_seqs);</span>
+<span class="cl" data-line="232"><span class="tok-type">int</span> cur_bsz <span class="tok-operator">=</span> num_seqs;</span>
 <span class="cl" data-line="233"></span>
-<span class="cl" data-line="234"><span class="kw">int</span> cur_bsz_idx = <span class="fn">0</span>;</span>
-<span class="cl" data-line="235">auto update_best = [&amp;]() {</span>
-<span class="cl" data-line="236">    while (cur_bsz_idx &lt; num_bsz_selections &amp;&amp; cur_bsz &gt; _decode_perf_curve[cur_bsz_idx].first) {</span>
-<span class="cl" data-line="237">        ++cur_bsz_idx;</span>
+<span class="cl" data-line="234"><span class="tok-type">int</span> cur_bsz_idx <span class="tok-operator">=</span> <span class="tok-number">0</span>;</span>
+<span class="cl" data-line="235"><span class="tok-keyword">auto</span> update_best <span class="tok-operator">=</span> [<span class="tok-operator">&amp;</span>]() {</span>
+<span class="cl" data-line="236">    <span class="tok-keyword">while</span> (cur_bsz_idx <span class="tok-operator">&lt;</span> num_bsz_selections <span class="tok-operator">&amp;&amp;</span> cur_bsz <span class="tok-operator">&gt;</span> _decode_perf_curve[cur_bsz_idx].first) {</span>
+<span class="cl" data-line="237">        <span class="tok-operator">++</span>cur_bsz_idx;</span>
 <span class="cl" data-line="238">    }</span>
-<span class="cl" data-line="239">    <span class="kw">if</span> (cur_bsz_idx == num_bsz_selections) {</span>
-<span class="cl" data-line="240">        <span class="kw">return</span>;</span>
+<span class="cl" data-line="239">    <span class="tok-keyword">if</span> (cur_bsz_idx <span class="tok-operator">==</span> num_bsz_selections) {</span>
+<span class="cl" data-line="240">        <span class="tok-keyword">return</span>;</span>
 <span class="cl" data-line="241">    }</span>
-<span class="cl" data-line="242">    <span class="kw">const</span> auto &amp;[graph_size, baseline_ms] = _decode_perf_curve[cur_bsz_idx];</span>
-<span class="cl" data-line="243">    <span class="kw">const</span> double time_ms = baseline_ms + slope_ms * graph_size + sampler_ms;</span>
-<span class="cl" data-line="244">    <span class="kw">const</span> double cur_throughput = cur_expected / time_ms;</span>
-<span class="cl" data-line="245">    <span class="kw">if</span> (cur_throughput &gt; best_throughput) {</span>
-<span class="cl" data-line="246">        best_throughput = cur_throughput;</span>
-<span class="cl" data-line="247">        best_bsz = cur_bsz;</span>
+<span class="cl" data-line="242">    <span class="tok-keyword">const</span> <span class="tok-keyword">auto</span> <span class="tok-operator">&amp;</span>[graph_size, baseline_ms] <span class="tok-operator">=</span> _decode_perf_curve[cur_bsz_idx];</span>
+<span class="cl" data-line="243">    <span class="tok-keyword">const</span> <span class="tok-type">double</span> time_ms <span class="tok-operator">=</span> baseline_ms <span class="tok-operator">+</span> slope_ms <span class="tok-operator">*</span> graph_size <span class="tok-operator">+</span> sampler_ms;</span>
+<span class="cl" data-line="244">    <span class="tok-keyword">const</span> <span class="tok-type">double</span> cur_throughput <span class="tok-operator">=</span> cur_expected <span class="tok-operator">/</span> time_ms;</span>
+<span class="cl" data-line="245">    <span class="tok-keyword">if</span> (cur_throughput <span class="tok-operator">&gt;</span> best_throughput) {</span>
+<span class="cl" data-line="246">        best_throughput <span class="tok-operator">=</span> cur_throughput;</span>
+<span class="cl" data-line="247">        best_bsz <span class="tok-operator">=</span> cur_bsz;</span>
 <span class="cl" data-line="248">    }</span></code></pre></figure>
 <p class="prose">预算以本轮 <a class="term" href="#Def193b7755ef3059">query</a> 和可用图形状为约束。接受率要与轮时一起看，另记末接受位置、拒绝后的 <a class="term" href="#Def19221e82c84d42">KV</a>/grammar 回退和 draft <a class="term" href="#Def19c89f700f36d7">工作区</a>。线上默认使用<a class="term" href="#Def1992a0d40d6d30">目标模型</a>解码，只有在质量与尾延迟门槛都通过时，才按会话类别启用推测。</p>
 <p class="prose">工具调用的结构化输出必须在回退时同步回退<a class="term" href="#Def191a183eed43b6">语法状态</a>；<a class="term" href="#Def192d5b0ad1a8d7">多模态前缀</a>应在两条路径上使用一致的处理。验收分别测贪心一致性与采样分布。有限样本中两次随机输出逐字相同的比例不能充当分布等价证明。</p>
@@ -216,69 +216,69 @@
 <h2><strong>8　在线策略与持续训练的版本边界</strong></h2>
 <p class="prose">部署时分别跟踪三类权重版本。线上 P 与 D 固定同一已<a class="term" href="#Def19e27735a70bb7">发布版本</a>；RL <a class="term" href="#Def19765a0154e89e">rollout</a> 使用可追踪的行为版本；trainer 向下一候选版本写入更新。工具等待阶段释放昂贵计算槽，保存会话身份、工具调用 ID、已提交动作及 <a class="term" href="#Def19221e82c84d42">KV</a> 恢复位置。新版本先在独立 rollout 池验证，显式切换在线路由，新旧会话可依各自版本<a class="term" href="#Def19ada18e969553">排空</a>。</p>
 <p class="caption"><strong>代码 11　</strong>AReaL 同时计算并发容量和策略版本容量</p>
-<figure class="code"><figcaption><span><strong>Python    </strong><a href="https://github.com/areal-project/AReaL/blob/11b6fb0ca9ea47a55e2fc3929c24b8d43693fd80/areal/infra/staleness_manager.py#L99-L113">AReaL / staleness_manager.py    L99–113</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code><span class="cl" data-line="99"><span class="kw">with</span> self.lock:</span>
-<span class="cl" data-line="100">    current_version = self.version_provider.get_version()</span>
-<span class="cl" data-line="101">    # Calculate concurrency-based capacity</span>
-<span class="cl" data-line="102">    max_concurrent_rollouts = max(<span class="fn">1</span>, self.max_concurrent_rollouts)</span>
-<span class="cl" data-line="103">    concurrency_capacity = max_concurrent_rollouts - self.rollout_stat.running</span>
+<figure class="code" data-language="python"><figcaption><span><strong>Python    </strong><a href="https://github.com/areal-project/AReaL/blob/11b6fb0ca9ea47a55e2fc3929c24b8d43693fd80/areal/infra/staleness_manager.py#L99-L113">AReaL / staleness_manager.py    L99–113</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code class="language-python"><span class="cl" data-line="99"><span class="tok-keyword">with</span> <span class="tok-type">self</span><span class="tok-operator">.</span>lock:</span>
+<span class="cl" data-line="100">    current_version <span class="tok-operator">=</span> <span class="tok-type">self</span><span class="tok-operator">.</span>version_provider<span class="tok-operator">.</span><span class="tok-function">get_version</span>()</span>
+<span class="cl" data-line="101">    <span class="tok-comment"># Calculate concurrency-based capacity</span></span>
+<span class="cl" data-line="102">    max_concurrent_rollouts <span class="tok-operator">=</span> <span class="tok-function">max</span>(<span class="tok-number">1</span>, <span class="tok-type">self</span><span class="tok-operator">.</span>max_concurrent_rollouts)</span>
+<span class="cl" data-line="103">    concurrency_capacity <span class="tok-operator">=</span> max_concurrent_rollouts <span class="tok-operator">-</span> <span class="tok-type">self</span><span class="tok-operator">.</span>rollout_stat<span class="tok-operator">.</span>running</span>
 <span class="cl" data-line="104"></span>
-<span class="cl" data-line="105">    # Calculate staleness-based capacity</span>
-<span class="cl" data-line="106">    ofp = self.max_staleness</span>
-<span class="cl" data-line="107">    sample_cnt = self.rollout_stat.accepted + self.rollout_stat.running</span>
-<span class="cl" data-line="108">    consumer_bs = max(<span class="fn">1</span>, self.consumer_batch_size)</span>
-<span class="cl" data-line="109">    staleness_capacity = (ofp + current_version + <span class="fn">1</span>) * consumer_bs - sample_cnt</span>
+<span class="cl" data-line="105">    <span class="tok-comment"># Calculate staleness-based capacity</span></span>
+<span class="cl" data-line="106">    ofp <span class="tok-operator">=</span> <span class="tok-type">self</span><span class="tok-operator">.</span>max_staleness</span>
+<span class="cl" data-line="107">    sample_cnt <span class="tok-operator">=</span> <span class="tok-type">self</span><span class="tok-operator">.</span>rollout_stat<span class="tok-operator">.</span>accepted <span class="tok-operator">+</span> <span class="tok-type">self</span><span class="tok-operator">.</span>rollout_stat<span class="tok-operator">.</span>running</span>
+<span class="cl" data-line="108">    consumer_bs <span class="tok-operator">=</span> <span class="tok-function">max</span>(<span class="tok-number">1</span>, <span class="tok-type">self</span><span class="tok-operator">.</span>consumer_batch_size)</span>
+<span class="cl" data-line="109">    staleness_capacity <span class="tok-operator">=</span> (ofp <span class="tok-operator">+</span> current_version <span class="tok-operator">+</span> <span class="tok-number">1</span>) <span class="tok-operator">*</span> consumer_bs <span class="tok-operator">-</span> sample_cnt</span>
 <span class="cl" data-line="110"></span>
-<span class="cl" data-line="111">    # Return the minimum of both constraints</span>
-<span class="cl" data-line="112">    capacity = min(concurrency_capacity, staleness_capacity)</span>
-<span class="cl" data-line="113">    <span class="kw">return</span> capacity</span></code></pre></figure>
+<span class="cl" data-line="111">    <span class="tok-comment"># Return the minimum of both constraints</span></span>
+<span class="cl" data-line="112">    capacity <span class="tok-operator">=</span> <span class="tok-function">min</span>(concurrency_capacity, staleness_capacity)</span>
+<span class="cl" data-line="113">    <span class="tok-keyword">return</span> capacity</span></code></pre></figure>
 <p class="prose">例如限制行为版本最多落后 2 个已提交版本。训练到 53 时，来自 50 的动作超出门槛；来自 51 的合格动作仍需满足 mask、行为 logprob 与奖励有效性。落后的轨迹不能简单改写版本号。队列要同时监控数量、年龄、被丢弃动作及工具超时。</p>
 <p class="caption"><strong>代码 12　</strong>veRL 把权重装桶并等待已有桶的传输确认</p>
-<figure class="code"><figcaption><span><strong>Python    </strong><a href="https://github.com/verl-project/verl/blob/61adb0c7eb90730306e7794c2bf248331211e657/verl/workers/rollout/vllm_rollout/bucketed_weight_transfer.py#L129-L145">verl / bucketed_weight_transfer.py    L129–145</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code><span class="cl" data-line="129">alignment = weight.element_size()</span>
-<span class="cl" data-line="130">offset = (offset + alignment - <span class="fn">1</span>) // alignment * alignment</span>
+<figure class="code" data-language="python"><figcaption><span><strong>Python    </strong><a href="https://github.com/verl-project/verl/blob/61adb0c7eb90730306e7794c2bf248331211e657/verl/workers/rollout/vllm_rollout/bucketed_weight_transfer.py#L129-L145">verl / bucketed_weight_transfer.py    L129–145</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code class="language-python"><span class="cl" data-line="129">alignment <span class="tok-operator">=</span> weight<span class="tok-operator">.</span><span class="tok-function">element_size</span>()</span>
+<span class="cl" data-line="130">offset <span class="tok-operator">=</span> (offset <span class="tok-operator">+</span> alignment <span class="tok-operator">-</span> <span class="tok-number">1</span>) <span class="tok-operator">//</span> alignment <span class="tok-operator">*</span> alignment</span>
 <span class="cl" data-line="131"></span>
-<span class="cl" data-line="132"># fill the tensor bucket</span>
-<span class="cl" data-line="133"><span class="kw">if</span> offset + weight.nbytes &gt; self.bucket_size <span class="kw">and</span> len(bucket_meta) &gt; <span class="fn">0</span>:</span>
-<span class="cl" data-line="134">    get_torch_device().synchronize()</span>
-<span class="cl" data-line="135">    self.socket.send_pyobj({<span class="str">"bucket_meta"</span>: bucket_meta, <span class="str">"is_last"</span>: <span class="kw">False</span>})</span>
-<span class="cl" data-line="136">    self.socket.recv()</span>
-<span class="cl" data-line="137">    bucket_meta = {}</span>
-<span class="cl" data-line="138">    offset = <span class="fn">0</span></span>
+<span class="cl" data-line="132"><span class="tok-comment"># fill the tensor bucket</span></span>
+<span class="cl" data-line="133"><span class="tok-keyword">if</span> offset <span class="tok-operator">+</span> weight<span class="tok-operator">.</span>nbytes <span class="tok-operator">&gt;</span> <span class="tok-type">self</span><span class="tok-operator">.</span>bucket_size <span class="tok-keyword">and</span> <span class="tok-function">len</span>(bucket_meta) <span class="tok-operator">&gt;</span> <span class="tok-number">0</span>:</span>
+<span class="cl" data-line="134">    <span class="tok-function">get_torch_device</span>()<span class="tok-operator">.</span><span class="tok-function">synchronize</span>()</span>
+<span class="cl" data-line="135">    <span class="tok-type">self</span><span class="tok-operator">.</span>socket<span class="tok-operator">.</span><span class="tok-function">send_pyobj</span>({<span class="tok-string">"bucket_meta"</span>: bucket_meta, <span class="tok-string">"is_last"</span>: <span class="tok-keyword">False</span>})</span>
+<span class="cl" data-line="136">    <span class="tok-type">self</span><span class="tok-operator">.</span>socket<span class="tok-operator">.</span><span class="tok-function">recv</span>()</span>
+<span class="cl" data-line="137">    bucket_meta <span class="tok-operator">=</span> {}</span>
+<span class="cl" data-line="138">    offset <span class="tok-operator">=</span> <span class="tok-number">0</span></span>
 <span class="cl" data-line="139"></span>
-<span class="cl" data-line="140"><span class="kw">if</span> offset + weight.nbytes &gt; self.bucket_size:</span>
-<span class="cl" data-line="141">    <span class="kw">assert</span> <span class="kw">not</span> self.use_shm, (</span>
-<span class="cl" data-line="142">        <span class="str">f"Weight </span>{name}<span class="str">(</span>{weight.shape}<span class="str">, </span>{weight.dtype}<span class="str">) is too large to fit in the bucket."</span></span>
-<span class="cl" data-line="143">        <span class="str">f"Please increase rollout.update_weights_bucket_megabytes(</span>{self.bucket_size_mb}<span class="str"> MB)."</span></span>
+<span class="cl" data-line="140"><span class="tok-keyword">if</span> offset <span class="tok-operator">+</span> weight<span class="tok-operator">.</span>nbytes <span class="tok-operator">&gt;</span> <span class="tok-type">self</span><span class="tok-operator">.</span>bucket_size:</span>
+<span class="cl" data-line="141">    <span class="tok-keyword">assert</span> <span class="tok-keyword">not</span> <span class="tok-type">self</span><span class="tok-operator">.</span>use_shm, (</span>
+<span class="cl" data-line="142">        <span class="tok-string">f"Weight {</span>name<span class="tok-string">}({</span>weight<span class="tok-operator">.</span>shape<span class="tok-string">}, {</span>weight<span class="tok-operator">.</span>dtype<span class="tok-string">}) is too large to fit in the bucket."</span></span>
+<span class="cl" data-line="143">        <span class="tok-string">f"Please increase rollout.update_weights_bucket_megabytes({</span><span class="tok-type">self</span><span class="tok-operator">.</span>bucket_size_mb<span class="tok-string">} MB)."</span></span>
 <span class="cl" data-line="144">    )</span>
-<span class="cl" data-line="145">    self._direct_send_large_weight(name, weight)</span></code></pre></figure>
+<span class="cl" data-line="145">    <span class="tok-type">self</span><span class="tok-operator">.</span><span class="tok-function">_direct_send_large_weight</span>(name, weight)</span></code></pre></figure>
 <p class="prose">一次桶确认只覆盖该段数据。准备阶段验证所有<a class="term" href="#Def193770e3485f96"><strong>分片</strong></a>、形状与版本，<a class="term" href="#Def19fe112bc935e2">激活</a>后再路由新请求；一个副本传到一半就失败时，继续用旧完整版本。若下载、检查点保存、在线 KV 传输共用一条网卡，优先给在线<a class="term" href="#Def197f8faf02bd76">关键路径</a>保留带宽。</p>
 <p class="prose">视觉观察和工具返回进入上下文，动作损失只落在模型采样的位置。用同一 tokenizer、视觉处理器与位置编号在训练端重建轨迹。按轨迹记实际生成、有效监督、超龄废弃三个量。重试工具调用使用原调用 ID，避免一次库存预订在恢复后执行两次。</p>
 <p class="prose">分词或多模态预处理发生变化时，即使文本外观和占位符数量相同，对应隐藏状态也可能不同。缓存键要覆盖影响这段前缀状态的模型版本和输入身份。生成池与训练池之间的行为概率同理，要以实际使用的<a class="term" href="#Def19ac29f2300f46">策略版本</a>和前缀追溯。一个<a class="term" href="#Def19d17303ad5e2b">发布</a>标签只标识部署批次，不能代替这两种用途各自的可<a class="term" href="#Def19f465e0254961">复用</a>条件。</p>
 <a class="back" href="#idx-l19-s008">↑ 返回知识点目录</a></section><section class="topic" id="l19-s009">
 <h2><strong>9　训练与服务的故障恢复</strong></h2>
 <p class="caption"><strong>代码 13　</strong>Volcano 在资源不足时拦住无法组成 gang 的作业</p>
-<figure class="code"><figcaption><span><strong>Go    </strong><a href="https://github.com/volcano-sh/volcano/blob/9cca912a5e90fad0f05cf8f72c9d2b8cd0cdf133/pkg/scheduler/plugins/gang/gang.go#L83-L92">volcano / gang.go    L83–92</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code><span class="cl" data-line="83">vtn := job.ValidTaskNum()</span>
-<span class="cl" data-line="84">if vtn &lt; job.MinAvailable {</span>
-<span class="cl" data-line="85">	return &amp;api.ValidateResult{</span>
-<span class="cl" data-line="86">		Pass:   false,</span>
+<figure class="code" data-language="go"><figcaption><span><strong>Go    </strong><a href="https://github.com/volcano-sh/volcano/blob/9cca912a5e90fad0f05cf8f72c9d2b8cd0cdf133/pkg/scheduler/plugins/gang/gang.go#L83-L92">volcano / gang.go    L83–92</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code class="language-go"><span class="cl" data-line="83">vtn <span class="tok-operator">:=</span> job.<span class="tok-function">ValidTaskNum</span>()</span>
+<span class="cl" data-line="84"><span class="tok-keyword">if</span> vtn &lt; job.MinAvailable {</span>
+<span class="cl" data-line="85">	<span class="tok-keyword">return</span> <span class="tok-operator">&amp;</span>api.ValidateResult{</span>
+<span class="cl" data-line="86">		Pass:   <span class="tok-keyword">false</span>,</span>
 <span class="cl" data-line="87">		Reason: v1beta1.NotEnoughPodsReason,</span>
-<span class="cl" data-line="88">		Message: fmt.Sprintf("Not enough valid tasks for gang-scheduling, valid: %d, min: %d",</span>
+<span class="cl" data-line="88">		Message: fmt.<span class="tok-function">Sprintf</span>(<span class="tok-string">"Not enough valid tasks for gang-scheduling, valid: %d, min: %d"</span>,</span>
 <span class="cl" data-line="89">			vtn, job.MinAvailable),</span>
 <span class="cl" data-line="90">	}</span>
 <span class="cl" data-line="91">}</span>
-<span class="cl" data-line="92">return nil</span></code></pre></figure>
+<span class="cl" data-line="92"><span class="tok-keyword">return</span> <span class="tok-keyword">nil</span></span></code></pre></figure>
 <p class="prose">训练以能容纳一组通过高速<a class="term" href="#Def198890d4f7539c">互连</a>连接的 8 张 <a class="term" href="#Def1952298fab40d3">TP</a> 卡和四个 <a class="term" href="#Def19fd2527bf9bc2">PP</a> 段的<a class="term" href="#Def19d9c80c5b0f4a">拓扑</a>域为<a class="term" href="#Def1984a10b079a41">准入</a>单位。先固定 TP 节点内放置，再做 rail 对齐。节点总数够、部分节点却只剩零散 <a class="term" href="#Def198552a9d24381">GPU</a>，仍会破坏组<a class="term" href="#Def19bbaa2ba9297f">布局</a>。在线服务保留独立配额，RL <a class="term" href="#Def19765a0154e89e">rollout</a> 可弹性退让。</p>
 <p class="caption"><strong>代码 14　</strong>PyTorch DCP 区分本地 staging 完成与最终保存完成</p>
-<figure class="code"><figcaption><span><strong>Python    </strong><a href="https://github.com/pytorch/pytorch/blob/8494b157890dfb90df1d13cf080eda5efdf7e522/torch/distributed/checkpoint/state_dict_saver.py#L207-L217">pytorch / state_dict_saver.py    L207–217</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code><span class="cl" data-line="207"><span class="kw">class</span> AsyncSaveResponse:</span>
-<span class="cl" data-line="208">    <span class="str">"""This class contains futures for staging and upload completion.</span></span>
-<span class="cl" data-line="209"><span class="str">    It is returned by async_save().</span></span>
-<span class="cl" data-line="210"><span class="str">    staging_completion is a future that indicates when local copy</span></span>
-<span class="cl" data-line="211"><span class="str">    of state_dict is complete.</span></span>
-<span class="cl" data-line="212"><span class="str">    upload_completion is a future that indicates when a checkpoint</span></span>
-<span class="cl" data-line="213"><span class="str">    completed saving.</span></span>
-<span class="cl" data-line="214"><span class="str">    """</span></span>
+<figure class="code" data-language="python"><figcaption><span><strong>Python    </strong><a href="https://github.com/pytorch/pytorch/blob/8494b157890dfb90df1d13cf080eda5efdf7e522/torch/distributed/checkpoint/state_dict_saver.py#L207-L217">pytorch / state_dict_saver.py    L207–217</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code class="language-python"><span class="cl" data-line="207"><span class="tok-keyword">class</span> <span class="tok-type">AsyncSaveResponse</span>:</span>
+<span class="cl" data-line="208">    <span class="tok-string">"""This class contains futures for staging and upload completion.</span></span>
+<span class="cl" data-line="209"><span class="tok-string">    It is returned by async_save().</span></span>
+<span class="cl" data-line="210"><span class="tok-string">    staging_completion is a future that indicates when local copy</span></span>
+<span class="cl" data-line="211"><span class="tok-string">    of state_dict is complete.</span></span>
+<span class="cl" data-line="212"><span class="tok-string">    upload_completion is a future that indicates when a checkpoint</span></span>
+<span class="cl" data-line="213"><span class="tok-string">    completed saving.</span></span>
+<span class="cl" data-line="214"><span class="tok-string">    """</span></span>
 <span class="cl" data-line="215"></span>
-<span class="cl" data-line="216">    staging_completion: Future[<span class="kw">None</span>]</span>
-<span class="cl" data-line="217">    upload_completion: Future[<span class="kw">None</span>]</span></code></pre></figure>
+<span class="cl" data-line="216">    staging_completion: Future[<span class="tok-keyword">None</span>]</span>
+<span class="cl" data-line="217">    upload_completion: Future[<span class="tok-keyword">None</span>]</span></code></pre></figure>
 <p class="prose"><a class="term" href="#Def195488ba83391f">训练检查点</a>包括模型、优化器、<a class="term" href="#Def19de0c85114c0e">RNG</a>、数据读取位置和已提交轨迹 ID。先等上传完成并确认清单完整，再<a class="term" href="#Def19e27735a70bb7">发布版本</a>指针。单卡故障后若重<a class="term" href="#Def193770e3485f96">分片</a>恢复，核对全局步、未消费轨迹和文件索引。恢复时间从错误发现记到首个有效新步。</p>
 <p class="prose">若 D 收到<a class="term" href="#Def19b39504bb5cc8">页</a>的一半时节点故障，网关按 request ID 找到已提交的 <a class="term" href="#Def19397a73c4e319">token</a> 序列和<a class="term" href="#Def19ac29f2300f46">策略版本</a>。另选同版本副本，从可信前缀恢复，重新产生未交付部分；已向用户发送的 token 依据流序号去重。若同一 rack 的缓存副本与 worker 同时丢失，应能走完整重算路径。演练分别记录 RTO、重复动作和额外卡秒。</p>
 <p class="prose">训练可从最近完整提交步重算尚未提交的更新；对已经向用户流式送出的词，从头重算时却不能随意改写用户已经看到的历史。恢复记录至少要区分已交付前缀、可重建的 <a class="term" href="#Def19221e82c84d42">KV</a>、尚未确认的外部动作。重建后用已交付 token 做条件输入，外部动作按幂等键查询，才能避免“训练恢复正确，服务却又执行一次工具”的跨系统错误。</p>
@@ -289,42 +289,42 @@
 <p class="prose"><a href="https://arxiv.org/abs/2407.21783">The Llama 3 Herd of Models，作者论文</a></p>
 <p class="prose">DeepSeek-V3 把 <a class="term" href="#Def19810106df1b85">MLA</a>、<a class="term" href="#Def19b3b8fcb4bc6c">MoE</a>、低精度计算与训练通信<a class="term" href="#Def196b4ca1a43b48">重叠</a>放在同一系统中。V3.2 的稀疏索引又增加了独立的筛选成本。V4 的压缩/稀疏历史与 V4.1 的跨层共享会改变应搬哪些<a class="term" href="#Def19b39504bb5cc8">页</a>。下面沿缓存真实对象追踪一次，这个比较不改变前面 32.625 <a class="term" href="#Def19d027fdf77d2c">GiB</a> 的 <a class="term" href="#Def19d643a4ba2470">GQA</a> 教学基线。</p>
 <p class="caption"><strong>代码 15　</strong>DeepSeek-V4.1-Flash 将未成组的尾部留在压缩器状态</p>
-<figure class="code"><figcaption><span><strong>Python    </strong><a href="https://huggingface.co/deepseek-ai/DeepSeek-V4.1-Flash/blob/314113f8a7dadb388215396ba5fbee2c610a04d6/inference/model.py#L464-L478">DeepSeek-V4.1-Flash / model.py    L464–478</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code><span class="cl" data-line="464">x = x.float()</span>
-<span class="cl" data-line="465">kv, score = self.wkv(x), self.wgate(x)</span>
-<span class="cl" data-line="466"><span class="kw">if</span> start_pos == <span class="fn">0</span>:</span>
-<span class="cl" data-line="467">    should_compress = seqlen &gt;= ratio</span>
-<span class="cl" data-line="468">    remainder = seqlen % ratio</span>
-<span class="cl" data-line="469">    cutoff = seqlen - remainder</span>
-<span class="cl" data-line="470">    <span class="kw">if</span> remainder:  # trailing partial group waits in the state</span>
-<span class="cl" data-line="471">        kv, self.kv_state[:bsz, :remainder] = kv.split([cutoff, remainder], dim=<span class="fn">1</span>)</span>
-<span class="cl" data-line="472">        score, self.score_state[:bsz, :remainder] = score.split([cutoff, remainder], dim=<span class="fn">1</span>)</span>
-<span class="cl" data-line="473">    kv = kv.unflatten(<span class="fn">1</span>, (-<span class="fn">1</span>, ratio))</span>
-<span class="cl" data-line="474">    score = score.unflatten(<span class="fn">1</span>, (-<span class="fn">1</span>, ratio))</span>
-<span class="cl" data-line="475">    kv = (kv * score.softmax(dim=<span class="fn">2</span>)).sum(dim=<span class="fn">2</span>)</span>
-<span class="cl" data-line="476"><span class="kw">else</span>:  # one token per step: fill a slot, and pool only when the group just completed</span>
-<span class="cl" data-line="477">    should_compress = (start_pos + <span class="fn">1</span>) % ratio == <span class="fn">0</span></span>
-<span class="cl" data-line="478">    slot = start_pos % ratio</span></code></pre></figure>
+<figure class="code" data-language="python"><figcaption><span><strong>Python    </strong><a href="https://huggingface.co/deepseek-ai/DeepSeek-V4.1-Flash/blob/314113f8a7dadb388215396ba5fbee2c610a04d6/inference/model.py#L464-L478">DeepSeek-V4.1-Flash / model.py    L464–478</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code class="language-python"><span class="cl" data-line="464">x <span class="tok-operator">=</span> x<span class="tok-operator">.</span><span class="tok-function">float</span>()</span>
+<span class="cl" data-line="465">kv, score <span class="tok-operator">=</span> <span class="tok-type">self</span><span class="tok-operator">.</span><span class="tok-function">wkv</span>(x), <span class="tok-type">self</span><span class="tok-operator">.</span><span class="tok-function">wgate</span>(x)</span>
+<span class="cl" data-line="466"><span class="tok-keyword">if</span> start_pos <span class="tok-operator">==</span> <span class="tok-number">0</span>:</span>
+<span class="cl" data-line="467">    should_compress <span class="tok-operator">=</span> seqlen <span class="tok-operator">&gt;=</span> ratio</span>
+<span class="cl" data-line="468">    remainder <span class="tok-operator">=</span> seqlen <span class="tok-operator">%</span> ratio</span>
+<span class="cl" data-line="469">    cutoff <span class="tok-operator">=</span> seqlen <span class="tok-operator">-</span> remainder</span>
+<span class="cl" data-line="470">    <span class="tok-keyword">if</span> remainder:  <span class="tok-comment"># trailing partial group waits in the state</span></span>
+<span class="cl" data-line="471">        kv, <span class="tok-type">self</span><span class="tok-operator">.</span>kv_state[:bsz, :remainder] <span class="tok-operator">=</span> kv<span class="tok-operator">.</span><span class="tok-function">split</span>([cutoff, remainder], dim<span class="tok-operator">=</span><span class="tok-number">1</span>)</span>
+<span class="cl" data-line="472">        score, <span class="tok-type">self</span><span class="tok-operator">.</span>score_state[:bsz, :remainder] <span class="tok-operator">=</span> score<span class="tok-operator">.</span><span class="tok-function">split</span>([cutoff, remainder], dim<span class="tok-operator">=</span><span class="tok-number">1</span>)</span>
+<span class="cl" data-line="473">    kv <span class="tok-operator">=</span> kv<span class="tok-operator">.</span><span class="tok-function">unflatten</span>(<span class="tok-number">1</span>, (<span class="tok-operator">-</span><span class="tok-number">1</span>, ratio))</span>
+<span class="cl" data-line="474">    score <span class="tok-operator">=</span> score<span class="tok-operator">.</span><span class="tok-function">unflatten</span>(<span class="tok-number">1</span>, (<span class="tok-operator">-</span><span class="tok-number">1</span>, ratio))</span>
+<span class="cl" data-line="475">    kv <span class="tok-operator">=</span> (kv <span class="tok-operator">*</span> score<span class="tok-operator">.</span><span class="tok-function">softmax</span>(dim<span class="tok-operator">=</span><span class="tok-number">2</span>))<span class="tok-operator">.</span><span class="tok-function">sum</span>(dim<span class="tok-operator">=</span><span class="tok-number">2</span>)</span>
+<span class="cl" data-line="476"><span class="tok-keyword">else</span>:  <span class="tok-comment"># one token per step: fill a slot, and pool only when the group just completed</span></span>
+<span class="cl" data-line="477">    should_compress <span class="tok-operator">=</span> (start_pos <span class="tok-operator">+</span> <span class="tok-number">1</span>) <span class="tok-operator">%</span> ratio <span class="tok-operator">==</span> <span class="tok-number">0</span></span>
+<span class="cl" data-line="478">    slot <span class="tok-operator">=</span> start_pos <span class="tok-operator">%</span> ratio</span></code></pre></figure>
 <p class="prose">若一次 <a class="term" href="#Def190247674f810d">prefill</a> chunk 停在压缩比中间，短尾部还没有生成完整压缩记录。跨池交接应保存该状态或让接收端用同版本输入补算。只传已经成组的长期 <a class="term" href="#Def19221e82c84d42">KV</a> 会在下次拼组时丢掉输入。</p>
 <p class="caption"><strong>代码 16　</strong>DeepInfer 为跨层主缓存、索引和候选关系建立映射</p>
-<figure class="code"><figcaption><span><strong>Python    </strong><a href="https://github.com/deepseek-ai/DeepInfer/blob/a679bb86ce36e883a98a97733492b686e5b9a08e/deepinfer/model_executor/models/v4_modules/cross_layer.py#L77-L84">DeepInfer / cross_layer.py    L77–84</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code><span class="cl" data-line="77"><span class="kw">def</span> _build_layer_maps(self, num_layers: int, n_main_layer: int) -&gt; <span class="kw">None</span>:</span>
-<span class="cl" data-line="78">    <span class="str">"""Normalize the sparse layer maps in the config into a topology covering all layers."""</span></span>
-<span class="cl" data-line="79">    self.layer_index_module_map = self._build_layer_map(self._shared_cfg, <span class="str">"layer_index_module_map"</span>, num_layers, n_main_layer)</span>
-<span class="cl" data-line="80">    # index-K follows the sharing map of the whole indexer by default.</span>
-<span class="cl" data-line="81">    self.layer_index_k_map = self._build_layer_map(self._shared_cfg, <span class="str">"layer_index_k_map"</span>, num_layers, n_main_layer)</span>
-<span class="cl" data-line="82">    self.layer_kv_map = self._build_layer_map(self._shared_cfg, <span class="str">"layer_kv_map"</span>, num_layers, n_main_layer)</span>
-<span class="cl" data-line="83">    self.layer_candidate_source_map = self._build_candidate_layer_map(self._shared_cfg, n_main_layer)</span>
-<span class="cl" data-line="84">    self.candidate_source_cfg = {</span></code></pre></figure>
+<figure class="code" data-language="python"><figcaption><span><strong>Python    </strong><a href="https://github.com/deepseek-ai/DeepInfer/blob/a679bb86ce36e883a98a97733492b686e5b9a08e/deepinfer/model_executor/models/v4_modules/cross_layer.py#L77-L84">DeepInfer / cross_layer.py    L77–84</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code class="language-python"><span class="cl" data-line="77"><span class="tok-keyword">def</span> <span class="tok-function">_build_layer_maps</span>(<span class="tok-type">self</span>, num_layers: <span class="tok-type">int</span>, n_main_layer: <span class="tok-type">int</span>) <span class="tok-operator">-&gt;</span> <span class="tok-keyword">None</span>:</span>
+<span class="cl" data-line="78">    <span class="tok-string">"""Normalize the sparse layer maps in the config into a topology covering all layers."""</span></span>
+<span class="cl" data-line="79">    <span class="tok-type">self</span><span class="tok-operator">.</span>layer_index_module_map <span class="tok-operator">=</span> <span class="tok-type">self</span><span class="tok-operator">.</span><span class="tok-function">_build_layer_map</span>(<span class="tok-type">self</span><span class="tok-operator">.</span>_shared_cfg, <span class="tok-string">"layer_index_module_map"</span>, num_layers, n_main_layer)</span>
+<span class="cl" data-line="80">    <span class="tok-comment"># index-K follows the sharing map of the whole indexer by default.</span></span>
+<span class="cl" data-line="81">    <span class="tok-type">self</span><span class="tok-operator">.</span>layer_index_k_map <span class="tok-operator">=</span> <span class="tok-type">self</span><span class="tok-operator">.</span><span class="tok-function">_build_layer_map</span>(<span class="tok-type">self</span><span class="tok-operator">.</span>_shared_cfg, <span class="tok-string">"layer_index_k_map"</span>, num_layers, n_main_layer)</span>
+<span class="cl" data-line="82">    <span class="tok-type">self</span><span class="tok-operator">.</span>layer_kv_map <span class="tok-operator">=</span> <span class="tok-type">self</span><span class="tok-operator">.</span><span class="tok-function">_build_layer_map</span>(<span class="tok-type">self</span><span class="tok-operator">.</span>_shared_cfg, <span class="tok-string">"layer_kv_map"</span>, num_layers, n_main_layer)</span>
+<span class="cl" data-line="83">    <span class="tok-type">self</span><span class="tok-operator">.</span>layer_candidate_source_map <span class="tok-operator">=</span> <span class="tok-type">self</span><span class="tok-operator">.</span><span class="tok-function">_build_candidate_layer_map</span>(<span class="tok-type">self</span><span class="tok-operator">.</span>_shared_cfg, n_main_layer)</span>
+<span class="cl" data-line="84">    <span class="tok-type">self</span><span class="tok-operator">.</span>candidate_source_cfg <span class="tok-operator">=</span> {</span></code></pre></figure>
 <p class="prose">CED 让 decoder 的<a class="term" href="#Def190e5af2fa8fec">全局 KV</a> 来自最终 encoder hidden，改变 prefill 时需要执行的层。CSA2 的 Full、<a class="term" href="#Def19966c22aef50c">Reindex</a>、Reuse 令不同层承担不同的 KV 和索引职责；<a class="term" href="#Def19cd156f69853f">FP4</a> 主 KV 还要携带尺度。<a class="term" href="#Def19d29c48a9727b">模型卡</a>给出的 890 字节/<a class="term" href="#Def19397a73c4e319">token</a> 是其全局 KV 口径。<a class="term" href="#Def19e73cf4a6c83c">SWA</a> bounded replay 用最近窗口重建缺失 SWA，降低持久化字节，同时把计算加到恢复时延。<a class="term" href="#Def19ce054b8faab7">Engram</a> 的条件查表与 <a class="term" href="#Def197eab98f07664">DSpark</a> 的<a class="term" href="#Def19fe3f89f67ade">验证预算</a>还会分别占用访存和解码资源。</p>
 <p class="prose"><a href="https://huggingface.co/deepseek-ai/DeepSeek-V4.1-Flash/blob/314113f8a7dadb388215396ba5fbee2c610a04d6/README.md">DeepSeek-V4.1-Flash 模型卡，固定版本</a></p>
 <p class="caption"><strong>代码 17　</strong>FLA 的 KDA 参考实现显式写出每一步的状态更新</p>
-<figure class="code"><figcaption><span><strong>Python    </strong><a href="https://github.com/fla-org/flash-linear-attention/blob/523c0121cdaa3d3440aa993515a7899f8a023709/fla/ops/kda/naive.py#L59-L66">flash-linear-attention / naive.py    L59–66</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code><span class="cl" data-line="59"><span class="kw">for</span> i <span class="kw">in</span> range(<span class="fn">0</span>, T):</span>
-<span class="cl" data-line="60">    q_i, k_i, v_i, g_i, b_i = q[:, i], k[:, i], v[:, i], g[:, i], beta[:, i]</span>
-<span class="cl" data-line="61">    S = S * g_i[..., <span class="kw">None</span>].exp()</span>
-<span class="cl" data-line="62">    S = S + torch.einsum(<span class="str">'b h k, b h v -&gt; b h k v'</span>, b_i[..., <span class="kw">None</span>] * k_i, v_i - (k_i[..., <span class="kw">None</span>] * S).sum(-<span class="fn">2</span>))</span>
-<span class="cl" data-line="63">    o[:, i] = torch.einsum(<span class="str">'b h k, b h k v -&gt; b h v'</span>, q_i, S)</span>
-<span class="cl" data-line="64"><span class="kw">if</span> <span class="kw">not</span> output_final_state:</span>
-<span class="cl" data-line="65">    S = <span class="kw">None</span></span>
-<span class="cl" data-line="66"><span class="kw">return</span> o.to(dtype), S</span></code></pre></figure>
+<figure class="code" data-language="python"><figcaption><span><strong>Python    </strong><a href="https://github.com/fla-org/flash-linear-attention/blob/523c0121cdaa3d3440aa993515a7899f8a023709/fla/ops/kda/naive.py#L59-L66">flash-linear-attention / naive.py    L59–66</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code class="language-python"><span class="cl" data-line="59"><span class="tok-keyword">for</span> i <span class="tok-keyword">in</span> <span class="tok-function">range</span>(<span class="tok-number">0</span>, T):</span>
+<span class="cl" data-line="60">    q_i, k_i, v_i, g_i, b_i <span class="tok-operator">=</span> q[:, i], k[:, i], v[:, i], g[:, i], beta[:, i]</span>
+<span class="cl" data-line="61">    S <span class="tok-operator">=</span> S <span class="tok-operator">*</span> g_i[<span class="tok-operator">...</span>, <span class="tok-keyword">None</span>]<span class="tok-operator">.</span><span class="tok-function">exp</span>()</span>
+<span class="cl" data-line="62">    S <span class="tok-operator">=</span> S <span class="tok-operator">+</span> torch<span class="tok-operator">.</span><span class="tok-function">einsum</span>(<span class="tok-string">'b h k, b h v -&gt; b h k v'</span>, b_i[<span class="tok-operator">...</span>, <span class="tok-keyword">None</span>] <span class="tok-operator">*</span> k_i, v_i <span class="tok-operator">-</span> (k_i[<span class="tok-operator">...</span>, <span class="tok-keyword">None</span>] <span class="tok-operator">*</span> S)<span class="tok-operator">.</span><span class="tok-function">sum</span>(<span class="tok-operator">-</span><span class="tok-number">2</span>))</span>
+<span class="cl" data-line="63">    o[:, i] <span class="tok-operator">=</span> torch<span class="tok-operator">.</span><span class="tok-function">einsum</span>(<span class="tok-string">'b h k, b h k v -&gt; b h v'</span>, q_i, S)</span>
+<span class="cl" data-line="64"><span class="tok-keyword">if</span> <span class="tok-keyword">not</span> output_final_state:</span>
+<span class="cl" data-line="65">    S <span class="tok-operator">=</span> <span class="tok-keyword">None</span></span>
+<span class="cl" data-line="66"><span class="tok-keyword">return</span> o<span class="tok-operator">.</span><span class="tok-function">to</span>(dtype), S</span></code></pre></figure>
 <p class="prose">每个 head 的 <span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><mi>k</mi><mi>e</mi><mi>y</mi><mo>×</mo><mi mathvariant="normal">v</mi><mi mathvariant="normal">a</mi><mi mathvariant="normal">l</mi><mi mathvariant="normal">u</mi><mi mathvariant="normal">e</mi></math></span> 状态沿时间递推。其 recurrent 层在解码时无需随历史长度线性增加所有 K/V 行，但状态回退要用可验证快照或<a class="term" href="#Def19bba03723d890">重放</a>。Kimi K3 将 <a class="term" href="#Def19c918a081c31f">KDA</a> 与 Attention Residuals 等组件结合；MoonEP 的专家<a class="term" href="#Def19001983d4e839">预取</a>还要考虑路由负载。Qwen3.8-Flash-Next 混合 <a class="term" href="#Def197dc402101303">GDN</a> 与 <a class="term" href="#Def1982c27eabd4bc">QSA</a>，递推状态和稀疏可寻址历史需分别管理。其 N-gram 表可在主存，异步预取失配会暴露主机链路时间。</p>
 <p class="prose"><a href="https://github.com/MoonshotAI/Kimi-K3/blob/3cb39dfd32e51c3328e2e4b4af21341247d06c43/README.md">Kimi K3 架构说明，固定版本</a></p>
 <p class="prose"><a href="https://github.com/QwenLM/Qwen3.8-Flash-Next/blob/69885871a64393807d988b27b1b5e380e8f28526/README.md">Qwen3.8-Flash-Next 模型说明，固定版本</a></p>

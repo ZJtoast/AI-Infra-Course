@@ -1,28 +1,28 @@
 <!doctype html>
-<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light"><title>GPU 性能剖析与瓶颈诊断 · AI Infra Course</title><style>.response textarea{box-sizing:border-box;width:100%;max-width:100%}</style><link rel="stylesheet" href="../assets/course.css?v=1d44bb5810ec"><script defer src="../assets/index-data.js?v=09042a38dcfe"></script><script defer src="../assets/course.js?v=b58933c84ead"></script></head><body class="articlepage" data-root="../"><a href="#main" class="skip">跳至正文</a><header class="top"><div class="bar"><a class="brand" href="../index.html"><span class="brandmark" aria-hidden="true"><i></i><i></i><i></i></span>AI Infra Course</a><button class="toc-toggle" type="button" data-toc-toggle aria-controls="reader-toc" aria-expanded="true" hidden>收起目录</button><nav aria-label="主导航"><a href="../index.html">课程</a><a href="../roadmap.html">学习路线</a><a href="../handbook.html">合订本</a><a href="https://github.com/ZJtoast/AI-Infra-Course">GitHub ↗</a></nav></div></header><main id="main" class="reader"><div class="articlehero"><div class="eyebrow">第 18 课　/　训练平台与性能工程</div><h1>GPU 性能剖析与瓶颈诊断</h1><p>Nsight Systems 用于定位请求在哪段时间等待。选定关键路径上的 kernel 后，再用 Nsight Compute 检查指令发射、访存和 Roofline 上界。</p><div class="actions"><a class="btn" href="../word/18-gpu-profiling-and-performance-analysis.docx">下载 Word ↓</a></div></div><div class="layout"><aside id="reader-toc" aria-label="知识点目录"><details class="tocbox" open><summary>本页知识点 <small>44</small></summary><ol class="toc"><li class="lv2" id="idx-l18-s001"><a class="" href="#l18-s001">1　首 token 时延的四个时间戳</a></li><li class="lv2" id="idx-l18-s002"><a class="" href="#l18-s002">2　调度排队与 KV 页回收</a></li><li class="lv2" id="idx-l18-s003"><a class="" href="#l18-s003">3　集合通信的到达偏斜</a></li><li class="lv2" id="idx-l18-s004"><a class="" href="#l18-s004">4　算子定位与 Roofline 分析</a></li><li class="lv2" id="idx-l18-s005"><a class="" href="#l18-s005">GPU 性能剖析实验</a></li><li class="lv3" id="idx-l18-s006"><a class="" href="#l18-s006">01　测量区间与工作量</a></li><li class="lv3" id="idx-l18-s007"><a class="" href="#l18-s007">02　Nsight Systems 时间线</a></li><li class="lv3" id="idx-l18-s008"><a class="" href="#l18-s008">03　NVTX 与稳态采集</a></li><li class="lv3" id="idx-l18-s009"><a class="" href="#l18-s009">04　汇总统计与原始事件</a></li><li class="lv3" id="idx-l18-s010"><a class="" href="#l18-s010">05　SQLite 事件区间与覆盖率</a></li><li class="lv3" id="idx-l18-s011"><a class="" href="#l18-s011">06　间歇性 GPU 空闲</a></li><li class="lv3" id="idx-l18-s012"><a class="" href="#l18-s012">07　时间线上的等待与同步</a></li><li class="lv3" id="idx-l18-s013"><a class="" href="#l18-s013">08　Nsight Compute 的内核筛选</a></li><li class="lv3" id="idx-l18-s014"><a class="" href="#l18-s014">09　Nsight Compute 报告概览</a></li><li class="lv3" id="idx-l18-s015"><a class="" href="#l18-s015">10　地址步长与访存事务</a></li><li class="lv3" id="idx-l18-s016"><a class="" href="#l18-s016">11　算术强度与存储层次</a></li><li class="lv3" id="idx-l18-s017"><a class="" href="#l18-s017">SOL 的峰值与分母</a></li><li class="lv3" id="idx-l18-s018"><a class="" href="#l18-s018">寄存器、指令发射与 Tensor 管线</a></li><li class="lv3" id="idx-l18-s019"><a class="" href="#l18-s019">内存吞吐、队列与链路带宽</a></li><li class="lv3" id="idx-l18-s020"><a class="" href="#l18-s020">DRAM 与 L2 Roofline</a></li><li class="lv3" id="idx-l18-s021"><a class="" href="#l18-s021">访存优化的对照实验</a></li><li class="lv3" id="idx-l18-s022"><a class="" href="#l18-s022">12　驻留率、可发射 warp 与实际发射</a></li><li class="lv3" id="idx-l18-s023"><a class="" href="#l18-s023">13　满占用率下的发射瓶颈</a></li><li class="lv3" id="idx-l18-s024"><a class="" href="#l18-s024">14　采集扰动与 A/B 实验</a></li><li class="lv3" id="idx-l18-s025"><a class="" href="#l18-s025">15　端到端时延复测</a></li><li class="lv2" id="idx-l18-s026"><a class="" href="#l18-s026">Nsight 报告与工具功能</a></li><li class="lv3" id="idx-l18-s027"><a class="" href="#l18-s027">Nsight Systems 会话与采集范围</a></li><li class="lv3" id="idx-l18-s028"><a class="" href="#l18-s028">时间线、事件与统计摘要</a></li><li class="lv3" id="idx-l18-s029"><a class="" href="#l18-s029">CPU、Python 与锁等待</a></li><li class="lv3" id="idx-l18-s030"><a class="" href="#l18-s030">CUDA、内存与 GPU 指标</a></li><li class="lv3" id="idx-l18-s031"><a class="" href="#l18-s031">NCCL、网卡与存储事件</a></li><li class="lv3" id="idx-l18-s032"><a class="" href="#l18-s032">统计报告、专家规则与自动化</a></li><li class="lv3" id="idx-l18-s033"><a class="" href="#l18-s033">Nsight Compute 的报告视图</a></li><li class="lv3" id="idx-l18-s034"><a class="" href="#l18-s034">执行管线与指令组成</a></li><li class="lv3" id="idx-l18-s035"><a class="" href="#l18-s035">内存层次图与共享内存指标</a></li><li class="lv3" id="idx-l18-s036"><a class="" href="#l18-s036">Warp 等待与源码定位</a></li><li class="lv3" id="idx-l18-s037"><a class="" href="#l18-s037">PM Sampling、互连与高级采集模式</a></li><li class="lv3" id="idx-l18-s038"><a class="" href="#l18-s038">交互剖析、基线比较与规则</a></li><li class="lv3" id="idx-l18-s039"><a class="" href="#l18-s039">连续与跨步向量加法实验</a></li><li class="lv2" id="idx-l18-s040"><a class="" href="#l18-s040">5　设备告警与存储停顿</a></li><li class="lv2" id="idx-l18-s041"><a class="" href="#l18-s041">6　通信组重建与训练恢复点</a></li><li class="lv2" id="idx-l18-s042"><a class="" href="#l18-s042">7　每训练步的 GPU 成本</a></li><li class="lv2" id="idx-l18-s043"><a class="" href="#l18-s043">8　智能体任务的单位成功成本</a></li><li class="lv2" id="idx-l18-s044"><a class="" href="#l18-s044">9　关键路径与优化收益</a></li></ol></details></aside><div class="toc-divider" role="separator" tabindex="0" aria-label="目录宽度" aria-controls="reader-toc" aria-orientation="vertical" aria-valuemin="180" aria-valuemax="560" aria-valuenow="300" title="拖动调宽，也可用左右方向键" hidden></div><div class="toc-shade" aria-hidden="true" hidden></div><article><p class="prose">代码块旁的行号链接指向本课采用的提交，仓库及许可见课末。</p><nav class="practice-route" aria-label="第 18 课练习顺序" id="Route18"><strong>本课练习顺序</strong><ol><li><a href="#Q18_04">普通题</a><span>先对齐请求时钟、采集窗口和目标 launch，再计算覆盖率、流量及吞吐分母。</span></li><li><a href="#Q18_14">进阶题</a><span>从多流并集与同步依赖追到逐层 Roofline 和发射限制，检验整机收益上界。</span></li><li><a href="#Q18_09">情景面试题</a><span>用可重复的负载区分线程阻塞、跨卡迟到与上游访存等待，并设计反证。</span></li></ol></nav><section class="topic" id="l18-s001">
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light"><title>GPU 性能剖析与瓶颈诊断 · AI Infra Course</title><style>.response textarea{box-sizing:border-box;width:100%;max-width:100%}</style><link rel="stylesheet" href="../assets/course.css?v=1d44bb5810ec"><script defer src="../assets/index-data.js?v=09042a38dcfe"></script><script defer src="../assets/course.js?v=b58933c84ead"></script><style>.code .tok-keyword{color:#CDB1FF}.code .tok-type{color:#82E0D1}.code .tok-function{color:#F6D78E}.code .tok-string{color:#F6B797}.code .tok-comment{color:#A2B9A0}.code .tok-number{color:#B6DEA3}.code .tok-variable{color:#9AD8FF}.code .tok-operator{color:#E5B2E9}.code .tok-added{color:#98DDA4}.code .tok-removed{color:#FF9F9F}@media print{.code .tok-keyword{color:#5E258F}.code .tok-type{color:#005C55}.code .tok-function{color:#714900}.code .tok-string{color:#85380D}.code .tok-comment{color:#3C6143}.code .tok-number{color:#345E26}.code .tok-variable{color:#154F7C}.code .tok-operator{color:#733B79}.code .tok-added{color:#1D6234}.code .tok-removed{color:#972F38}}</style></head><body class="articlepage" data-root="../"><a href="#main" class="skip">跳至正文</a><header class="top"><div class="bar"><a class="brand" href="../index.html"><span class="brandmark" aria-hidden="true"><i></i><i></i><i></i></span>AI Infra Course</a><button class="toc-toggle" type="button" data-toc-toggle aria-controls="reader-toc" aria-expanded="true" hidden>收起目录</button><nav aria-label="主导航"><a href="../index.html">课程</a><a href="../roadmap.html">学习路线</a><a href="../handbook.html">合订本</a><a href="https://github.com/ZJtoast/AI-Infra-Course">GitHub ↗</a></nav></div></header><main id="main" class="reader"><div class="articlehero"><div class="eyebrow">第 18 课　/　训练平台与性能工程</div><h1>GPU 性能剖析与瓶颈诊断</h1><p>Nsight Systems 用于定位请求在哪段时间等待。选定关键路径上的 kernel 后，再用 Nsight Compute 检查指令发射、访存和 Roofline 上界。</p><div class="actions"><a class="btn" href="../word/18-gpu-profiling-and-performance-analysis.docx">下载 Word ↓</a></div></div><div class="layout"><aside id="reader-toc" aria-label="知识点目录"><details class="tocbox" open><summary>本页知识点 <small>44</small></summary><ol class="toc"><li class="lv2" id="idx-l18-s001"><a class="" href="#l18-s001">1　首 token 时延的四个时间戳</a></li><li class="lv2" id="idx-l18-s002"><a class="" href="#l18-s002">2　调度排队与 KV 页回收</a></li><li class="lv2" id="idx-l18-s003"><a class="" href="#l18-s003">3　集合通信的到达偏斜</a></li><li class="lv2" id="idx-l18-s004"><a class="" href="#l18-s004">4　算子定位与 Roofline 分析</a></li><li class="lv2" id="idx-l18-s005"><a class="" href="#l18-s005">GPU 性能剖析实验</a></li><li class="lv3" id="idx-l18-s006"><a class="" href="#l18-s006">01　测量区间与工作量</a></li><li class="lv3" id="idx-l18-s007"><a class="" href="#l18-s007">02　Nsight Systems 时间线</a></li><li class="lv3" id="idx-l18-s008"><a class="" href="#l18-s008">03　NVTX 与稳态采集</a></li><li class="lv3" id="idx-l18-s009"><a class="" href="#l18-s009">04　汇总统计与原始事件</a></li><li class="lv3" id="idx-l18-s010"><a class="" href="#l18-s010">05　SQLite 事件区间与覆盖率</a></li><li class="lv3" id="idx-l18-s011"><a class="" href="#l18-s011">06　间歇性 GPU 空闲</a></li><li class="lv3" id="idx-l18-s012"><a class="" href="#l18-s012">07　时间线上的等待与同步</a></li><li class="lv3" id="idx-l18-s013"><a class="" href="#l18-s013">08　Nsight Compute 的内核筛选</a></li><li class="lv3" id="idx-l18-s014"><a class="" href="#l18-s014">09　Nsight Compute 报告概览</a></li><li class="lv3" id="idx-l18-s015"><a class="" href="#l18-s015">10　地址步长与访存事务</a></li><li class="lv3" id="idx-l18-s016"><a class="" href="#l18-s016">11　算术强度与存储层次</a></li><li class="lv3" id="idx-l18-s017"><a class="" href="#l18-s017">SOL 的峰值与分母</a></li><li class="lv3" id="idx-l18-s018"><a class="" href="#l18-s018">寄存器、指令发射与 Tensor 管线</a></li><li class="lv3" id="idx-l18-s019"><a class="" href="#l18-s019">内存吞吐、队列与链路带宽</a></li><li class="lv3" id="idx-l18-s020"><a class="" href="#l18-s020">DRAM 与 L2 Roofline</a></li><li class="lv3" id="idx-l18-s021"><a class="" href="#l18-s021">访存优化的对照实验</a></li><li class="lv3" id="idx-l18-s022"><a class="" href="#l18-s022">12　驻留率、可发射 warp 与实际发射</a></li><li class="lv3" id="idx-l18-s023"><a class="" href="#l18-s023">13　满占用率下的发射瓶颈</a></li><li class="lv3" id="idx-l18-s024"><a class="" href="#l18-s024">14　采集扰动与 A/B 实验</a></li><li class="lv3" id="idx-l18-s025"><a class="" href="#l18-s025">15　端到端时延复测</a></li><li class="lv2" id="idx-l18-s026"><a class="" href="#l18-s026">Nsight 报告与工具功能</a></li><li class="lv3" id="idx-l18-s027"><a class="" href="#l18-s027">Nsight Systems 会话与采集范围</a></li><li class="lv3" id="idx-l18-s028"><a class="" href="#l18-s028">时间线、事件与统计摘要</a></li><li class="lv3" id="idx-l18-s029"><a class="" href="#l18-s029">CPU、Python 与锁等待</a></li><li class="lv3" id="idx-l18-s030"><a class="" href="#l18-s030">CUDA、内存与 GPU 指标</a></li><li class="lv3" id="idx-l18-s031"><a class="" href="#l18-s031">NCCL、网卡与存储事件</a></li><li class="lv3" id="idx-l18-s032"><a class="" href="#l18-s032">统计报告、专家规则与自动化</a></li><li class="lv3" id="idx-l18-s033"><a class="" href="#l18-s033">Nsight Compute 的报告视图</a></li><li class="lv3" id="idx-l18-s034"><a class="" href="#l18-s034">执行管线与指令组成</a></li><li class="lv3" id="idx-l18-s035"><a class="" href="#l18-s035">内存层次图与共享内存指标</a></li><li class="lv3" id="idx-l18-s036"><a class="" href="#l18-s036">Warp 等待与源码定位</a></li><li class="lv3" id="idx-l18-s037"><a class="" href="#l18-s037">PM Sampling、互连与高级采集模式</a></li><li class="lv3" id="idx-l18-s038"><a class="" href="#l18-s038">交互剖析、基线比较与规则</a></li><li class="lv3" id="idx-l18-s039"><a class="" href="#l18-s039">连续与跨步向量加法实验</a></li><li class="lv2" id="idx-l18-s040"><a class="" href="#l18-s040">5　设备告警与存储停顿</a></li><li class="lv2" id="idx-l18-s041"><a class="" href="#l18-s041">6　通信组重建与训练恢复点</a></li><li class="lv2" id="idx-l18-s042"><a class="" href="#l18-s042">7　每训练步的 GPU 成本</a></li><li class="lv2" id="idx-l18-s043"><a class="" href="#l18-s043">8　智能体任务的单位成功成本</a></li><li class="lv2" id="idx-l18-s044"><a class="" href="#l18-s044">9　关键路径与优化收益</a></li></ol></details></aside><div class="toc-divider" role="separator" tabindex="0" aria-label="目录宽度" aria-controls="reader-toc" aria-orientation="vertical" aria-valuemin="180" aria-valuemax="560" aria-valuenow="300" title="拖动调宽，也可用左右方向键" hidden></div><div class="toc-shade" aria-hidden="true" hidden></div><article><p class="prose">代码块旁的行号链接指向本课采用的提交，仓库及许可见课末。</p><nav class="practice-route" aria-label="第 18 课练习顺序" id="Route18"><strong>本课练习顺序</strong><ol><li><a href="#Q18_04">普通题</a><span>先对齐请求时钟、采集窗口和目标 launch，再计算覆盖率、流量及吞吐分母。</span></li><li><a href="#Q18_14">进阶题</a><span>从多流并集与同步依赖追到逐层 Roofline 和发射限制，检验整机收益上界。</span></li><li><a href="#Q18_09">情景面试题</a><span>用可重复的负载区分线程阻塞、跨卡迟到与上游访存等待，并设计反证。</span></li></ol></nav><section class="topic" id="l18-s001">
 <h2><strong>1　首 token 时延的四个时间戳</strong></h2>
 <p class="prose">客户端计时从发送请求到收到首个有效输出。<strong>网关</strong>另行记录从收件到发出首个输出的时间。引擎记录的是自身生命周期。沿 request ID 找到引擎里的批次，才能把入口、调度器和 <a class="term" href="#Def188552a9d24381">GPU</a> 上的事件接起来。以下取两条输入长度、缓存状态与输出预算相同的请求，各自以到达网关为<a class="term" href="#Def18395429e083ca">零点</a>。</p>
 <p class="prose">教学请求的事件时间，单位为 ms</p>
 <div class="tablewrap"><table><thead><tr><th><strong>请求</strong></th><th><strong>进入引擎</strong></th><th><strong>获准执行</strong></th><th><strong>首 </strong><a class="term" href="#Def18397a73c4e319"><strong>token</strong></a><strong> 就绪</strong></th><th><strong>网关送出</strong></th></tr></thead><tbody><tr><td>基准</td><td>5</td><td>20</td><td>70</td><td>75</td></tr><tr><td>慢样本</td><td>5</td><td>85</td><td>135</td><td>140</td></tr></tbody></table></div>
 <p class="prose">两次 <a class="term" href="#Def18b9a844471798">TTFT</a> 相差 65 ms。引擎排队从 15 ms 涨到 80 ms，获准执行后均用 50 ms 出 token。下一步查谁占着调度预算。这两条样本只解释了自己的差值，推广到整个窗口还要按长度、命中、到达率分组。</p>
 <p class="caption"><strong>代码 1　</strong>vLLM 在不同事件上写入 TTFT、ITL 和阶段直方图</p>
-<figure class="code"><figcaption><span><strong>Python    </strong><a href="https://github.com/vllm-project/vllm/blob/93eeae695f5178eddff728fe50eb18e30c90c33a/vllm/v1/metrics/loggers.py#L1290-L1307">vllm / loggers.py    L1290–1307</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code><span class="cl" data-line="1290"><span class="kw">for</span> ttft <span class="kw">in</span> iteration_stats.time_to_first_tokens_iter:</span>
-<span class="cl" data-line="1291">    self.histogram_time_to_first_token[engine_idx].observe(ttft)</span>
-<span class="cl" data-line="1292"><span class="kw">for</span> itl <span class="kw">in</span> iteration_stats.inter_token_latencies_iter:</span>
-<span class="cl" data-line="1293">    self.histogram_inter_token_latency[engine_idx].observe(itl)</span>
+<figure class="code" data-language="python"><figcaption><span><strong>Python    </strong><a href="https://github.com/vllm-project/vllm/blob/93eeae695f5178eddff728fe50eb18e30c90c33a/vllm/v1/metrics/loggers.py#L1290-L1307">vllm / loggers.py    L1290–1307</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code class="language-python"><span class="cl" data-line="1290"><span class="tok-keyword">for</span> ttft <span class="tok-keyword">in</span> iteration_stats<span class="tok-operator">.</span>time_to_first_tokens_iter:</span>
+<span class="cl" data-line="1291">    <span class="tok-type">self</span><span class="tok-operator">.</span>histogram_time_to_first_token[engine_idx]<span class="tok-operator">.</span><span class="tok-function">observe</span>(ttft)</span>
+<span class="cl" data-line="1292"><span class="tok-keyword">for</span> itl <span class="tok-keyword">in</span> iteration_stats<span class="tok-operator">.</span>inter_token_latencies_iter:</span>
+<span class="cl" data-line="1293">    <span class="tok-type">self</span><span class="tok-operator">.</span>histogram_inter_token_latency[engine_idx]<span class="tok-operator">.</span><span class="tok-function">observe</span>(itl)</span>
 <span class="cl" data-line="1294"></span>
-<span class="cl" data-line="1295"><span class="kw">for</span> finished_request <span class="kw">in</span> iteration_stats.finished_requests:</span>
-<span class="cl" data-line="1296">    self.counter_request_success[finished_request.finish_reason][</span>
+<span class="cl" data-line="1295"><span class="tok-keyword">for</span> finished_request <span class="tok-keyword">in</span> iteration_stats<span class="tok-operator">.</span>finished_requests:</span>
+<span class="cl" data-line="1296">    <span class="tok-type">self</span><span class="tok-operator">.</span>counter_request_success[finished_request<span class="tok-operator">.</span>finish_reason][</span>
 <span class="cl" data-line="1297">        engine_idx</span>
-<span class="cl" data-line="1298">    ].inc()</span>
-<span class="cl" data-line="1299">    self.histogram_e2e_time_request[engine_idx].observe(</span>
-<span class="cl" data-line="1300">        finished_request.e2e_latency</span>
+<span class="cl" data-line="1298">    ]<span class="tok-operator">.</span><span class="tok-function">inc</span>()</span>
+<span class="cl" data-line="1299">    <span class="tok-type">self</span><span class="tok-operator">.</span>histogram_e2e_time_request[engine_idx]<span class="tok-operator">.</span><span class="tok-function">observe</span>(</span>
+<span class="cl" data-line="1300">        finished_request<span class="tok-operator">.</span>e2e_latency</span>
 <span class="cl" data-line="1301">    )</span>
-<span class="cl" data-line="1302">    self.histogram_queue_time_request[engine_idx].observe(</span>
-<span class="cl" data-line="1303">        finished_request.queued_time</span>
+<span class="cl" data-line="1302">    <span class="tok-type">self</span><span class="tok-operator">.</span>histogram_queue_time_request[engine_idx]<span class="tok-operator">.</span><span class="tok-function">observe</span>(</span>
+<span class="cl" data-line="1303">        finished_request<span class="tok-operator">.</span>queued_time</span>
 <span class="cl" data-line="1304">    )</span>
-<span class="cl" data-line="1305">    self.histogram_prefill_time_request[engine_idx].observe(</span>
-<span class="cl" data-line="1306">        finished_request.prefill_time</span>
+<span class="cl" data-line="1305">    <span class="tok-type">self</span><span class="tok-operator">.</span>histogram_prefill_time_request[engine_idx]<span class="tok-operator">.</span><span class="tok-function">observe</span>(</span>
+<span class="cl" data-line="1306">        finished_request<span class="tok-operator">.</span>prefill_time</span>
 <span class="cl" data-line="1307">    )</span></code></pre></figure>
 <p class="prose">TTFT 每个产生首 token 的请求贡献一次，<a class="term" href="#Def1892cd926c5ffe">ITL</a> 由相邻输出的间隔贡献。阶段统计又在完成请求时上报。当时仍卡在队列里的长请求尚未贡献完成记录，还要看入口计数和最老未完成请求的年龄。</p>
 <p class="prose">例如两个副本在同一窗口处理 900 和 100 个请求，耗时 <span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><mo>≤</mo><mn>100</mn></math></span> ms 的各有 891 和 89 个。总体达标率为 <span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><mfrac><mrow><mn>980</mn></mrow><mrow><mn>1000</mn></mrow></mfrac></math></span>，即 98%。求经典直方图的总体 p99，先按相同桶上界合并计数增量，再在桶内插值。若 <a class="term" href="#Def1896d09541493e">SLO</a> 边界恰有桶，可直接计数。各阶段 p99 可能属于不同请求，不能相加重建端到端 p99。</p>
@@ -32,35 +32,35 @@
 <h2><strong>2　调度排队与 KV 页回收</strong></h2>
 <p class="prose">假设连续五轮调度都没有可分配的 <a class="term" href="#Def18221e82c84d42">KV</a> <a class="term" href="#Def18b39504bb5cc8">页</a>，有长请求在等外部 KV 传完才可释放预留页。把页分配、传输完成、回收和 admission 放上同一时间轴。若每次解封都紧随回收，继续查传输。若页仍充足，则查每轮 <a class="term" href="#Def18397a73c4e319">token</a> 预算、优先级和主机调度间隔。这里列出的是可验证的假设。</p>
 <p class="caption"><strong>代码 2　</strong>vLLM 从 prompt 长度扣除已缓存 token</p>
-<figure class="code"><figcaption><span><strong>Python    </strong><a href="https://github.com/vllm-project/vllm/blob/93eeae695f5178eddff728fe50eb18e30c90c33a/vllm/v1/metrics/loggers.py#L1314-L1323">vllm / loggers.py    L1314–1323</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code><span class="cl" data-line="1314">self.histogram_request_num_preemptions[engine_idx].observe(</span>
-<span class="cl" data-line="1315">    finished_request.num_preemptions</span>
+<figure class="code" data-language="python"><figcaption><span><strong>Python    </strong><a href="https://github.com/vllm-project/vllm/blob/93eeae695f5178eddff728fe50eb18e30c90c33a/vllm/v1/metrics/loggers.py#L1314-L1323">vllm / loggers.py    L1314–1323</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code class="language-python"><span class="cl" data-line="1314"><span class="tok-type">self</span><span class="tok-operator">.</span>histogram_request_num_preemptions[engine_idx]<span class="tok-operator">.</span><span class="tok-function">observe</span>(</span>
+<span class="cl" data-line="1315">    finished_request<span class="tok-operator">.</span>num_preemptions</span>
 <span class="cl" data-line="1316">)</span>
-<span class="cl" data-line="1317"># Calculate prefill KV compute (excludes cached tokens)</span>
-<span class="cl" data-line="1318">prefill_kv_computed = finished_request.num_prompt_tokens - max(</span>
-<span class="cl" data-line="1319">    finished_request.num_cached_tokens, <span class="fn">0</span></span>
+<span class="cl" data-line="1317"><span class="tok-comment"># Calculate prefill KV compute (excludes cached tokens)</span></span>
+<span class="cl" data-line="1318">prefill_kv_computed <span class="tok-operator">=</span> finished_request<span class="tok-operator">.</span>num_prompt_tokens <span class="tok-operator">-</span> <span class="tok-function">max</span>(</span>
+<span class="cl" data-line="1319">    finished_request<span class="tok-operator">.</span>num_cached_tokens, <span class="tok-number">0</span></span>
 <span class="cl" data-line="1320">)</span>
-<span class="cl" data-line="1321">self.histogram_prefill_kv_computed_request[engine_idx].observe(</span>
+<span class="cl" data-line="1321"><span class="tok-type">self</span><span class="tok-operator">.</span>histogram_prefill_kv_computed_request[engine_idx]<span class="tok-operator">.</span><span class="tok-function">observe</span>(</span>
 <span class="cl" data-line="1322">    prefill_kv_computed</span>
 <span class="cl" data-line="1323">)</span></code></pre></figure>
 <p class="prose">两个 128K 请求一个命中 120K，另一个全冷。长度相同，给 <a class="term" href="#Def180247674f810d">prefill</a> 队列带来的计算量却不同。还要记录命中层级、传输字节与实际计算 token，才能解释一次远程命中为何仍慢。</p>
 <p class="prose">PyTorch Profiler 可把框架算子、<a class="term" href="#Def180890b549e548">shape</a> 和发起调用的代码对应起来。选定典型批次，给数据等待、forward、传输提交加范围标记，同时记录设备事件。完整堆栈、shape 和内存记录会扰动时序。定位之后，用平常的配置比较服务延迟。</p>
 <p class="caption"><strong>代码 3　</strong>根据 step 序号决定预热、记录和保存</p>
-<figure class="code"><figcaption><span><strong>Python    </strong><a href="https://github.com/pytorch/pytorch/blob/8494b157890dfb90df1d13cf080eda5efdf7e522/torch/profiler/profiler.py#L1053-L1069">pytorch / profiler.py    L1053–1069</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code><span class="cl" data-line="1053"># If wait &gt;&gt; skip_first and we want to grab profiling early, shift left by wait if skip_first_wait is True</span>
-<span class="cl" data-line="1054"><span class="kw">if</span> skip_first_wait != <span class="fn">0</span>:</span>
-<span class="cl" data-line="1055">    step += wait</span>
-<span class="cl" data-line="1056">num_steps = wait + warmup + active</span>
-<span class="cl" data-line="1057"><span class="kw">if</span> repeat &gt; <span class="fn">0</span> <span class="kw">and</span> step / num_steps &gt;= repeat:</span>
-<span class="cl" data-line="1058">    <span class="kw">return</span> ProfilerAction.NONE</span>
-<span class="cl" data-line="1059">mod_step = step % num_steps</span>
-<span class="cl" data-line="1060"><span class="kw">if</span> mod_step &lt; wait:</span>
-<span class="cl" data-line="1061">    <span class="kw">return</span> ProfilerAction.NONE</span>
-<span class="cl" data-line="1062"><span class="kw">elif</span> mod_step &lt; wait + warmup:</span>
-<span class="cl" data-line="1063">    <span class="kw">return</span> ProfilerAction.WARMUP</span>
-<span class="cl" data-line="1064"><span class="kw">else</span>:</span>
-<span class="cl" data-line="1065">    <span class="kw">return</span> (</span>
-<span class="cl" data-line="1066">        ProfilerAction.RECORD</span>
-<span class="cl" data-line="1067">        <span class="kw">if</span> mod_step &lt; num_steps - <span class="fn">1</span></span>
-<span class="cl" data-line="1068">        <span class="kw">else</span> ProfilerAction.RECORD_AND_SAVE</span>
+<figure class="code" data-language="python"><figcaption><span><strong>Python    </strong><a href="https://github.com/pytorch/pytorch/blob/8494b157890dfb90df1d13cf080eda5efdf7e522/torch/profiler/profiler.py#L1053-L1069">pytorch / profiler.py    L1053–1069</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code class="language-python"><span class="cl" data-line="1053"><span class="tok-comment"># If wait &gt;&gt; skip_first and we want to grab profiling early, shift left by wait if skip_first_wait is True</span></span>
+<span class="cl" data-line="1054"><span class="tok-keyword">if</span> skip_first_wait <span class="tok-operator">!=</span> <span class="tok-number">0</span>:</span>
+<span class="cl" data-line="1055">    step <span class="tok-operator">+=</span> wait</span>
+<span class="cl" data-line="1056">num_steps <span class="tok-operator">=</span> wait <span class="tok-operator">+</span> warmup <span class="tok-operator">+</span> active</span>
+<span class="cl" data-line="1057"><span class="tok-keyword">if</span> repeat <span class="tok-operator">&gt;</span> <span class="tok-number">0</span> <span class="tok-keyword">and</span> step <span class="tok-operator">/</span> num_steps <span class="tok-operator">&gt;=</span> repeat:</span>
+<span class="cl" data-line="1058">    <span class="tok-keyword">return</span> ProfilerAction<span class="tok-operator">.</span>NONE</span>
+<span class="cl" data-line="1059">mod_step <span class="tok-operator">=</span> step <span class="tok-operator">%</span> num_steps</span>
+<span class="cl" data-line="1060"><span class="tok-keyword">if</span> mod_step <span class="tok-operator">&lt;</span> wait:</span>
+<span class="cl" data-line="1061">    <span class="tok-keyword">return</span> ProfilerAction<span class="tok-operator">.</span>NONE</span>
+<span class="cl" data-line="1062"><span class="tok-keyword">elif</span> mod_step <span class="tok-operator">&lt;</span> wait <span class="tok-operator">+</span> warmup:</span>
+<span class="cl" data-line="1063">    <span class="tok-keyword">return</span> ProfilerAction<span class="tok-operator">.</span>WARMUP</span>
+<span class="cl" data-line="1064"><span class="tok-keyword">else</span>:</span>
+<span class="cl" data-line="1065">    <span class="tok-keyword">return</span> (</span>
+<span class="cl" data-line="1066">        ProfilerAction<span class="tok-operator">.</span>RECORD</span>
+<span class="cl" data-line="1067">        <span class="tok-keyword">if</span> mod_step <span class="tok-operator">&lt;</span> num_steps <span class="tok-operator">-</span> <span class="tok-number">1</span></span>
+<span class="cl" data-line="1068">        <span class="tok-keyword">else</span> ProfilerAction<span class="tok-operator">.</span>RECORD_AND_SAVE</span>
 <span class="cl" data-line="1069">    )</span></code></pre></figure>
 <p class="prose">取 <code class="inline-id">skip_first=1</code>、<span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><mi mathvariant="normal">w</mi><mi mathvariant="normal">a</mi><mi mathvariant="normal">i</mi><mi mathvariant="normal">t</mi><mo>=</mo><mn>1</mn></math></span>、<span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><mi mathvariant="normal">w</mi><mi mathvariant="normal">a</mi><mi mathvariant="normal">r</mi><mi mathvariant="normal">m</mi><mi mathvariant="normal">u</mi><mi mathvariant="normal">p</mi><mo>=</mo><mn>1</mn></math></span>、<span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><mi mathvariant="normal">a</mi><mi mathvariant="normal">c</mi><mi mathvariant="normal">t</mi><mi mathvariant="normal">i</mi><mi mathvariant="normal">v</mi><mi mathvariant="normal">e</mi><mo>=</mo><mn>2</mn></math></span>、<span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><mi mathvariant="normal">r</mi><mi mathvariant="normal">e</mi><mi mathvariant="normal">p</mi><mi mathvariant="normal">e</mi><mi mathvariant="normal">a</mi><mi mathvariant="normal">t</mi><mo>=</mo><mn>1</mn></math></span>。以零为起点，0 跳过，1 等待，2 <a class="term" href="#Def1898b6edc98c4d">预热</a>，3 记录，4 记录并保存，5 起结束本轮采集。若在每个 microbatch 末尾调用 <code class="inline-id">prof.step()</code>，采集窗口的单位也随之变成 microbatch。</p>
 <p class="prose">两个等待请求都只需在本轮算 16 个 token。A 的共享<a class="term" href="#Def18d7767a4d0b48">前缀命中</a>且尾页还有空槽，B 的下一位置需要新页；若页池此时为空，计算配额即使充足也只能先放 A。记录每次拒绝选择的原因、净可承诺页、已保留尚未写入的槽，比只画队列长度更能解释为何在 <a class="term" href="#Def188552a9d24381">GPU</a> 看似闲时不能执行 B。</p>
@@ -70,48 +70,48 @@
 <figure class="diagram"><a href="../assets/figures/826ee3c1845a5c5077.png?v=531404aa32ba" target="_blank" rel="noopener" aria-label="打开原图"><img loading="lazy" src="../assets/figures/826ee3c1845a5c5077.png?v=531404aa32ba" alt="课程示意图" width="1800" height="960"></a></figure>
 <p class="caption">图 18-1　蓝色为 rank 进入 collective 到完成的区间，四行共用同一时标。</p>
 <p class="caption"><strong>代码 4　</strong>进程组分别保存已提交、已开始和已完成的序号</p>
-<figure class="code"><figcaption><span><strong>C++    </strong><a href="https://github.com/pytorch/pytorch/blob/8494b157890dfb90df1d13cf080eda5efdf7e522/torch/csrc/distributed/c10d/ProcessGroupNCCL.cpp#L2309-L2320">pytorch / ProcessGroupNCCL.cpp    L2309–2320</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code><span class="cl" data-line="2309">::c10d::C10dLoggingData data;</span>
-<span class="cl" data-line="2310">// logging integers</span>
-<span class="cl" data-line="2311">data.integers[<span class="str">"pg_id"</span>] = static_cast&lt;int64_t&gt;(pg_-&gt;local_id_);</span>
-<span class="cl" data-line="2312">data.integers[<span class="str">"rank"</span>] = pg_-&gt;rank_;</span>
-<span class="cl" data-line="2313">data.integers[<span class="str">"global_rank"</span>] = pg_-&gt;globalRank();</span>
-<span class="cl" data-line="2314">data.integers[<span class="str">"last_enqueued_work"</span>] = pg_-&gt;pgStatus_-&gt;lastEnqueuedSeq;</span>
-<span class="cl" data-line="2315">data.integers[<span class="str">"last_started_work"</span>] = pg_-&gt;pgStatus_-&gt;lastStartedSeq;</span>
-<span class="cl" data-line="2316">data.integers[<span class="str">"last_completed_work"</span>] = pg_-&gt;pgStatus_-&gt;lastCompletedSeq;</span>
-<span class="cl" data-line="2317">data.integers[<span class="str">"last_enqueued_numel_in"</span>] =</span>
-<span class="cl" data-line="2318">    static_cast&lt;int64_t&gt;(pg_-&gt;pgStatus_-&gt;lastEnqueuedNumelIn);</span>
-<span class="cl" data-line="2319">data.integers[<span class="str">"last_enqueued_numel_out"</span>] =</span>
-<span class="cl" data-line="2320">    static_cast&lt;int64_t&gt;(pg_-&gt;pgStatus_-&gt;lastEnqueuedNumelOut);</span></code></pre></figure>
+<figure class="code" data-language="cpp"><figcaption><span><strong>C++    </strong><a href="https://github.com/pytorch/pytorch/blob/8494b157890dfb90df1d13cf080eda5efdf7e522/torch/csrc/distributed/c10d/ProcessGroupNCCL.cpp#L2309-L2320">pytorch / ProcessGroupNCCL.cpp    L2309–2320</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code class="language-cpp"><span class="cl" data-line="2309"><span class="tok-operator">::</span>c10d<span class="tok-operator">::</span>C10dLoggingData data;</span>
+<span class="cl" data-line="2310"><span class="tok-comment">// logging integers</span></span>
+<span class="cl" data-line="2311">data.integers[<span class="tok-string">"pg_id"</span>] <span class="tok-operator">=</span> <span class="tok-keyword">static_cast</span><span class="tok-operator">&lt;</span><span class="tok-type">int64_t</span><span class="tok-operator">&gt;</span>(pg_<span class="tok-operator">-&gt;</span>local_id_);</span>
+<span class="cl" data-line="2312">data.integers[<span class="tok-string">"rank"</span>] <span class="tok-operator">=</span> pg_<span class="tok-operator">-&gt;</span>rank_;</span>
+<span class="cl" data-line="2313">data.integers[<span class="tok-string">"global_rank"</span>] <span class="tok-operator">=</span> pg_<span class="tok-operator">-&gt;</span><span class="tok-function">globalRank</span>();</span>
+<span class="cl" data-line="2314">data.integers[<span class="tok-string">"last_enqueued_work"</span>] <span class="tok-operator">=</span> pg_<span class="tok-operator">-&gt;</span>pgStatus_<span class="tok-operator">-&gt;</span>lastEnqueuedSeq;</span>
+<span class="cl" data-line="2315">data.integers[<span class="tok-string">"last_started_work"</span>] <span class="tok-operator">=</span> pg_<span class="tok-operator">-&gt;</span>pgStatus_<span class="tok-operator">-&gt;</span>lastStartedSeq;</span>
+<span class="cl" data-line="2316">data.integers[<span class="tok-string">"last_completed_work"</span>] <span class="tok-operator">=</span> pg_<span class="tok-operator">-&gt;</span>pgStatus_<span class="tok-operator">-&gt;</span>lastCompletedSeq;</span>
+<span class="cl" data-line="2317">data.integers[<span class="tok-string">"last_enqueued_numel_in"</span>] <span class="tok-operator">=</span></span>
+<span class="cl" data-line="2318">    <span class="tok-keyword">static_cast</span><span class="tok-operator">&lt;</span><span class="tok-type">int64_t</span><span class="tok-operator">&gt;</span>(pg_<span class="tok-operator">-&gt;</span>pgStatus_<span class="tok-operator">-&gt;</span>lastEnqueuedNumelIn);</span>
+<span class="cl" data-line="2319">data.integers[<span class="tok-string">"last_enqueued_numel_out"</span>] <span class="tok-operator">=</span></span>
+<span class="cl" data-line="2320">    <span class="tok-keyword">static_cast</span><span class="tok-operator">&lt;</span><span class="tok-type">int64_t</span><span class="tok-operator">&gt;</span>(pg_<span class="tok-operator">-&gt;</span>pgStatus_<span class="tok-operator">-&gt;</span>lastEnqueuedNumelOut);</span></code></pre></figure>
 <p class="prose">先核对组成员、组标识、序号和操作，再比较进度。序号差能指出谁还未提交，设备事件能揭示已提交的操作在等待哪个 stream。跨机器的单调钟各有原点，要<a class="term" href="#Def1853c49578cc8c">校准</a>时钟，或改用同一 rank 内可比较的时长。</p>
 <p class="caption"><strong>代码 5　</strong>看门狗比较工作对象的年龄与超时阈值</p>
-<figure class="code"><figcaption><span><strong>C++    </strong><a href="https://github.com/pytorch/pytorch/blob/8494b157890dfb90df1d13cf080eda5efdf7e522/torch/csrc/distributed/c10d/ProcessGroupNCCL.cpp#L711-L722">pytorch / ProcessGroupNCCL.cpp    L711–722</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code><span class="cl" data-line="711">bool ProcessGroupNCCL::WorkNCCL::checkTimeout(</span>
-<span class="cl" data-line="712">    std::optional&lt;std::chrono::milliseconds&gt; timeout) {</span>
-<span class="cl" data-line="713">  STATIC_SCOPED_WAIT_COUNTER(</span>
+<figure class="code" data-language="cpp"><figcaption><span><strong>C++    </strong><a href="https://github.com/pytorch/pytorch/blob/8494b157890dfb90df1d13cf080eda5efdf7e522/torch/csrc/distributed/c10d/ProcessGroupNCCL.cpp#L711-L722">pytorch / ProcessGroupNCCL.cpp    L711–722</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code class="language-cpp"><span class="cl" data-line="711"><span class="tok-type">bool</span> <span class="tok-function">ProcessGroupNCCL::WorkNCCL::checkTimeout</span>(</span>
+<span class="cl" data-line="712">    std<span class="tok-operator">::</span>optional<span class="tok-operator">&lt;</span>std<span class="tok-operator">::</span>chrono<span class="tok-operator">::</span>milliseconds<span class="tok-operator">&gt;</span> timeout) {</span>
+<span class="cl" data-line="713">  <span class="tok-function">STATIC_SCOPED_WAIT_COUNTER</span>(</span>
 <span class="cl" data-line="714">      pytorch.wait_counter.ProcessGroupNCCL__checkTimeout);</span>
-<span class="cl" data-line="715">  auto currentTimepoint = std::chrono::steady_clock::now();</span>
-<span class="cl" data-line="716">  auto timeElapsed = std::chrono::duration_cast&lt;std::chrono::milliseconds&gt;(</span>
-<span class="cl" data-line="717">      currentTimepoint - workStartTime_);</span>
-<span class="cl" data-line="718">  auto workTimeout = timeout ? *timeout : opTimeout_;</span>
+<span class="cl" data-line="715">  <span class="tok-keyword">auto</span> currentTimepoint <span class="tok-operator">=</span> std<span class="tok-operator">::</span>chrono<span class="tok-operator">::</span>steady_clock<span class="tok-operator">::</span><span class="tok-function">now</span>();</span>
+<span class="cl" data-line="716">  <span class="tok-keyword">auto</span> timeElapsed <span class="tok-operator">=</span> std<span class="tok-operator">::</span>chrono<span class="tok-operator">::</span>duration_cast<span class="tok-operator">&lt;</span>std<span class="tok-operator">::</span>chrono<span class="tok-operator">::</span>milliseconds<span class="tok-operator">&gt;</span>(</span>
+<span class="cl" data-line="717">      currentTimepoint <span class="tok-operator">-</span> workStartTime_);</span>
+<span class="cl" data-line="718">  <span class="tok-keyword">auto</span> workTimeout <span class="tok-operator">=</span> timeout <span class="tok-operator">?</span> <span class="tok-operator">*</span>timeout <span class="tok-operator">:</span> opTimeout_;</span>
 <span class="cl" data-line="719"></span>
-<span class="cl" data-line="720">  <span class="kw">if</span> (timeElapsed &lt; workTimeout) {</span>
-<span class="cl" data-line="721">    <span class="kw">return</span> false;</span>
+<span class="cl" data-line="720">  <span class="tok-keyword">if</span> (timeElapsed <span class="tok-operator">&lt;</span> workTimeout) {</span>
+<span class="cl" data-line="721">    <span class="tok-keyword">return</span> <span class="tok-type">false</span>;</span>
 <span class="cl" data-line="722">  }</span></code></pre></figure>
 <p class="prose">若 rank 3 的输入线程在等文件，其他三个 rank 即使链路健康也可能超时。若所有 rank 几乎同时抵达、完成却一起延后，再看通信字节、链路<a class="term" href="#Def18d9c80c5b0f4a">拓扑</a>和 <a class="term" href="#Def1866fdd6135d68">NIC</a> 计数。</p>
 <p class="caption"><strong>代码 6　</strong>flight recorder 匹配操作类型和输入大小</p>
-<figure class="code"><figcaption><span><strong>Python    </strong><a href="https://github.com/pytorch/pytorch/blob/8494b157890dfb90df1d13cf080eda5efdf7e522/torch/distributed/flight_recorder/components/types.py#L620-L634">pytorch / types.py    L620–634</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code><span class="cl" data-line="620"><span class="kw">elif</span> self.type <span class="kw">in</span> COLLECTIVES:</span>
-<span class="cl" data-line="621">    <span class="kw">if</span> self.type != other.type:</span>
-<span class="cl" data-line="622">        <span class="kw">return</span> MatchInfo(</span>
-<span class="cl" data-line="623">            MatchState.COLLECTIVE_TYPE_MISMATCH,</span>
-<span class="cl" data-line="624">            <span class="str">f"Expected collective type: '</span>{self.type}<span class="str">' does not match found collective type: '</span>{other.type}<span class="str">'"</span>,</span>
+<figure class="code" data-language="python"><figcaption><span><strong>Python    </strong><a href="https://github.com/pytorch/pytorch/blob/8494b157890dfb90df1d13cf080eda5efdf7e522/torch/distributed/flight_recorder/components/types.py#L620-L634">pytorch / types.py    L620–634</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code class="language-python"><span class="cl" data-line="620"><span class="tok-keyword">elif</span> <span class="tok-type">self</span><span class="tok-operator">.</span>type <span class="tok-keyword">in</span> COLLECTIVES:</span>
+<span class="cl" data-line="621">    <span class="tok-keyword">if</span> <span class="tok-type">self</span><span class="tok-operator">.</span>type <span class="tok-operator">!=</span> other<span class="tok-operator">.</span>type:</span>
+<span class="cl" data-line="622">        <span class="tok-keyword">return</span> <span class="tok-function">MatchInfo</span>(</span>
+<span class="cl" data-line="623">            MatchState<span class="tok-operator">.</span>COLLECTIVE_TYPE_MISMATCH,</span>
+<span class="cl" data-line="624">            <span class="tok-string">f"Expected collective type: '{</span><span class="tok-type">self</span><span class="tok-operator">.</span>type<span class="tok-string">}' does not match found collective type: '{</span>other<span class="tok-operator">.</span>type<span class="tok-string">}'"</span>,</span>
 <span class="cl" data-line="625">        )</span>
-<span class="cl" data-line="626">    <span class="kw">if</span> (</span>
-<span class="cl" data-line="627">        self.type <span class="kw">not</span> <span class="kw">in</span> _UNEVEN_COLLECTIVES | {<span class="str">"scatter"</span>}</span>
-<span class="cl" data-line="628">        <span class="kw">and</span> self.input_sizes != other.input_sizes</span>
+<span class="cl" data-line="626">    <span class="tok-keyword">if</span> (</span>
+<span class="cl" data-line="627">        <span class="tok-type">self</span><span class="tok-operator">.</span>type <span class="tok-keyword">not</span> <span class="tok-keyword">in</span> _UNEVEN_COLLECTIVES <span class="tok-operator">|</span> {<span class="tok-string">"scatter"</span>}</span>
+<span class="cl" data-line="628">        <span class="tok-keyword">and</span> <span class="tok-type">self</span><span class="tok-operator">.</span>input_sizes <span class="tok-operator">!=</span> other<span class="tok-operator">.</span>input_sizes</span>
 <span class="cl" data-line="629">    ):</span>
-<span class="cl" data-line="630">        <span class="kw">return</span> MatchInfo(</span>
-<span class="cl" data-line="631">            MatchState.SIZE_OR_SYNTAX_MISMATCH,</span>
-<span class="cl" data-line="632">            <span class="str">f"Expected input sizes: '</span>{self.input_sizes}<span class="str">' does not match found input sizes: "</span></span>
-<span class="cl" data-line="633">            <span class="str">f"'</span>{other.input_sizes}<span class="str">'"</span>,</span>
+<span class="cl" data-line="630">        <span class="tok-keyword">return</span> <span class="tok-function">MatchInfo</span>(</span>
+<span class="cl" data-line="631">            MatchState<span class="tok-operator">.</span>SIZE_OR_SYNTAX_MISMATCH,</span>
+<span class="cl" data-line="632">            <span class="tok-string">f"Expected input sizes: '{</span><span class="tok-type">self</span><span class="tok-operator">.</span>input_sizes<span class="tok-string">}' does not match found input sizes: "</span></span>
+<span class="cl" data-line="633">            <span class="tok-string">f"'{</span>other<span class="tok-operator">.</span>input_sizes<span class="tok-string">}'"</span>,</span>
 <span class="cl" data-line="634">        )</span></code></pre></figure>
 <p class="prose">同序号一边调用 AllReduce、另一边调用 Broadcast，提示先查跨 rank 的分支和调用顺序。输入检查对允许不等长的操作另有处理，逐 peer 长度应结合实际 collective 的契约判读。</p>
 <p class="prose">在每个 rank 的同一训练步串上“最后一桶梯度就绪→发起 collective→<a class="term" href="#Def188552a9d24381">GPU</a> 开始→本地结果可用”。如果生产梯度迟到，慢链条通常在 collective 之前，早到一端的通信范围反而更长。若所有输入早已就绪但尾段一起拉长，再检查链路、消息尺寸和同时段争用。跨主机细粒度排序应附对齐误差。</p>
@@ -140,55 +140,55 @@
 <p class="prose">NVTX push/pop 随 CPU 线程嵌套。CPU 离开 Forward pass 时，已经提交的 kernel 可能还排在 GPU 上。同一 stream 的前后顺序、event wait、拷贝和主机同步共同构成依赖。CPU 上的 Data loading 跨 5 ms 只说明主线程在这段范围中；还要检查 GPU 是否同时执行上批工作，以及下批何时才能启动。</p>
 <p class="prose"><a href="https://github.com/NVIDIA/nsight-training/blob/b17c40eef23929d08ec42e66667b29ae336ea8ac/cuda/2021_gtc/x-ac-03-v1/task1/task/nsys/precollected_reports/baseline_nvtx.nsys-rep">NVIDIA 教学训练报告 · baseline_nvtx.nsys-rep</a></p>
 <p class="caption"><strong>代码 18-1　</strong>Data loading、Batch、Copy 与 Forward 的 NVTX 边界</p>
-<figure class="code"><figcaption><span><strong>Python    </strong><a href="https://github.com/NVIDIA/nsight-training/blob/b17c40eef23929d08ec42e66667b29ae336ea8ac/cuda/2021_gtc/x-ac-03-v1/task1/task/nsys/application/main_baseline_nvtx.py#L71-L85">nsight-training / main_baseline_nvtx.py    L71–85</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code><span class="cl" data-line="71"><span class="kw">with</span> torch.autograd.profiler.emit_nvtx():</span>
-<span class="cl" data-line="72">    nvtx.range_push(<span class="str">"Data loading"</span>);</span>
-<span class="cl" data-line="73">    <span class="kw">for</span> batch_idx, (data, target) <span class="kw">in</span> enumerate(train_loader):</span>
-<span class="cl" data-line="74">        nvtx.range_pop();# Data loading</span>
-<span class="cl" data-line="75">        nvtx.range_push(<span class="str">"Batch "</span> + str(batch_idx))</span>
+<figure class="code" data-language="python"><figcaption><span><strong>Python    </strong><a href="https://github.com/NVIDIA/nsight-training/blob/b17c40eef23929d08ec42e66667b29ae336ea8ac/cuda/2021_gtc/x-ac-03-v1/task1/task/nsys/application/main_baseline_nvtx.py#L71-L85">nsight-training / main_baseline_nvtx.py    L71–85</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code class="language-python"><span class="cl" data-line="71"><span class="tok-keyword">with</span> torch<span class="tok-operator">.</span>autograd<span class="tok-operator">.</span>profiler<span class="tok-operator">.</span><span class="tok-function">emit_nvtx</span>():</span>
+<span class="cl" data-line="72">    nvtx<span class="tok-operator">.</span><span class="tok-function">range_push</span>(<span class="tok-string">"Data loading"</span>);</span>
+<span class="cl" data-line="73">    <span class="tok-keyword">for</span> batch_idx, (data, target) <span class="tok-keyword">in</span> <span class="tok-function">enumerate</span>(train_loader):</span>
+<span class="cl" data-line="74">        nvtx<span class="tok-operator">.</span><span class="tok-function">range_pop</span>();<span class="tok-comment"># Data loading</span></span>
+<span class="cl" data-line="75">        nvtx<span class="tok-operator">.</span><span class="tok-function">range_push</span>(<span class="tok-string">"Batch "</span> <span class="tok-operator">+</span> <span class="tok-function">str</span>(batch_idx))</span>
 <span class="cl" data-line="76"></span>
-<span class="cl" data-line="77">        nvtx.range_push(<span class="str">"Copy to device"</span>)</span>
-<span class="cl" data-line="78">        data, target = data.to(device), target.to(device)</span>
-<span class="cl" data-line="79">        nvtx.range_pop() # Copy to device</span>
+<span class="cl" data-line="77">        nvtx<span class="tok-operator">.</span><span class="tok-function">range_push</span>(<span class="tok-string">"Copy to device"</span>)</span>
+<span class="cl" data-line="78">        data, target <span class="tok-operator">=</span> data<span class="tok-operator">.</span><span class="tok-function">to</span>(device), target<span class="tok-operator">.</span><span class="tok-function">to</span>(device)</span>
+<span class="cl" data-line="79">        nvtx<span class="tok-operator">.</span><span class="tok-function">range_pop</span>() <span class="tok-comment"># Copy to device</span></span>
 <span class="cl" data-line="80"></span>
-<span class="cl" data-line="81">        nvtx.range_push(<span class="str">"Forward pass"</span>)</span>
-<span class="cl" data-line="82">        optimizer.zero_grad()</span>
-<span class="cl" data-line="83">        output = model(data)</span>
-<span class="cl" data-line="84">        loss = F.nll_loss(output, target)</span>
-<span class="cl" data-line="85">        nvtx.range_pop() # Forward pass</span></code></pre></figure>
+<span class="cl" data-line="81">        nvtx<span class="tok-operator">.</span><span class="tok-function">range_push</span>(<span class="tok-string">"Forward pass"</span>)</span>
+<span class="cl" data-line="82">        optimizer<span class="tok-operator">.</span><span class="tok-function">zero_grad</span>()</span>
+<span class="cl" data-line="83">        output <span class="tok-operator">=</span> <span class="tok-function">model</span>(data)</span>
+<span class="cl" data-line="84">        loss <span class="tok-operator">=</span> F<span class="tok-operator">.</span><span class="tok-function">nll_loss</span>(output, target)</span>
+<span class="cl" data-line="85">        nvtx<span class="tok-operator">.</span><span class="tok-function">range_pop</span>() <span class="tok-comment"># Forward pass</span></span></code></pre></figure>
 <p class="prose">for 迭代拿到 batch 才弹出 Data loading。复制和前向各在新的范围中。对照 GPU stream，可以看到 CPU 阶段标签如何对应多条异步工作。</p>
 <p class="prose">选中一条长 CPU API 条时，第一问是该线程真的在计算，还是阻塞等另一个执行者。展开线程状态、对应的 CUDA 调用以及同一 GPU stream 的活动条，逐一看<a class="term" href="#Def186b4ca1a43b48">重叠</a>部分。若 CPU 调用很短而设备排队长，缩短 host API 解决不了设备队列；若设备空着而提交迟迟没来，就先查发起线程。</p>
 <div class="exercise question" id="Q18_06" role="group" aria-labelledby="title-Q18_06"><div class="qtitle" id="title-Q18_06"><span class="exercise-no">普通题 02</span><strong>NVTX 区间与 GPU 实际执行区间</strong></div><p><strong>情境　</strong>CPU 线程用一个名为 Forward 的 NVTX range 包住提交代码，区间为 [2,6) ms。GPU 上同时有两个同名内核，其中一个已知由该 range 中的 <a class="term" href="#Def187b310905daa3">launch</a> 提交，在 [5,11) 执行；另一个来自其他线程。</p><p id="prompt-Q18_06"><strong>问题　</strong>分别求 CPU range 时长、指定 GPU 内核与它的重叠、以及 range 关闭后该内核留下的时长。若还不知道哪个同名内核与调用对应，写出从 CPU 轨到 GPU 轨的查找依据。</p><div class="response"><div class="response-head"><label for="draft-Q18_06">解题笔记</label><span class="draft-status" role="status"></span></div><textarea id="draft-Q18_06" data-exercise="Q18_06" rows="3" aria-describedby="prompt-Q18_06"></textarea></div><details class="solution" id="A18_06"><summary>答案</summary><div class="solution-body"><p><strong>结论　</strong>CPU range 持续 4 ms，与指定内核重叠 1 ms，关闭后 GPU 又运行 5 ms。选择实例时要沿 CUDA API 和关联信息核对。</p><p><strong>推导　</strong>区间交集是 [5,6)，其后是 [6,11)。GPU 工作晚于 CPU 范围结束符合异步提交语义。<br>先选 NVTX 所在进程与线程，再找范围内的具体 launch，从相关 ID 或 GUI 关联跳到目标设备及 stream。相同名字、横坐标最近都不能在并发情形中唯一匹配。</p><div class="practice-links"><a class="return-question" href="#Q18_06">回看题干 ↑</a><a class="" href="#Q18_05">下一题 · 怎样选取可对比的稳态区间</a>　　<a class="" href="#Route18">本课练习顺序</a></div></div></details></div><a class="back" href="#idx-l18-s007">↑ 返回知识点目录</a></section><section class="topic" id="l18-s008">
 <h3>03　NVTX 与稳态采集</h3>
 <p class="prose">将模型初始化和进程退出阶段排除在本次<a class="term" href="#Def18a1a871769569">稳态</a>采集区间之外。训练示例选择特定 epoch 触发 cudaProfilerStart/Stop，能把几十轮训练缩成一段可读报告。下列命令以本课附带的 <code class="inline-id">stride_lab.cu</code> 为例，使用有 NVIDIA <a class="term" href="#Def18c6bc8e04694a">CUDA</a> Toolkit、<a class="term" href="#Def18e50ad048c9c6">Nsight Systems</a>、<a class="term" href="#Def184dd93c27cbb8">Nsight Compute</a> 的 Linux CUDA 环境。命令均在源码所在目录运行。当前讲义中的公开报告可直接离线阅读。</p>
 <p class="caption"><strong>代码 18-2　</strong>epoch 的应用侧采集开关</p>
-<figure class="code"><figcaption><span><strong>Python    </strong><a href="https://github.com/NVIDIA/nsight-training/blob/b17c40eef23929d08ec42e66667b29ae336ea8ac/cuda/2021_gtc/x-ac-03-v1/task1/task/nsys/application/main_baseline_nvtx.py#L183-L191">nsight-training / main_baseline_nvtx.py    L183–191</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code><span class="cl" data-line="183"><span class="kw">for</span> epoch <span class="kw">in</span> range(<span class="fn">1</span>, args.epochs + <span class="fn">1</span>):</span>
-<span class="cl" data-line="184">    # Start profiling from 2nd epoch</span>
-<span class="cl" data-line="185">    <span class="kw">if</span> epoch == <span class="fn">2</span>:</span>
-<span class="cl" data-line="186">        torch.cuda.cudart().cudaProfilerStart()</span>
+<figure class="code" data-language="python"><figcaption><span><strong>Python    </strong><a href="https://github.com/NVIDIA/nsight-training/blob/b17c40eef23929d08ec42e66667b29ae336ea8ac/cuda/2021_gtc/x-ac-03-v1/task1/task/nsys/application/main_baseline_nvtx.py#L183-L191">nsight-training / main_baseline_nvtx.py    L183–191</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code class="language-python"><span class="cl" data-line="183"><span class="tok-keyword">for</span> epoch <span class="tok-keyword">in</span> <span class="tok-function">range</span>(<span class="tok-number">1</span>, args<span class="tok-operator">.</span>epochs <span class="tok-operator">+</span> <span class="tok-number">1</span>):</span>
+<span class="cl" data-line="184">    <span class="tok-comment"># Start profiling from 2nd epoch</span></span>
+<span class="cl" data-line="185">    <span class="tok-keyword">if</span> epoch <span class="tok-operator">==</span> <span class="tok-number">2</span>:</span>
+<span class="cl" data-line="186">        torch<span class="tok-operator">.</span>cuda<span class="tok-operator">.</span><span class="tok-function">cudart</span>()<span class="tok-operator">.</span><span class="tok-function">cudaProfilerStart</span>()</span>
 <span class="cl" data-line="187"></span>
-<span class="cl" data-line="188">    nvtx.range_push(<span class="str">"Epoch "</span> + str(epoch))</span>
-<span class="cl" data-line="189">    nvtx.range_push(<span class="str">"Train"</span>)</span>
-<span class="cl" data-line="190">    train(args, model, device, train_loader, optimizer, epoch)</span>
-<span class="cl" data-line="191">    nvtx.range_pop() # Train</span></code></pre></figure>
+<span class="cl" data-line="188">    nvtx<span class="tok-operator">.</span><span class="tok-function">range_push</span>(<span class="tok-string">"Epoch "</span> <span class="tok-operator">+</span> <span class="tok-function">str</span>(epoch))</span>
+<span class="cl" data-line="189">    nvtx<span class="tok-operator">.</span><span class="tok-function">range_push</span>(<span class="tok-string">"Train"</span>)</span>
+<span class="cl" data-line="190">    <span class="tok-function">train</span>(args, model, device, train_loader, optimizer, epoch)</span>
+<span class="cl" data-line="191">    nvtx<span class="tok-operator">.</span><span class="tok-function">range_pop</span>() <span class="tok-comment"># Train</span></span></code></pre></figure>
 <p class="prose">启动开关在 Train 之前触发。该文件第 201 行关闭采集；训练范围只给阶段命名，真正的采集边界由 profiler <a class="term" href="#Def18763beedf4d8a">API</a> 决定。</p>
 <p class="prose"><strong>终端 · 采集基线与</strong><a class="term" href="#Def18d9a4c6de44fe"><strong>步长</strong></a><strong>变体</strong></p>
-<figure class="code"><figcaption><span>命令与示例</span><button type="button" data-copy="">复制代码</button></figcaption><pre><code><span class="cl" data-line="1">nvcc -O3 -lineinfo stride_lab.cu -o stride_lab -ldl</span>
-<span class="cl" data-line="2">./stride_lab 1</span>
-<span class="cl" data-line="3">./stride_lab 4</span>
-<span class="cl" data-line="4">nsys --version</span>
-<span class="cl" data-line="5">nsys profile --trace=cuda,nvtx --sample=none --capture-range=cudaProfilerApi --capture-range-end=stop -o s1 ./stride_lab 1</span>
-<span class="cl" data-line="6">nsys profile --trace=cuda,nvtx --sample=none --capture-range=cudaProfilerApi --capture-range-end=stop -o s4 ./stride_lab 4</span></code></pre></figure>
+<figure class="code" data-language="bash"><figcaption><span><strong>Shell    </strong></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code class="language-bash"><span class="cl" data-line="1"><span class="tok-function">nvcc</span> <span class="tok-keyword">-O3</span> <span class="tok-keyword">-lineinfo</span> stride_lab.cu <span class="tok-keyword">-o</span> stride_lab <span class="tok-keyword">-ldl</span></span>
+<span class="cl" data-line="2"><span class="tok-function">./stride_lab</span> <span class="tok-number">1</span></span>
+<span class="cl" data-line="3"><span class="tok-function">./stride_lab</span> <span class="tok-number">4</span></span>
+<span class="cl" data-line="4"><span class="tok-function">nsys</span> <span class="tok-keyword">--version</span></span>
+<span class="cl" data-line="5"><span class="tok-function">nsys</span> profile <span class="tok-keyword">--trace</span><span class="tok-operator">=</span>cuda,nvtx <span class="tok-keyword">--sample</span><span class="tok-operator">=</span>none <span class="tok-keyword">--capture-range</span><span class="tok-operator">=</span>cudaProfilerApi <span class="tok-keyword">--capture-range-end</span><span class="tok-operator">=</span>stop <span class="tok-keyword">-o</span> s1 ./stride_lab <span class="tok-number">1</span></span>
+<span class="cl" data-line="6"><span class="tok-function">nsys</span> profile <span class="tok-keyword">--trace</span><span class="tok-operator">=</span>cuda,nvtx <span class="tok-keyword">--sample</span><span class="tok-operator">=</span>none <span class="tok-keyword">--capture-range</span><span class="tok-operator">=</span>cudaProfilerApi <span class="tok-keyword">--capture-range-end</span><span class="tok-operator">=</span>stop <span class="tok-keyword">-o</span> s4 ./stride_lab <span class="tok-number">4</span></span></code></pre></figure>
 <p class="prose">编译增加 -lineinfo，保留优化并建立源行映射。先确认两个程序变体都通过<a class="term" href="#Def18dbe3f411b482">数值校验</a>，再读采集结果。若报告没有目标 <a class="term" href="#Def187b310905daa3">launch</a>，优先确认输出文件、目标进程、开关是否执行、窗口末端工作是否完成、<a class="term" href="#Def183a7e7b0ce664">NVTX</a> 名称是否匹配。若目标在子进程或另一个 <a class="term" href="#Def18c2aaec5fcdcc">rank</a>，要显式选对进程与设备。</p>
 <p class="prose"><a href="../examples/stride_lab.cu">完整教学源码 · stride_lab.cu</a></p>
 <p class="prose">CPU 在最后一次 launch 返回后就退出 range，设备上仍可能有半轮工作。在以 CPU range 作为采集窗口时，核对目标末次提交对应的设备结束事件是否实际保存在报告中。若测试方案需要人为在结尾等待，单独标明这一步，因为它会改变主机原本可继续执行的<a class="term" href="#Def186b4ca1a43b48">重叠</a>。</p>
 <div class="exercise question" id="Q18_05" role="group" aria-labelledby="title-Q18_05"><div class="qtitle" id="title-Q18_05"><span class="exercise-no">普通题 03</span><strong>怎样选取可对比的稳态区间</strong></div><p><strong>情境　</strong>基准程序启动后连续运行六轮，用同一边界测得 <span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><mo>[</mo><mn>80,32,20,20,21,19</mn><mo>]</mo></math></span> ms。事件日志显示第一轮编译，第二轮扩张内存池，后四轮不再出现这两项工作。报告需要分别回答首次启动用户和已<a class="term" href="#Def1898b6edc98c4d">预热</a>服务会等多久。</p><p id="prompt-Q18_05"><strong>问题　</strong>给出一份带样本范围的首次、过渡和稳态记录。将稳态数据排序求中位数。如果业务还要稳态 p99 和冷启动 p99，分别应重复哪种实验？</p><div class="response"><div class="response-head"><label for="draft-Q18_05">解题笔记</label><span class="draft-status" role="status"></span></div><textarea id="draft-Q18_05" data-exercise="Q18_05" rows="3" aria-describedby="prompt-Q18_05"></textarea></div><details class="solution" id="A18_05"><summary>答案</summary><div class="solution-body"><p><strong>结论　</strong>首次样本 80 ms，第二轮过渡 32 ms，稳态四轮中位数 20 ms。两种尾分位都还需与其状态相符的更多观测。</p><p><strong>推导　</strong>已预热四轮依次是 20、20、21、19，排序后两个中位数为 20、20。不能把第二轮也叫冷启动，因为它已经继承第一轮的状态。<br>在同一预热进程采更多代表性稳态轮次；冷启动则需重建约定的冷状态，例如新进程且编译缓存条件一致。报告样本数和冷状态定义，避免用单次 80 ms 推断冷启动尾部。</p><div class="practice-links"><a class="return-question" href="#Q18_05">回看题干 ↑</a><a class="" href="#Q18_02">下一题 · 从四个时间戳定位首 token 延迟</a>　　<a class="" href="#Route18">本课练习顺序</a></div></div></details></div><a class="back" href="#idx-l18-s008">↑ 返回知识点目录</a></section><section class="topic" id="l18-s009">
 <h3>04　汇总统计与原始事件</h3>
 <p class="prose"><strong>在终端查看已保存的 </strong><a class="term" href="#Def18e50ad048c9c6"><strong>Nsight Systems</strong></a><strong> 报告</strong></p>
-<figure class="code"><figcaption><span>命令与示例</span><button type="button" data-copy="">复制代码</button></figcaption><pre><code><span class="cl" data-line="1">nsys stats --help-reports</span>
-<span class="cl" data-line="2">nsys stats --report cuda_gpu_kern_sum s1.nsys-rep</span>
-<span class="cl" data-line="3">nsys stats --report cuda_api_sum s1.nsys-rep</span>
-<span class="cl" data-line="4">nsys stats --report cuda_gpu_trace s1.nsys-rep</span>
-<span class="cl" data-line="5">nsys export --type sqlite --output s1.sqlite s1.nsys-rep</span></code></pre></figure>
+<figure class="code" data-language="bash"><figcaption><span><strong>Shell    </strong></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code class="language-bash"><span class="cl" data-line="1"><span class="tok-function">nsys</span> stats <span class="tok-keyword">--help-reports</span></span>
+<span class="cl" data-line="2"><span class="tok-function">nsys</span> stats <span class="tok-keyword">--report</span> cuda_gpu_kern_sum s1.nsys-rep</span>
+<span class="cl" data-line="3"><span class="tok-function">nsys</span> stats <span class="tok-keyword">--report</span> cuda_api_sum s1.nsys-rep</span>
+<span class="cl" data-line="4"><span class="tok-function">nsys</span> stats <span class="tok-keyword">--report</span> cuda_gpu_trace s1.nsys-rep</span>
+<span class="cl" data-line="5"><span class="tok-function">nsys</span> <span class="tok-type">export</span> <span class="tok-keyword">--type</span> sqlite <span class="tok-keyword">--output</span> s1.sqlite s1.nsys-rep</span></code></pre></figure>
 <p class="prose">先在 <code class="inline-id">kern_sum</code> 按累计时长找候选，再看调用数、平均及分布。一次 400 µs 的旧 <a class="term" href="#Def18221e82c84d42">KV</a> 搬运与 200 次各 2 µs 的小核都能贡献 400 µs，优化入口不同。<a class="term" href="#Def18763beedf4d8a">API</a> 表汇总主机调用耗时，长时间 cudaStreamSynchronize 可能只是 CPU 在等此前提交的 <a class="term" href="#Def188552a9d24381">GPU</a> 工作。返回对应<a class="term" href="#Def181f3fb14715bc">时间线</a>，从被等待的 event 或 stream 向前追。</p>
 <p class="prose">举一个教学窗口 [0,10) ms。两个 GPU stream 的 kernel <span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><mi>A</mi><mo>=</mo><mo>[</mo><mn>1,6</mn><mo>)</mo></math></span>、<span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><mi>B</mi><mo>=</mo><mo>[</mo><mn>4,8</mn><mo>)</mo></math></span>，另有拷贝 C=[7,9)。A、B 累计 9 ms，kernel <a class="term" href="#Def18bed5bac74a0c"><strong>区间并集</strong></a>为 7 ms，所有列出的设备活动并集为 8 ms。kernel 覆盖率是 <span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><mfrac><mrow><mn>7</mn></mrow><mrow><mn>10</mn></mrow></mfrac></math></span>，所有列出活动覆盖率是 <span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><mfrac><mrow><mn>8</mn></mrow><mrow><mn>10</mn></mrow></mfrac></math></span>。A 在两核累计时长中占 <span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><mfrac><mrow><mn>5</mn></mrow><mrow><mn>9</mn></mrow></mfrac></math></span>；三者分母不同。时间线里没有所选类型的活动，也不能断言整卡无工作，先检查采集范围与其他上下文。</p>
 <figure class="diagram"><a href="../assets/figures/1083be1c395fb43d42.png?v=0108e51bb059" target="_blank" rel="noopener" aria-label="打开原图"><img loading="lazy" src="../assets/figures/1083be1c395fb43d42.png?v=0108e51bb059" alt="课程示意图" width="1140" height="390"></a></figure>
@@ -198,11 +198,11 @@
 <h3>05　SQLite 事件区间与覆盖率</h3>
 <p class="prose">打开导出的库，先用 .tables、PRAGMA <code class="inline-id">table_info</code> 确认当前报告导出的表名、列名和单位。下例仅针对单进程、单 <a class="term" href="#Def188552a9d24381">GPU</a> 的教学运行，以首个 kernel 开始为 <span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><mi>t</mi><mo>=</mo><mn>0</mn></math></span>，截取接下来 1 ms。若采集窗口不足 1 ms，改成自己的完整窗口。固定 GPU、进程和选定的工作范围，再计算并集。不能把多卡当成同一个资源轴。</p>
 <p class="prose"><strong>SQLite · 合并区间，输出纳秒</strong></p>
-<figure class="code"><figcaption><span>命令与示例</span><button type="button" data-copy="">复制代码</button></figcaption><pre><code><span class="cl" data-line="1">WITH bounds AS (SELECT MIN(start) AS lo, MIN(start)+1000000 AS hi FROM CUPTI_ACTIVITY_KIND_KERNEL),</span>
-<span class="cl" data-line="2">clip AS (SELECT MAX(start,lo) AS a, MIN(end,hi) AS b FROM CUPTI_ACTIVITY_KIND_KERNEL,bounds WHERE start&lt;hi AND end&gt;lo),</span>
-<span class="cl" data-line="3">sweep AS (SELECT a,b,MAX(b) OVER (ORDER BY a,b ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING) AS prior FROM clip),</span>
-<span class="cl" data-line="4">parts AS (SELECT MAX(0,b-MAX(a,COALESCE(prior,a))) AS covered FROM sweep)</span>
-<span class="cl" data-line="5">SELECT SUM(covered) AS kernel_busy_ns FROM parts;</span></code></pre></figure>
+<figure class="code" data-language="sql"><figcaption><span><strong>SQL    </strong></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code class="language-sql"><span class="cl" data-line="1"><span class="tok-keyword">WITH</span> bounds <span class="tok-keyword">AS</span> (<span class="tok-keyword">SELECT</span> <span class="tok-keyword">MIN</span>(<span class="tok-keyword">start</span>) <span class="tok-keyword">AS</span> lo, <span class="tok-keyword">MIN</span>(<span class="tok-keyword">start</span>)<span class="tok-operator">+</span><span class="tok-number">1000000</span> <span class="tok-keyword">AS</span> hi <span class="tok-keyword">FROM</span> CUPTI_ACTIVITY_KIND_KERNEL),</span>
+<span class="cl" data-line="2">clip <span class="tok-keyword">AS</span> (<span class="tok-keyword">SELECT</span> <span class="tok-keyword">MAX</span>(<span class="tok-keyword">start</span>,lo) <span class="tok-keyword">AS</span> a, <span class="tok-keyword">MIN</span>(<span class="tok-keyword">end</span>,hi) <span class="tok-keyword">AS</span> b <span class="tok-keyword">FROM</span> CUPTI_ACTIVITY_KIND_KERNEL,bounds <span class="tok-keyword">WHERE</span> <span class="tok-keyword">start</span><span class="tok-operator">&lt;</span>hi <span class="tok-keyword">AND</span> <span class="tok-keyword">end</span><span class="tok-operator">&gt;</span>lo),</span>
+<span class="cl" data-line="3">sweep <span class="tok-keyword">AS</span> (<span class="tok-keyword">SELECT</span> a,b,<span class="tok-keyword">MAX</span>(b) <span class="tok-function">OVER</span> (<span class="tok-keyword">ORDER</span> <span class="tok-keyword">BY</span> a,b <span class="tok-keyword">ROWS</span> <span class="tok-keyword">BETWEEN</span> UNBOUNDED PRECEDING <span class="tok-keyword">AND</span> <span class="tok-number">1</span> PRECEDING) <span class="tok-keyword">AS</span> <span class="tok-keyword">prior</span> <span class="tok-keyword">FROM</span> clip),</span>
+<span class="cl" data-line="4">parts <span class="tok-keyword">AS</span> (<span class="tok-keyword">SELECT</span> <span class="tok-keyword">MAX</span>(<span class="tok-number">0</span>,b<span class="tok-operator">-</span><span class="tok-keyword">MAX</span>(a,<span class="tok-keyword">COALESCE</span>(<span class="tok-keyword">prior</span>,a))) <span class="tok-keyword">AS</span> covered <span class="tok-keyword">FROM</span> sweep)</span>
+<span class="cl" data-line="5"><span class="tok-keyword">SELECT</span> <span class="tok-keyword">SUM</span>(covered) <span class="tok-keyword">AS</span> kernel_busy_ns <span class="tok-keyword">FROM</span> parts;</span></code></pre></figure>
 <p class="prose">排序后要和此前所有区间的最大终点相比。对于 [0,10)、[1,2)、[3,4)，若只与前一条的 end 比，会把第三段重复计入。要追一条 <a class="term" href="#Def187b310905daa3">launch</a>，可从 runtime 与 kernel 的 correlationId 找关联，再约束进程与上下文并核对时间，先查 schema 中的 globalTid、globalPid 及编码。跨进程的局部编号可能相同。把临界点记为 request、step 或 <a class="term" href="#Def18c2aaec5fcdcc">rank</a> 的 ID，便于回到业务指标。</p>
 <p class="prose">一条 GPU <a class="term" href="#Def181f3fb14715bc">时间线</a>可以同时回答“累计做了多少”和“这些操作合计覆盖了多长时间”，两种统计要先区分。窗口 0 至 12 ms，流 A 的 kernel 在 1 至 9 ms，流 B 在 3 至 5 ms。累计执行时间 10 ms，至少一个 kernel 活跃的并集只有 8 ms。若服务器延迟取决于 A 的输出，把 B 缩短 1 ms 未必移动完成端点；若 B 与 A 竞争同一资源，还要在固定输入下观察 A 是否变化。导出事件后按设备、进程与窗口裁切，合并<a class="term" href="#Def186b4ca1a43b48">重叠</a>区间；统计<a class="term" href="#Def187f8faf02bd76">关键路径</a>还需依赖或同步关系。</p>
 <p class="prose">若某设备在观察窗内没有一条 kernel，SQL 的 SUM 对空结果可能返回 NULL。若已确认本次采集覆盖该设备且没有事件，业务计算可将覆盖时长记 0；若根本没采它，则应记缺测。两卡在同一 10 ms 内各忙 10 ms，按卡汇总是 20 GPU·ms，实际只经过 10 ms，不应拿前者直接作时间覆盖率分子。</p>
@@ -211,14 +211,14 @@
 <p class="prose">NVIDIA 的训练案例基线中，教程报告的内核执行区间约占所观察时段的 30%–40%，每批 Data loading 约 5 ms。沿 CPU 标注、<a class="term" href="#Def188552a9d24381">GPU</a> 空档、下一批 <a class="term" href="#Def1898496f8e5486">H2D</a> 的先后关系，先提出可反驳的解释：训练线程在等 DataLoader 交付。若空档内 GPU 正忙于别的流，或数据早到但 Python 迟迟没有提交，则应另查原因。</p>
 <p class="prose">基线使用一个 loader worker。案例增加 worker 后，教程读出的加载阶段约为 1 ms。每批的这一阶段约短了 4 ms；吞吐的改变要用<a class="term" href="#Def18a1a871769569">稳态</a>总时长重新测。若两个阶段已经流水<a class="term" href="#Def186b4ca1a43b48">重叠</a>，4 ms 可能部分藏在上一批计算后面。下一轮案例还打开 <code class="inline-id">pin_memory</code>。锁<a class="term" href="#Def18b39504bb5cc8">页</a>内存使直接 <a class="term" href="#Def186122fa013c3f">DMA</a> 成为可能，异步提交、流依赖、硬件拷贝引擎和<a class="term" href="#Def188ea13c2d37f6">缓冲复用</a>时机共同决定重叠。</p>
 <p class="caption"><strong>代码 18-3　</strong>真实 DataLoader 的 worker 数与锁页设置</p>
-<figure class="code"><figcaption><span><strong>Python    </strong><a href="https://github.com/NVIDIA/nsight-training/blob/b17c40eef23929d08ec42e66667b29ae336ea8ac/cuda/2021_gtc/x-ac-03-v1/task1/task/nsys/application/main_opt2.py#L159-L167">nsight-training / main_opt2.py    L159–167</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code><span class="cl" data-line="159">train_kwargs = {<span class="str">'batch_size'</span>: args.batch_size}</span>
-<span class="cl" data-line="160">test_kwargs = {<span class="str">'batch_size'</span>: args.test_batch_size}</span>
-<span class="cl" data-line="161"><span class="kw">if</span> use_cuda:</span>
-<span class="cl" data-line="162">    cuda_kwargs = {<span class="str">'num_workers'</span>: multiprocessing.cpu_count(),</span>
-<span class="cl" data-line="163">                   <span class="str">'pin_memory'</span>: <span class="kw">True</span>,</span>
-<span class="cl" data-line="164">                   <span class="str">'shuffle'</span>: <span class="kw">True</span>}</span>
-<span class="cl" data-line="165">    train_kwargs.update(cuda_kwargs)</span>
-<span class="cl" data-line="166">    test_kwargs.update(cuda_kwargs)</span>
+<figure class="code" data-language="python"><figcaption><span><strong>Python    </strong><a href="https://github.com/NVIDIA/nsight-training/blob/b17c40eef23929d08ec42e66667b29ae336ea8ac/cuda/2021_gtc/x-ac-03-v1/task1/task/nsys/application/main_opt2.py#L159-L167">nsight-training / main_opt2.py    L159–167</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code class="language-python"><span class="cl" data-line="159">train_kwargs <span class="tok-operator">=</span> {<span class="tok-string">'batch_size'</span>: args<span class="tok-operator">.</span>batch_size}</span>
+<span class="cl" data-line="160">test_kwargs <span class="tok-operator">=</span> {<span class="tok-string">'batch_size'</span>: args<span class="tok-operator">.</span>test_batch_size}</span>
+<span class="cl" data-line="161"><span class="tok-keyword">if</span> use_cuda:</span>
+<span class="cl" data-line="162">    cuda_kwargs <span class="tok-operator">=</span> {<span class="tok-string">'num_workers'</span>: multiprocessing<span class="tok-operator">.</span><span class="tok-function">cpu_count</span>(),</span>
+<span class="cl" data-line="163">                   <span class="tok-string">'pin_memory'</span>: <span class="tok-keyword">True</span>,</span>
+<span class="cl" data-line="164">                   <span class="tok-string">'shuffle'</span>: <span class="tok-keyword">True</span>}</span>
+<span class="cl" data-line="165">    train_kwargs<span class="tok-operator">.</span><span class="tok-function">update</span>(cuda_kwargs)</span>
+<span class="cl" data-line="166">    test_kwargs<span class="tok-operator">.</span><span class="tok-function">update</span>(cuda_kwargs)</span>
 <span class="cl" data-line="167"></span></code></pre></figure>
 <p class="prose">将这段与 baseline 的单 worker 配置逐项比较。这里能核对 loader 的参数；实际是否使用另一个 stream 并与计算重叠，要看<a class="term" href="#Def181f3fb14715bc">时间线</a>的两条轨道。</p>
 <p class="prose"><a href="https://github.com/NVIDIA/nsight-training/blob/b17c40eef23929d08ec42e66667b29ae336ea8ac/cuda/2021_gtc/x-ac-03-v1/task1/task/nsys/04_cpu_bottleneck.ipynb">官方案例 · CPU bottleneck 与前后报告读数</a></p>
@@ -234,12 +234,12 @@
 <h3>08　Nsight Compute 的内核筛选</h3>
 <p class="prose">在 <a class="term" href="#Def18e50ad048c9c6">Nsight Systems</a> 中记下目标内核、grid、block、dtype、<a class="term" href="#Def180890b549e548">shape</a>、<strong>调用阶段</strong>及相邻 <a class="term" href="#Def187b310905daa3">launch</a>。NCU 收集单个 kernel 的执行性质。先跑 basic，核对报告中的 launch 配置；再只开能回答当前问题的 section。命令示例分别输出两份同工作量的内存分析报告。较新的安装可能使用不同集合或报告默认扩展名，用本机帮助确认。</p>
 <p class="prose"><strong>终端 · 锁定一次</strong><a class="term" href="#Def18a1a871769569"><strong>稳态</strong></a><strong> launch</strong></p>
-<figure class="code"><figcaption><span>命令与示例</span><button type="button" data-copy="">复制代码</button></figcaption><pre><code><span class="cl" data-line="1">ncu --version</span>
-<span class="cl" data-line="2">ncu --list-sections</span>
-<span class="cl" data-line="3">ncu --query-metrics</span>
-<span class="cl" data-line="4">ncu --nvtx --nvtx-include 'steady/' -k regex:stride_add --launch-count 1 --set basic -o base.ncu-rep ./stride_lab 1</span>
-<span class="cl" data-line="5">ncu --nvtx --nvtx-include 'steady/' -k regex:stride_add --launch-count 1 --section MemoryWorkloadAnalysis -o mem1.ncu-rep ./stride_lab 1</span>
-<span class="cl" data-line="6">ncu --nvtx --nvtx-include 'steady/' -k regex:stride_add --launch-count 1 --section MemoryWorkloadAnalysis -o mem4.ncu-rep ./stride_lab 4</span></code></pre></figure>
+<figure class="code" data-language="bash"><figcaption><span><strong>Shell    </strong></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code class="language-bash"><span class="cl" data-line="1"><span class="tok-function">ncu</span> <span class="tok-keyword">--version</span></span>
+<span class="cl" data-line="2"><span class="tok-function">ncu</span> <span class="tok-keyword">--list-sections</span></span>
+<span class="cl" data-line="3"><span class="tok-function">ncu</span> <span class="tok-keyword">--query-metrics</span></span>
+<span class="cl" data-line="4"><span class="tok-function">ncu</span> <span class="tok-keyword">--nvtx</span> <span class="tok-keyword">--nvtx-include</span> <span class="tok-string">'steady/'</span> <span class="tok-keyword">-k</span> regex:stride_add <span class="tok-keyword">--launch-count</span> <span class="tok-number">1</span> <span class="tok-keyword">--set</span> basic <span class="tok-keyword">-o</span> base.ncu-rep ./stride_lab <span class="tok-number">1</span></span>
+<span class="cl" data-line="5"><span class="tok-function">ncu</span> <span class="tok-keyword">--nvtx</span> <span class="tok-keyword">--nvtx-include</span> <span class="tok-string">'steady/'</span> <span class="tok-keyword">-k</span> regex:stride_add <span class="tok-keyword">--launch-count</span> <span class="tok-number">1</span> <span class="tok-keyword">--section</span> MemoryWorkloadAnalysis <span class="tok-keyword">-o</span> mem1.ncu-rep ./stride_lab <span class="tok-number">1</span></span>
+<span class="cl" data-line="6"><span class="tok-function">ncu</span> <span class="tok-keyword">--nvtx</span> <span class="tok-keyword">--nvtx-include</span> <span class="tok-string">'steady/'</span> <span class="tok-keyword">-k</span> regex:stride_add <span class="tok-keyword">--launch-count</span> <span class="tok-number">1</span> <span class="tok-keyword">--section</span> MemoryWorkloadAnalysis <span class="tok-keyword">-o</span> mem4.ncu-rep ./stride_lab <span class="tok-number">4</span></span></code></pre></figure>
 <p class="prose">steady/ 针对 push/pop <a class="term" href="#Def182438b33e4222">NVTX 范围</a>；最后的斜杠属于 <a class="term" href="#Def183a7e7b0ce664">NVTX</a> 表达式。过滤后可能还有多个实例，用 launch-skip / launch-count 并再次核对配置和序号。看到零个 kernel，先放宽范围和名字过滤，分别加回；看到多个同名实例，先比 shape 和调用顺序。若工具提示 <code class="inline-id">ERR_NVGPUCTRPERM</code>，采集缺少所需计数器权限，仍可离线打开现有报告。</p>
 <p class="prose"><a href="https://docs.nvidia.com/nsight-compute/NsightComputeCli/index.html">官方 CLI · 过滤、section 与 replay</a></p>
 <p class="prose">过滤 kernel 名称后若在一轮出现三次，先在 Systems 记录目标的 NVTX、序号、输入形状与 grid，再用 Compute 限制捕获范围。若两版优化改变了 launch 数，序号不再一一对应，应改用消费的<a class="term" href="#Def1845bb44d04ce3">张量</a>或阶段作为标记。最终打开报告核对实际选中实例，过滤命令返回成功不等于比较对象就相同。</p>
@@ -247,11 +247,11 @@
 <h3>09　Nsight Compute 报告概览</h3>
 <p class="prose">打开 NVIDIA 公开的 CuVectorAddDrv.ncu-rep，先核对采集使用的设备及 <a class="term" href="#Def187b310905daa3">launch</a> 信息，随后看 <strong>Details</strong> 中实际存在的 section。记录单位、采集的实例以及 duration；同一个名字可以有不同 launch。再看 <a class="term" href="#Def18cf36465f800d">Speed Of Light</a> 中哪一侧更接近设备持续峰值，提出“受访存影响”或“受指令发射影响”的候选解释。报告中的高百分比本身不能说明搬的都是有效数据。</p>
 <p class="prose"><strong>终端 · 离线阅读 Compute 报告</strong></p>
-<figure class="code"><figcaption><span>命令与示例</span><button type="button" data-copy="">复制代码</button></figcaption><pre><code><span class="cl" data-line="1">ncu --import CuVectorAddDrv.ncu-rep --page details</span>
-<span class="cl" data-line="2">ncu --import CuVectorAddDrv.ncu-rep --page raw --csv</span>
-<span class="cl" data-line="3">ncu --import mem1.ncu-rep --page details</span>
-<span class="cl" data-line="4">ncu --import mem4.ncu-rep --page details</span>
-<span class="cl" data-line="5">ncu --import mem4.ncu-rep --page raw --csv</span></code></pre></figure>
+<figure class="code" data-language="bash"><figcaption><span><strong>Shell    </strong></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code class="language-bash"><span class="cl" data-line="1"><span class="tok-function">ncu</span> <span class="tok-keyword">--import</span> CuVectorAddDrv.ncu-rep <span class="tok-keyword">--page</span> details</span>
+<span class="cl" data-line="2"><span class="tok-function">ncu</span> <span class="tok-keyword">--import</span> CuVectorAddDrv.ncu-rep <span class="tok-keyword">--page</span> raw <span class="tok-keyword">--csv</span></span>
+<span class="cl" data-line="3"><span class="tok-function">ncu</span> <span class="tok-keyword">--import</span> mem1.ncu-rep <span class="tok-keyword">--page</span> details</span>
+<span class="cl" data-line="4"><span class="tok-function">ncu</span> <span class="tok-keyword">--import</span> mem4.ncu-rep <span class="tok-keyword">--page</span> details</span>
+<span class="cl" data-line="5"><span class="tok-function">ncu</span> <span class="tok-keyword">--import</span> mem4.ncu-rep <span class="tok-keyword">--page</span> raw <span class="tok-keyword">--csv</span></span></code></pre></figure>
 <p class="prose"><a href="https://github.com/NVIDIA/nsight-training/blob/b17c40eef23929d08ec42e66667b29ae336ea8ac/cuda/nsight_compute/sample_reports/CuVectorAddDrv.ncu-rep">NVIDIA 原始二进制报告 · CuVectorAddDrv.ncu-rep</a></p>
 <p class="prose">读 metric 名时分三层：单元（例如 dram、lts、smsp）、事件（bytes、sectors 或 cycles）、聚合及单位（sum、<code class="inline-id">per_second</code> 或 <code class="inline-id">pct_of_peak_sustained_elapsed</code>）。按同一架构的 metric 描述核对分母。一个百分比可以取多个流水单元的最大值；将各百分比相加或把百分比当作带宽都没有物理意义。Raw 给出实际 metric，Source 需要可用的映射和已采集的对应计数器。</p>
 <p class="prose">如果基线报告选择了完整 section，而改后只采 Launch Statistics，在基线比较中某些单元的格子为空，不能按零作差。先对齐设备与相同指标的完整名称、单位、聚合和可用性；确认二者属于相同的有效输入后，才比较持续时间和相对峰值。需要的计数未采到时应补采同范围的小集合。</p>
@@ -272,12 +272,12 @@
 <p class="prose"><a class="term" href="#Def184dd93c27cbb8">Nsight Compute</a> 的 <a class="term" href="#Def18cf36465f800d">Speed Of Light</a>（<a class="term" href="#Def186e1049c700d1">SOL</a>）根据硬件计数器估算某一单元的吞吐相对其<strong>持续峰值</strong>达到多少。先打开 Details → <a class="term" href="#Def188552a9d24381">GPU</a> Speed Of Light Throughput，对目标 <a class="term" href="#Def187b310905daa3">launch</a> 记录 Compute (<a class="term" href="#Def18b5df4538d2b1">SM</a>) Throughput、Memory Throughput、duration，再展开 breakdown。一个复合 throughput 取其所含若干子项中最高的归一化值。例：若某一教学聚合仅有三个子项，分别为 90%、35%、20%，它报告 90%。这个数字只指出其中一条资源路径接近该口径的上限。</p>
 <p class="prose">拆开 sm<code class="inline-id">__throughput</code>.avg.<code class="inline-id">pct_of_peak_sustained_elapsed</code>。sm 指硬件单元，throughput 指指标，avg 为跨相应单元实例取平均的 roll-up，elapsed 用观测窗口里经过的周期作分母。active 后缀只使用该单元被定义为活跃的周期。NCU 为不同计数器定义各自的峰值和单位；解析前要看 Metric Details 的描述。某些短区间或边界条件下，相对持续峰值的比率可超过 100%。先核对单位、时钟、passes 和窗口。</p>
 <p class="prose"><strong>终端　先发现本机支持的指标，再采自己的 kernel</strong></p>
-<figure class="code"><figcaption><span>命令与示例</span><button type="button" data-copy="">复制代码</button></figcaption><pre><code><span class="cl" data-line="1">ncu --version</span>
-<span class="cl" data-line="2">ncu --list-sections</span>
-<span class="cl" data-line="3">ncu --query-metrics-mode suffix --metrics sm__throughput --chip ga100</span>
-<span class="cl" data-line="4">ncu --nvtx --nvtx-include 'steady/' --section SpeedOfLight --launch-count 1 -k regex:stride_add -o sol_stride.ncu-rep ./stride_lab 1</span>
-<span class="cl" data-line="5">ncu --import sol_stride.ncu-rep --page details</span>
-<span class="cl" data-line="6">ncu --import sol_stride.ncu-rep --page raw --csv</span></code></pre></figure>
+<figure class="code" data-language="bash"><figcaption><span><strong>Shell    </strong></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code class="language-bash"><span class="cl" data-line="1"><span class="tok-function">ncu</span> <span class="tok-keyword">--version</span></span>
+<span class="cl" data-line="2"><span class="tok-function">ncu</span> <span class="tok-keyword">--list-sections</span></span>
+<span class="cl" data-line="3"><span class="tok-function">ncu</span> <span class="tok-keyword">--query-metrics-mode</span> suffix <span class="tok-keyword">--metrics</span> sm__throughput <span class="tok-keyword">--chip</span> ga100</span>
+<span class="cl" data-line="4"><span class="tok-function">ncu</span> <span class="tok-keyword">--nvtx</span> <span class="tok-keyword">--nvtx-include</span> <span class="tok-string">'steady/'</span> <span class="tok-keyword">--section</span> SpeedOfLight <span class="tok-keyword">--launch-count</span> <span class="tok-number">1</span> <span class="tok-keyword">-k</span> regex:stride_add <span class="tok-keyword">-o</span> sol_stride.ncu-rep ./stride_lab <span class="tok-number">1</span></span>
+<span class="cl" data-line="5"><span class="tok-function">ncu</span> <span class="tok-keyword">--import</span> sol_stride.ncu-rep <span class="tok-keyword">--page</span> details</span>
+<span class="cl" data-line="6"><span class="tok-function">ncu</span> <span class="tok-keyword">--import</span> sol_stride.ncu-rep <span class="tok-keyword">--page</span> raw <span class="tok-keyword">--csv</span></span></code></pre></figure>
 <p class="prose">采集命令用 steady/ 选定 <a class="term" href="#Def183a7e7b0ce664">NVTX</a> push/pop 范围，再在其中选择首个匹配的 <code class="inline-id">stride_add</code> launch，从而避开<a class="term" href="#Def1898b6edc98c4d">预热</a>。跨设备比较前记录芯片、完整指标名、kernel 实例、输入与时钟。若要查清某项 throughput 由哪些管线组成，可查看该项的 breakdown，或在 CLI 中请求 breakdown: 前缀列出的分量。</p>
 <p class="prose"><a href="https://docs.nvidia.com/nsight-compute/ProfilingGuide/index.html">Nsight Compute Profiling Guide · Throughput、roll-up 与 active/elapsed</a></p>
 <p class="prose"><a href="https://docs.nvidia.com/nsight-compute/NsightComputeCli/index.html">Nsight Compute CLI · section、metric 与过滤</a></p>
@@ -348,12 +348,12 @@
 <h3>Nsight Systems 会话与采集范围</h3>
 <p class="prose">profile 适合能从启动一直运行到结束的短程序；交互式采集可用 <a class="term" href="#Def187b310905daa3"><strong>launch</strong></a>、start、stop 将服务启动与测量分开，用 status 或 sessions 确认会话。采集对象可以是单进程、进程树或支持平台上的系统级事件。容器与多 <a class="term" href="#Def18c2aaec5fcdcc">rank</a> 作业先确定真实 PID、进程边界、设备和输出名，每 rank 独立保存避免冲突。控制阶段按设备环境查看帮助，研究<a class="term" href="#Def18a1a871769569">稳态</a>时只放行目标几批。</p>
 <p class="prose"><strong>查看当前安装版本支持的采集项</strong></p>
-<figure class="code"><figcaption><span>命令与示例</span><button type="button" data-copy="">复制代码</button></figcaption><pre><code><span class="cl" data-line="1">nsys --version</span>
-<span class="cl" data-line="2">nsys profile --help</span>
-<span class="cl" data-line="3">nsys status --environment</span>
-<span class="cl" data-line="4">nsys stats --help-reports</span>
-<span class="cl" data-line="5">nsys analyze --help</span>
-<span class="cl" data-line="6">nsys export --help</span></code></pre></figure>
+<figure class="code" data-language="bash"><figcaption><span><strong>Shell    </strong></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code class="language-bash"><span class="cl" data-line="1"><span class="tok-function">nsys</span> <span class="tok-keyword">--version</span></span>
+<span class="cl" data-line="2"><span class="tok-function">nsys</span> profile <span class="tok-keyword">--help</span></span>
+<span class="cl" data-line="3"><span class="tok-function">nsys</span> status <span class="tok-keyword">--environment</span></span>
+<span class="cl" data-line="4"><span class="tok-function">nsys</span> stats <span class="tok-keyword">--help-reports</span></span>
+<span class="cl" data-line="5"><span class="tok-function">nsys</span> analyze <span class="tok-keyword">--help</span></span>
+<span class="cl" data-line="6"><span class="tok-function">nsys</span> <span class="tok-type">export</span> <span class="tok-keyword">--help</span></span></code></pre></figure>
 <p class="prose">采集窗口若止于 CPU 提交而 <a class="term" href="#Def188552a9d24381">GPU</a> 活动跨越右边界，应按题目选择：测完整请求需延长窗口直到结果可用；测固定时间窗口内的覆盖率则裁掉窗外部分。在启动、捕获、停止命令中记录进程与设备范围，有子进程或多 rank 时，缺某条轨道可能源于会话范围，不能据此证明没有工作。</p>
 <a class="back" href="#idx-l18-s027">↑ 返回知识点目录</a></section><section class="topic" id="l18-s028">
 <h3>时间线、事件与统计摘要</h3>
@@ -417,129 +417,129 @@
 <h3>连续与跨步向量加法实验</h3>
 <p class="prose">将下列各段依次复制到同一个 <code class="inline-id">stride_lab.cu</code> 文件。初始化和最终数值检查都在采集区间外，检查覆盖有效输出和未写入的空槽。CPU 上的打印给出整组 <a class="term" href="#Def188552a9d24381">GPU</a> event 区间除以提交次数的平均值。</p>
 <p class="prose"><strong>头文件与 </strong><a class="term" href="#Def18c6bc8e04694a"><strong>CUDA</strong></a><strong> </strong><a class="term" href="#Def18763beedf4d8a"><strong>API</strong></a><strong> 错误处理</strong></p>
-<figure class="code"><figcaption><span>命令与示例</span><button type="button" data-copy="">复制代码</button></figcaption><pre><code><span class="cl" data-line="1">#include &lt;cuda_runtime.h&gt;</span>
-<span class="cl" data-line="2">#include &lt;cuda_profiler_api.h&gt;</span>
-<span class="cl" data-line="3">#include &lt;nvtx3/nvToolsExt.h&gt;</span>
-<span class="cl" data-line="4">#include &lt;cstdio&gt;</span>
-<span class="cl" data-line="5">#include &lt;cstdlib&gt;</span>
-<span class="cl" data-line="6">#include &lt;cstring&gt;</span>
-<span class="cl" data-line="7">#include &lt;vector&gt;</span>
+<figure class="code" data-language="cuda"><figcaption><span><strong>CUDA C++    </strong></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code class="language-cuda"><span class="cl" data-line="1"><span class="tok-keyword">#include</span> <span class="tok-string">&lt;cuda_runtime.h&gt;</span></span>
+<span class="cl" data-line="2"><span class="tok-keyword">#include</span> <span class="tok-string">&lt;cuda_profiler_api.h&gt;</span></span>
+<span class="cl" data-line="3"><span class="tok-keyword">#include</span> <span class="tok-string">&lt;nvtx3/nvToolsExt.h&gt;</span></span>
+<span class="cl" data-line="4"><span class="tok-keyword">#include</span> <span class="tok-string">&lt;cstdio&gt;</span></span>
+<span class="cl" data-line="5"><span class="tok-keyword">#include</span> <span class="tok-string">&lt;cstdlib&gt;</span></span>
+<span class="cl" data-line="6"><span class="tok-keyword">#include</span> <span class="tok-string">&lt;cstring&gt;</span></span>
+<span class="cl" data-line="7"><span class="tok-keyword">#include</span> <span class="tok-string">&lt;vector&gt;</span></span>
 <span class="cl" data-line="8"></span>
-<span class="cl" data-line="9">void check(cudaError_t status, const char* expression) {</span>
-<span class="cl" data-line="10">    if (status != cudaSuccess) {</span>
-<span class="cl" data-line="11">        std::fprintf(stderr, "%s: %s\n", expression, cudaGetErrorString(status));</span>
-<span class="cl" data-line="12">        std::exit(EXIT_FAILURE);</span>
+<span class="cl" data-line="9"><span class="tok-type">void</span> <span class="tok-function">check</span>(cudaError_t status, <span class="tok-keyword">const</span> <span class="tok-type">char</span><span class="tok-operator">*</span> expression) {</span>
+<span class="cl" data-line="10">    <span class="tok-keyword">if</span> (status <span class="tok-operator">!=</span> cudaSuccess) {</span>
+<span class="cl" data-line="11">        std<span class="tok-operator">::</span><span class="tok-function">fprintf</span>(stderr, <span class="tok-string">"%s: %s\n"</span>, expression, <span class="tok-function">cudaGetErrorString</span>(status));</span>
+<span class="cl" data-line="12">        std<span class="tok-operator">::</span><span class="tok-function">exit</span>(EXIT_FAILURE);</span>
 <span class="cl" data-line="13">    }</span>
 <span class="cl" data-line="14">}</span>
-<span class="cl" data-line="15">#define CHECK(call) check((call), #call)</span></code></pre></figure>
+<span class="cl" data-line="15"><span class="tok-keyword">#define CHECK(call) check((call), #call)</span></span></code></pre></figure>
 <p class="prose"><strong>初始化与目标 kernel</strong></p>
-<figure class="code"><figcaption><span>命令与示例</span><button type="button" data-copy="">复制代码</button></figcaption><pre><code><span class="cl" data-line="1"></span>
-<span class="cl" data-line="2">__global__ void initialize(float* x, float* y, float* z, int count) {</span>
-<span class="cl" data-line="3">    int i = blockIdx.x * blockDim.x + threadIdx.x;</span>
-<span class="cl" data-line="4">    if (i &lt; count) {</span>
-<span class="cl" data-line="5">        x[i] = float(i % 7);</span>
-<span class="cl" data-line="6">        y[i] = float(i % 11);</span>
-<span class="cl" data-line="7">        z[i] = -1.0f;</span>
+<figure class="code" data-language="cuda"><figcaption><span><strong>CUDA C++    </strong></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code class="language-cuda"><span class="cl" data-line="1"></span>
+<span class="cl" data-line="2"><span class="tok-keyword">__global__</span> <span class="tok-type">void</span> <span class="tok-function">initialize</span>(<span class="tok-type">float</span><span class="tok-operator">*</span> x, <span class="tok-type">float</span><span class="tok-operator">*</span> y, <span class="tok-type">float</span><span class="tok-operator">*</span> z, <span class="tok-type">int</span> count) {</span>
+<span class="cl" data-line="3">    <span class="tok-type">int</span> i <span class="tok-operator">=</span> <span class="tok-type">blockIdx</span>.x <span class="tok-operator">*</span> <span class="tok-type">blockDim</span>.x <span class="tok-operator">+</span> <span class="tok-type">threadIdx</span>.x;</span>
+<span class="cl" data-line="4">    <span class="tok-keyword">if</span> (i <span class="tok-operator">&lt;</span> count) {</span>
+<span class="cl" data-line="5">        x[i] <span class="tok-operator">=</span> <span class="tok-type">float</span>(i <span class="tok-operator">%</span> <span class="tok-number">7</span>);</span>
+<span class="cl" data-line="6">        y[i] <span class="tok-operator">=</span> <span class="tok-type">float</span>(i <span class="tok-operator">%</span> <span class="tok-number">11</span>);</span>
+<span class="cl" data-line="7">        z[i] <span class="tok-operator">=</span> <span class="tok-number">-1.0f</span>;</span>
 <span class="cl" data-line="8">    }</span>
 <span class="cl" data-line="9">}</span>
 <span class="cl" data-line="10"></span>
-<span class="cl" data-line="11">__global__ void stride_add(const float* x, const float* y, float* z,</span>
-<span class="cl" data-line="12">                           int outputs, int stride) {</span>
-<span class="cl" data-line="13">    int i = blockIdx.x * blockDim.x + threadIdx.x;</span>
-<span class="cl" data-line="14">    if (i &lt; outputs) {</span>
-<span class="cl" data-line="15">        int j = i * stride;</span>
-<span class="cl" data-line="16">        z[j] = x[j] + y[j];</span>
+<span class="cl" data-line="11"><span class="tok-keyword">__global__</span> <span class="tok-type">void</span> <span class="tok-function">stride_add</span>(<span class="tok-keyword">const</span> <span class="tok-type">float</span><span class="tok-operator">*</span> x, <span class="tok-keyword">const</span> <span class="tok-type">float</span><span class="tok-operator">*</span> y, <span class="tok-type">float</span><span class="tok-operator">*</span> z,</span>
+<span class="cl" data-line="12">                           <span class="tok-type">int</span> outputs, <span class="tok-type">int</span> stride) {</span>
+<span class="cl" data-line="13">    <span class="tok-type">int</span> i <span class="tok-operator">=</span> <span class="tok-type">blockIdx</span>.x <span class="tok-operator">*</span> <span class="tok-type">blockDim</span>.x <span class="tok-operator">+</span> <span class="tok-type">threadIdx</span>.x;</span>
+<span class="cl" data-line="14">    <span class="tok-keyword">if</span> (i <span class="tok-operator">&lt;</span> outputs) {</span>
+<span class="cl" data-line="15">        <span class="tok-type">int</span> j <span class="tok-operator">=</span> i <span class="tok-operator">*</span> stride;</span>
+<span class="cl" data-line="16">        z[j] <span class="tok-operator">=</span> x[j] <span class="tok-operator">+</span> y[j];</span>
 <span class="cl" data-line="17">    }</span>
 <span class="cl" data-line="18">}</span></code></pre></figure>
 <p class="prose"><strong>输入与</strong><a class="term" href="#Def1898b6edc98c4d"><strong>预热</strong></a></p>
-<figure class="code"><figcaption><span>命令与示例</span><button type="button" data-copy="">复制代码</button></figcaption><pre><code><span class="cl" data-line="1"></span>
-<span class="cl" data-line="2">int main(int argc, char** argv) {</span>
-<span class="cl" data-line="3">    if (argc != 2 || (std::strcmp(argv[1], "1") &amp;&amp; std::strcmp(argv[1], "4"))) {</span>
-<span class="cl" data-line="4">        std::fprintf(stderr, "usage: stride_lab 1|4\n");</span>
-<span class="cl" data-line="5">        return EXIT_FAILURE;</span>
+<figure class="code" data-language="cuda"><figcaption><span><strong>CUDA C++    </strong></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code class="language-cuda"><span class="cl" data-line="1"></span>
+<span class="cl" data-line="2"><span class="tok-type">int</span> <span class="tok-function">main</span>(<span class="tok-type">int</span> argc, <span class="tok-type">char</span><span class="tok-operator">**</span> argv) {</span>
+<span class="cl" data-line="3">    <span class="tok-keyword">if</span> (argc <span class="tok-operator">!=</span> <span class="tok-number">2</span> <span class="tok-operator">||</span> (std<span class="tok-operator">::</span><span class="tok-function">strcmp</span>(argv[<span class="tok-number">1</span>], <span class="tok-string">"1"</span>) <span class="tok-operator">&amp;&amp;</span> std<span class="tok-operator">::</span><span class="tok-function">strcmp</span>(argv[<span class="tok-number">1</span>], <span class="tok-string">"4"</span>))) {</span>
+<span class="cl" data-line="4">        std<span class="tok-operator">::</span><span class="tok-function">fprintf</span>(stderr, <span class="tok-string">"usage: stride_lab 1|4\n"</span>);</span>
+<span class="cl" data-line="5">        <span class="tok-keyword">return</span> EXIT_FAILURE;</span>
 <span class="cl" data-line="6">    }</span>
-<span class="cl" data-line="7">    constexpr int n = 1 &lt;&lt; 18;</span>
-<span class="cl" data-line="8">    constexpr int threads = 256;</span>
-<span class="cl" data-line="9">    constexpr int steps = 40;</span>
-<span class="cl" data-line="10">    int stride = std::atoi(argv[1]);</span>
-<span class="cl" data-line="11">    int count = n * stride;</span>
-<span class="cl" data-line="12">    size_t bytes = size_t(count) * sizeof(float);</span>
-<span class="cl" data-line="13">    float *x, *y, *z;</span>
-<span class="cl" data-line="14">    CHECK(cudaMalloc(&amp;x, bytes));</span>
-<span class="cl" data-line="15">    CHECK(cudaMalloc(&amp;y, bytes));</span>
-<span class="cl" data-line="16">    CHECK(cudaMalloc(&amp;z, bytes));</span>
-<span class="cl" data-line="17">    initialize&lt;&lt;&lt;(count + threads - 1) / threads, threads&gt;&gt;&gt;(x, y, z, count);</span>
-<span class="cl" data-line="18">    CHECK(cudaGetLastError());</span>
-<span class="cl" data-line="19">    for (int t = 0; t &lt; 4; ++t)</span>
-<span class="cl" data-line="20">        stride_add&lt;&lt;&lt;n / threads, threads&gt;&gt;&gt;(x, y, z, n, stride);</span>
-<span class="cl" data-line="21">    CHECK(cudaGetLastError());</span>
-<span class="cl" data-line="22">    CHECK(cudaDeviceSynchronize());</span>
+<span class="cl" data-line="7">    <span class="tok-keyword">constexpr</span> <span class="tok-type">int</span> n <span class="tok-operator">=</span> <span class="tok-number">1</span> <span class="tok-operator">&lt;&lt;</span> <span class="tok-number">18</span>;</span>
+<span class="cl" data-line="8">    <span class="tok-keyword">constexpr</span> <span class="tok-type">int</span> threads <span class="tok-operator">=</span> <span class="tok-number">256</span>;</span>
+<span class="cl" data-line="9">    <span class="tok-keyword">constexpr</span> <span class="tok-type">int</span> steps <span class="tok-operator">=</span> <span class="tok-number">40</span>;</span>
+<span class="cl" data-line="10">    <span class="tok-type">int</span> stride <span class="tok-operator">=</span> std<span class="tok-operator">::</span><span class="tok-function">atoi</span>(argv[<span class="tok-number">1</span>]);</span>
+<span class="cl" data-line="11">    <span class="tok-type">int</span> count <span class="tok-operator">=</span> n <span class="tok-operator">*</span> stride;</span>
+<span class="cl" data-line="12">    <span class="tok-type">size_t</span> bytes <span class="tok-operator">=</span> <span class="tok-type">size_t</span>(count) <span class="tok-operator">*</span> <span class="tok-keyword">sizeof</span>(<span class="tok-type">float</span>);</span>
+<span class="cl" data-line="13">    <span class="tok-type">float</span> <span class="tok-operator">*</span>x, <span class="tok-operator">*</span>y, <span class="tok-operator">*</span>z;</span>
+<span class="cl" data-line="14">    <span class="tok-function">CHECK</span>(<span class="tok-function">cudaMalloc</span>(<span class="tok-operator">&amp;</span>x, bytes));</span>
+<span class="cl" data-line="15">    <span class="tok-function">CHECK</span>(<span class="tok-function">cudaMalloc</span>(<span class="tok-operator">&amp;</span>y, bytes));</span>
+<span class="cl" data-line="16">    <span class="tok-function">CHECK</span>(<span class="tok-function">cudaMalloc</span>(<span class="tok-operator">&amp;</span>z, bytes));</span>
+<span class="cl" data-line="17">    initialize<span class="tok-operator">&lt;&lt;&lt;</span>(count <span class="tok-operator">+</span> threads <span class="tok-operator">-</span> <span class="tok-number">1</span>) <span class="tok-operator">/</span> threads, threads<span class="tok-operator">&gt;&gt;&gt;</span>(x, y, z, count);</span>
+<span class="cl" data-line="18">    <span class="tok-function">CHECK</span>(<span class="tok-function">cudaGetLastError</span>());</span>
+<span class="cl" data-line="19">    <span class="tok-keyword">for</span> (<span class="tok-type">int</span> t <span class="tok-operator">=</span> <span class="tok-number">0</span>; t <span class="tok-operator">&lt;</span> <span class="tok-number">4</span>; <span class="tok-operator">++</span>t)</span>
+<span class="cl" data-line="20">        stride_add<span class="tok-operator">&lt;&lt;&lt;</span>n <span class="tok-operator">/</span> threads, threads<span class="tok-operator">&gt;&gt;&gt;</span>(x, y, z, n, stride);</span>
+<span class="cl" data-line="21">    <span class="tok-function">CHECK</span>(<span class="tok-function">cudaGetLastError</span>());</span>
+<span class="cl" data-line="22">    <span class="tok-function">CHECK</span>(<span class="tok-function">cudaDeviceSynchronize</span>());</span>
 <span class="cl" data-line="23"></span></code></pre></figure>
 <p class="prose"><a class="term" href="#Def183a7e7b0ce664"><strong>NVTX</strong></a><strong>、CUDA event 与采集窗口</strong></p>
-<figure class="code"><figcaption><span>命令与示例</span><button type="button" data-copy="">复制代码</button></figcaption><pre><code><span class="cl" data-line="1">    cudaEvent_t start, finish;</span>
-<span class="cl" data-line="2">    CHECK(cudaEventCreate(&amp;start));</span>
-<span class="cl" data-line="3">    CHECK(cudaEventCreate(&amp;finish));</span>
-<span class="cl" data-line="4">    CHECK(cudaProfilerStart());</span>
-<span class="cl" data-line="5">    nvtxRangePushA("steady");</span>
-<span class="cl" data-line="6">    CHECK(cudaEventRecord(start));</span>
-<span class="cl" data-line="7">    for (int t = 0; t &lt; steps; ++t)</span>
-<span class="cl" data-line="8">        stride_add&lt;&lt;&lt;n / threads, threads&gt;&gt;&gt;(x, y, z, n, stride);</span>
-<span class="cl" data-line="9">    CHECK(cudaGetLastError());</span>
-<span class="cl" data-line="10">    CHECK(cudaEventRecord(finish));</span>
-<span class="cl" data-line="11">    CHECK(cudaEventSynchronize(finish));</span>
-<span class="cl" data-line="12">    nvtxRangePop();</span>
-<span class="cl" data-line="13">    CHECK(cudaProfilerStop());</span>
-<span class="cl" data-line="14">    float ms = 0.0f;</span>
-<span class="cl" data-line="15">    CHECK(cudaEventElapsedTime(&amp;ms, start, finish));</span>
-<span class="cl" data-line="16">    std::vector&lt;float&gt; result(count);</span></code></pre></figure>
+<figure class="code" data-language="cuda"><figcaption><span><strong>CUDA C++    </strong></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code class="language-cuda"><span class="cl" data-line="1">    cudaEvent_t start, finish;</span>
+<span class="cl" data-line="2">    <span class="tok-function">CHECK</span>(<span class="tok-function">cudaEventCreate</span>(<span class="tok-operator">&amp;</span>start));</span>
+<span class="cl" data-line="3">    <span class="tok-function">CHECK</span>(<span class="tok-function">cudaEventCreate</span>(<span class="tok-operator">&amp;</span>finish));</span>
+<span class="cl" data-line="4">    <span class="tok-function">CHECK</span>(<span class="tok-function">cudaProfilerStart</span>());</span>
+<span class="cl" data-line="5">    <span class="tok-function">nvtxRangePushA</span>(<span class="tok-string">"steady"</span>);</span>
+<span class="cl" data-line="6">    <span class="tok-function">CHECK</span>(<span class="tok-function">cudaEventRecord</span>(start));</span>
+<span class="cl" data-line="7">    <span class="tok-keyword">for</span> (<span class="tok-type">int</span> t <span class="tok-operator">=</span> <span class="tok-number">0</span>; t <span class="tok-operator">&lt;</span> steps; <span class="tok-operator">++</span>t)</span>
+<span class="cl" data-line="8">        stride_add<span class="tok-operator">&lt;&lt;&lt;</span>n <span class="tok-operator">/</span> threads, threads<span class="tok-operator">&gt;&gt;&gt;</span>(x, y, z, n, stride);</span>
+<span class="cl" data-line="9">    <span class="tok-function">CHECK</span>(<span class="tok-function">cudaGetLastError</span>());</span>
+<span class="cl" data-line="10">    <span class="tok-function">CHECK</span>(<span class="tok-function">cudaEventRecord</span>(finish));</span>
+<span class="cl" data-line="11">    <span class="tok-function">CHECK</span>(<span class="tok-function">cudaEventSynchronize</span>(finish));</span>
+<span class="cl" data-line="12">    <span class="tok-function">nvtxRangePop</span>();</span>
+<span class="cl" data-line="13">    <span class="tok-function">CHECK</span>(<span class="tok-function">cudaProfilerStop</span>());</span>
+<span class="cl" data-line="14">    <span class="tok-type">float</span> ms <span class="tok-operator">=</span> <span class="tok-number">0.0f</span>;</span>
+<span class="cl" data-line="15">    <span class="tok-function">CHECK</span>(<span class="tok-function">cudaEventElapsedTime</span>(<span class="tok-operator">&amp;</span>ms, start, finish));</span>
+<span class="cl" data-line="16">    std<span class="tok-operator">::</span>vector<span class="tok-operator">&lt;</span><span class="tok-type">float</span><span class="tok-operator">&gt;</span> <span class="tok-function">result</span>(count);</span></code></pre></figure>
 <p class="prose"><a class="term" href="#Def18dbe3f411b482"><strong>数值校验</strong></a><strong>与资源释放</strong></p>
-<figure class="code"><figcaption><span>命令与示例</span><button type="button" data-copy="">复制代码</button></figcaption><pre><code><span class="cl" data-line="1">    CHECK(cudaMemcpy(result.data(), z, bytes, cudaMemcpyDeviceToHost));</span>
-<span class="cl" data-line="2">    for (int j = 0; j &lt; count; ++j) {</span>
-<span class="cl" data-line="3">        float reference = j % stride == 0 ? float(j % 7 + j % 11) : -1.0f;</span>
-<span class="cl" data-line="4">        if (result[j] != reference) {</span>
-<span class="cl" data-line="5">            std::fprintf(stderr, "wrong result at %d\n", j);</span>
-<span class="cl" data-line="6">            return EXIT_FAILURE;</span>
+<figure class="code" data-language="cuda"><figcaption><span><strong>CUDA C++    </strong></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code class="language-cuda"><span class="cl" data-line="1">    <span class="tok-function">CHECK</span>(<span class="tok-function">cudaMemcpy</span>(result.<span class="tok-function">data</span>(), z, bytes, cudaMemcpyDeviceToHost));</span>
+<span class="cl" data-line="2">    <span class="tok-keyword">for</span> (<span class="tok-type">int</span> j <span class="tok-operator">=</span> <span class="tok-number">0</span>; j <span class="tok-operator">&lt;</span> count; <span class="tok-operator">++</span>j) {</span>
+<span class="cl" data-line="3">        <span class="tok-type">float</span> reference <span class="tok-operator">=</span> j <span class="tok-operator">%</span> stride <span class="tok-operator">==</span> <span class="tok-number">0</span> <span class="tok-operator">?</span> <span class="tok-type">float</span>(j <span class="tok-operator">%</span> <span class="tok-number">7</span> <span class="tok-operator">+</span> j <span class="tok-operator">%</span> <span class="tok-number">11</span>) <span class="tok-operator">:</span> <span class="tok-number">-1.0f</span>;</span>
+<span class="cl" data-line="4">        <span class="tok-keyword">if</span> (result[j] <span class="tok-operator">!=</span> reference) {</span>
+<span class="cl" data-line="5">            std<span class="tok-operator">::</span><span class="tok-function">fprintf</span>(stderr, <span class="tok-string">"wrong result at %d\n"</span>, j);</span>
+<span class="cl" data-line="6">            <span class="tok-keyword">return</span> EXIT_FAILURE;</span>
 <span class="cl" data-line="7">        }</span>
 <span class="cl" data-line="8">    }</span>
-<span class="cl" data-line="9">    std::printf("stride=%d, launches=%d, mean GPU interval=%.6f ms, verified\n",</span>
-<span class="cl" data-line="10">                stride, steps, ms / steps);</span>
-<span class="cl" data-line="11">    CHECK(cudaEventDestroy(start));</span>
-<span class="cl" data-line="12">    CHECK(cudaEventDestroy(finish));</span>
-<span class="cl" data-line="13">    CHECK(cudaFree(z));</span>
-<span class="cl" data-line="14">    CHECK(cudaFree(y));</span>
-<span class="cl" data-line="15">    CHECK(cudaFree(x));</span>
-<span class="cl" data-line="16">    return EXIT_SUCCESS;</span>
+<span class="cl" data-line="9">    std<span class="tok-operator">::</span><span class="tok-function">printf</span>(<span class="tok-string">"stride=%d, launches=%d, mean GPU interval=%.6f ms, verified\n"</span>,</span>
+<span class="cl" data-line="10">                stride, steps, ms <span class="tok-operator">/</span> steps);</span>
+<span class="cl" data-line="11">    <span class="tok-function">CHECK</span>(<span class="tok-function">cudaEventDestroy</span>(start));</span>
+<span class="cl" data-line="12">    <span class="tok-function">CHECK</span>(<span class="tok-function">cudaEventDestroy</span>(finish));</span>
+<span class="cl" data-line="13">    <span class="tok-function">CHECK</span>(<span class="tok-function">cudaFree</span>(z));</span>
+<span class="cl" data-line="14">    <span class="tok-function">CHECK</span>(<span class="tok-function">cudaFree</span>(y));</span>
+<span class="cl" data-line="15">    <span class="tok-function">CHECK</span>(<span class="tok-function">cudaFree</span>(x));</span>
+<span class="cl" data-line="16">    <span class="tok-keyword">return</span> EXIT_SUCCESS;</span>
 <span class="cl" data-line="17">}</span></code></pre></figure>
 <p class="prose">先把 <span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><mi mathvariant="normal">s</mi><mi mathvariant="normal">t</mi><mi mathvariant="normal">r</mi><mi mathvariant="normal">i</mi><mi mathvariant="normal">d</mi><mi mathvariant="normal">e</mi><mo>=</mo><mn>1</mn></math></span> 当基线，用已知小向量核对所有有效槽的和，再检查未写槽的哨兵。<a class="term" href="#Def1863b1037e3c0e">步长</a>增大后预测的是目标访存指令触及更多 <a class="term" href="#Def189e5a7e6a9f21">sector</a>；若 ncu 中 sector 数未按预期改变，先看编译后的访问宽度、<a class="term" href="#Def18674c7f084ebc">lane</a> 到索引的映射与缓存层级。即使事务增多，若无 profiler 耗时几乎不变，也只能报告事务增加，不能写成已测得同倍数减速。</p>
 <a class="back" href="#idx-l18-s039">↑ 返回知识点目录</a></section><section class="topic" id="l18-s040">
 <h2><strong>5　设备告警与存储停顿</strong></h2>
 <p class="caption"><strong>代码 7　</strong>DCGM exporter 区分功率、累计能量和可选限频计时</p>
-<figure class="code"><figcaption><span><strong>CSV    </strong><a href="https://github.com/NVIDIA/dcgm-exporter/blob/4e663a526c4624ad0e18ad816f09b7be2c5348a7/etc/default-counters.csv#L24-L32">dcgm-exporter / default-counters.csv    L24–32</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code><span class="cl" data-line="24"># Power</span>
-<span class="cl" data-line="25">DCGM_FI_DEV_BOARD_POWER_WATTS, gauge, Power draw (in W).</span>
-<span class="cl" data-line="26"># DCGM_FI_DEV_BOARD_POWER_LIMIT_REQUESTED_WATTS, gauge, Configured board power limit (in W).</span>
-<span class="cl" data-line="27"># DCGM_FI_DEV_BOARD_POWER_LIMIT_ENFORCED_WATTS,  gauge, Effective board power limit enforced by the driver after all limiters (in W).</span>
-<span class="cl" data-line="28"># DCGM_FI_DEV_GPU_PSTATE,                        gauge, Performance state from 0 (highest) to 15.</span>
-<span class="cl" data-line="29">DCGM_FI_DEV_GPU_ENERGY_JOULES_TOTAL, counter, GPU energy consumed since the driver was reloaded in joules.</span>
-<span class="cl" data-line="30"># DCGM_FI_DEV_FAN_SPEED_RATIO,                       gauge, Fan speed as a ratio of its maximum speed.</span>
-<span class="cl" data-line="31"># DCGM_FI_DEV_GPU_POWER_THROTTLE_SECONDS_TOTAL,     counter, Time below application clocks due to power policy in seconds.</span>
-<span class="cl" data-line="32"># DCGM_FI_DEV_GPU_THERMAL_THROTTLE_SECONDS_TOTAL,   counter, Time below application clocks due to thermal policy in seconds.</span></code></pre></figure>
+<figure class="code" data-language="csv"><figcaption><span><strong>CSV    </strong><a href="https://github.com/NVIDIA/dcgm-exporter/blob/4e663a526c4624ad0e18ad816f09b7be2c5348a7/etc/default-counters.csv#L24-L32">dcgm-exporter / default-counters.csv    L24–32</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code class="language-csv"><span class="cl" data-line="24"><span class="tok-comment"># Power</span></span>
+<span class="cl" data-line="25"><span class="tok-variable">DCGM_FI_DEV_BOARD_POWER_WATTS</span><span class="tok-operator">,</span> <span class="tok-type">gauge</span><span class="tok-operator">,</span> Power draw (in W).</span>
+<span class="cl" data-line="26"><span class="tok-comment"># DCGM_FI_DEV_BOARD_POWER_LIMIT_REQUESTED_WATTS, gauge, Configured board power limit (in W).</span></span>
+<span class="cl" data-line="27"><span class="tok-comment"># DCGM_FI_DEV_BOARD_POWER_LIMIT_ENFORCED_WATTS,  gauge, Effective board power limit enforced by the driver after all limiters (in W).</span></span>
+<span class="cl" data-line="28"><span class="tok-comment"># DCGM_FI_DEV_GPU_PSTATE,                        gauge, Performance state from 0 (highest) to 15.</span></span>
+<span class="cl" data-line="29"><span class="tok-variable">DCGM_FI_DEV_GPU_ENERGY_JOULES_TOTAL</span><span class="tok-operator">,</span> <span class="tok-type">counter</span><span class="tok-operator">,</span> GPU energy consumed since the driver was reloaded in joules.</span>
+<span class="cl" data-line="30"><span class="tok-comment"># DCGM_FI_DEV_FAN_SPEED_RATIO,                       gauge, Fan speed as a ratio of its maximum speed.</span></span>
+<span class="cl" data-line="31"><span class="tok-comment"># DCGM_FI_DEV_GPU_POWER_THROTTLE_SECONDS_TOTAL,     counter, Time below application clocks due to power policy in seconds.</span></span>
+<span class="cl" data-line="32"><span class="tok-comment"># DCGM_FI_DEV_GPU_THERMAL_THROTTLE_SECONDS_TOTAL,   counter, Time below application clocks due to thermal policy in seconds.</span></span></code></pre></figure>
 <p class="prose">把相同 <a class="term" href="#Def180890b549e548">shape</a> 的 kernel 时间、<a class="term" href="#Def18b5df4538d2b1">SM</a> 时钟、温度和<a class="term" href="#Def183a6a70e00ba3"><strong>限频</strong></a>原因放在同一窗口。达到功率上限可伴随正常满载，单个功率值不足以解释变慢。带 # 的行默认关闭，缺少时间序列不能当作零。</p>
 <p class="caption"><strong>代码 8　</strong>最近的 Xid 编号与窗口事件数具有不同语义</p>
-<figure class="code"><figcaption><span><strong>CSV    </strong><a href="https://github.com/NVIDIA/dcgm-exporter/blob/4e663a526c4624ad0e18ad816f09b7be2c5348a7/etc/default-counters.csv#L46-L60">dcgm-exporter / default-counters.csv    L46–60</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code><span class="cl" data-line="46"># Utilization (the sample period varies depending on the product)</span>
-<span class="cl" data-line="47">DCGM_FI_DEV_GPU_UTIL_RATIO, gauge, GPU utilization as a ratio.</span>
-<span class="cl" data-line="48">DCGM_FI_DEV_MEMORY_UTIL_RATIO, gauge, Memory utilization as a ratio.</span>
-<span class="cl" data-line="49">DCGM_FI_DEV_ENC_UTIL_RATIO, gauge, Encoder utilization as a ratio.</span>
-<span class="cl" data-line="50">DCGM_FI_DEV_DEC_UTIL_RATIO, gauge, Decoder utilization as a ratio.</span>
+<figure class="code" data-language="csv"><figcaption><span><strong>CSV    </strong><a href="https://github.com/NVIDIA/dcgm-exporter/blob/4e663a526c4624ad0e18ad816f09b7be2c5348a7/etc/default-counters.csv#L46-L60">dcgm-exporter / default-counters.csv    L46–60</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code class="language-csv"><span class="cl" data-line="46"><span class="tok-comment"># Utilization (the sample period varies depending on the product)</span></span>
+<span class="cl" data-line="47"><span class="tok-variable">DCGM_FI_DEV_GPU_UTIL_RATIO</span><span class="tok-operator">,</span> <span class="tok-type">gauge</span><span class="tok-operator">,</span> GPU utilization as a ratio.</span>
+<span class="cl" data-line="48"><span class="tok-variable">DCGM_FI_DEV_MEMORY_UTIL_RATIO</span><span class="tok-operator">,</span> <span class="tok-type">gauge</span><span class="tok-operator">,</span> Memory utilization as a ratio.</span>
+<span class="cl" data-line="49"><span class="tok-variable">DCGM_FI_DEV_ENC_UTIL_RATIO</span><span class="tok-operator">,</span> <span class="tok-type">gauge</span><span class="tok-operator">,</span> Encoder utilization as a ratio.</span>
+<span class="cl" data-line="50"><span class="tok-variable">DCGM_FI_DEV_DEC_UTIL_RATIO</span><span class="tok-operator">,</span> <span class="tok-type">gauge</span><span class="tok-operator">,</span> Decoder utilization as a ratio.</span>
 <span class="cl" data-line="51"></span>
-<span class="cl" data-line="52"># Errors and violations</span>
-<span class="cl" data-line="53">DCGM_FI_DEV_XID_ERROR, gauge, Value of the last XID error encountered.</span>
+<span class="cl" data-line="52"><span class="tok-comment"># Errors and violations</span></span>
+<span class="cl" data-line="53"><span class="tok-variable">DCGM_FI_DEV_XID_ERROR</span><span class="tok-operator">,</span> <span class="tok-type">gauge</span><span class="tok-operator">,</span> Value of the last XID error encountered.</span>
 <span class="cl" data-line="54"></span>
-<span class="cl" data-line="55"># DCGM Exporter fields</span>
+<span class="cl" data-line="55"><span class="tok-comment"># DCGM Exporter fields</span></span>
 <span class="cl" data-line="56"></span>
-<span class="cl" data-line="57"># DCGM_EXP_CLOCK_EVENTS_COUNT, gauge,   Clock events observed during the configured time window.</span>
-<span class="cl" data-line="58"># DCGM_EXP_CLOCK_EVENTS_TOTAL, counter, Total clock events observed since the counter was last reset (edge-counted).</span>
-<span class="cl" data-line="59"># DCGM_EXP_XID_ERRORS_COUNT,   gauge,   XID errors observed during the configured time window.</span>
-<span class="cl" data-line="60"># DCGM_EXP_XID_ERRORS_TOTAL,   counter, Total XID errors observed since the counter was last reset.</span></code></pre></figure>
+<span class="cl" data-line="57"><span class="tok-comment"># DCGM_EXP_CLOCK_EVENTS_COUNT, gauge,   Clock events observed during the configured time window.</span></span>
+<span class="cl" data-line="58"><span class="tok-comment"># DCGM_EXP_CLOCK_EVENTS_TOTAL, counter, Total clock events observed since the counter was last reset (edge-counted).</span></span>
+<span class="cl" data-line="59"><span class="tok-comment"># DCGM_EXP_XID_ERRORS_COUNT,   gauge,   XID errors observed during the configured time window.</span></span>
+<span class="cl" data-line="60"><span class="tok-comment"># DCGM_EXP_XID_ERRORS_TOTAL,   counter, Total XID errors observed since the counter was last reset.</span></span></code></pre></figure>
 <p class="prose">连续采样三次相同 <a class="term" href="#Def180dc25f92f9ce">Xid</a> 无法据此数出三次故障。按设备 UUID 和时间与驱动日志对齐，再按错误编号查处置说明。ECC 则须区分可纠正、不可纠正以及计数重置边界。</p>
 <p class="prose"><a href="https://docs.nvidia.com/deploy/xid-errors/latest/index.html">NVIDIA Xid 目录与处置说明</a></p>
 <p class="prose">同一慢 step 下，什么证据可以区分候选原因</p>
@@ -549,32 +549,32 @@
 <a class="back" href="#idx-l18-s040">↑ 返回知识点目录</a></section><section class="topic" id="l18-s041">
 <h2><strong>6　通信组重建与训练恢复点</strong></h2>
 <p class="caption"><strong>代码 9　</strong>带 abort 标志的收缩路径处理旧工作，再创建子通信器</p>
-<figure class="code"><figcaption><span><strong>C++    </strong><a href="https://github.com/NVIDIA/nccl/blob/ad2d192c1f279aefcaf340f67e07880b65a1116b/src/init.cc#L3798-L3810">nccl / init.cc    L3798–3810</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code><span class="cl" data-line="3798">NVTX3_RANGE(NcclNvtxParamsCommShrink)</span>
-<span class="cl" data-line="3799">ncclResult_t res = ncclSuccess;</span>
-<span class="cl" data-line="3800">NCCLCHECK(ncclGroupStartInternal());</span>
-<span class="cl" data-line="3801">// Handle error mode by setting abort flags and waiting for kernels to complete and unset the flags</span>
-<span class="cl" data-line="3802">// to avoid bootstrap issues</span>
-<span class="cl" data-line="3803"><span class="kw">if</span> (shrinkFlags &amp; NCCL_SHRINK_ABORT) {</span>
-<span class="cl" data-line="3804">  NCCLCHECKGOTO(setCommAbortFlags(comm, <span class="fn">1</span>), res, exit);</span>
-<span class="cl" data-line="3805">  NCCLCHECKGOTO(ncclStrongStreamSynchronize(&amp;comm-&gt;sharedRes-&gt;deviceStream), res, exit);</span>
-<span class="cl" data-line="3806">  NCCLCHECKGOTO(setCommAbortFlags(comm, <span class="fn">0</span>), res, exit);</span>
+<figure class="code" data-language="cpp"><figcaption><span><strong>C++    </strong><a href="https://github.com/NVIDIA/nccl/blob/ad2d192c1f279aefcaf340f67e07880b65a1116b/src/init.cc#L3798-L3810">nccl / init.cc    L3798–3810</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code class="language-cpp"><span class="cl" data-line="3798"><span class="tok-function">NVTX3_RANGE</span>(NcclNvtxParamsCommShrink)</span>
+<span class="cl" data-line="3799">ncclResult_t res <span class="tok-operator">=</span> ncclSuccess;</span>
+<span class="cl" data-line="3800"><span class="tok-function">NCCLCHECK</span>(<span class="tok-function">ncclGroupStartInternal</span>());</span>
+<span class="cl" data-line="3801"><span class="tok-comment">// Handle error mode by setting abort flags and waiting for kernels to complete and unset the flags</span></span>
+<span class="cl" data-line="3802"><span class="tok-comment">// to avoid bootstrap issues</span></span>
+<span class="cl" data-line="3803"><span class="tok-keyword">if</span> (shrinkFlags <span class="tok-operator">&amp;</span> NCCL_SHRINK_ABORT) {</span>
+<span class="cl" data-line="3804">  <span class="tok-function">NCCLCHECKGOTO</span>(<span class="tok-function">setCommAbortFlags</span>(comm, <span class="tok-number">1</span>), res, exit);</span>
+<span class="cl" data-line="3805">  <span class="tok-function">NCCLCHECKGOTO</span>(<span class="tok-function">ncclStrongStreamSynchronize</span>(<span class="tok-operator">&amp;</span>comm<span class="tok-operator">-&gt;</span>sharedRes<span class="tok-operator">-&gt;</span>deviceStream), res, exit);</span>
+<span class="cl" data-line="3806">  <span class="tok-function">NCCLCHECKGOTO</span>(<span class="tok-function">setCommAbortFlags</span>(comm, <span class="tok-number">0</span>), res, exit);</span>
 <span class="cl" data-line="3807">}</span>
-<span class="cl" data-line="3808">NCCLCHECKGOTO(ncclCommInitChildComm(comm, newcomm, /*isShrink=*/true, shrinkFlags, /*color=*/<span class="fn">0</span>, /*key=*/comm-&gt;rank,</span>
+<span class="cl" data-line="3808"><span class="tok-function">NCCLCHECKGOTO</span>(<span class="tok-function">ncclCommInitChildComm</span>(comm, newcomm, <span class="tok-comment">/*isShrink=*/</span><span class="tok-type">true</span>, shrinkFlags, <span class="tok-comment">/*color=*/</span><span class="tok-number">0</span>, <span class="tok-comment">/*key=*/</span>comm<span class="tok-operator">-&gt;</span>rank,</span>
 <span class="cl" data-line="3809">                                    excludeRanksList, excludeRanksCount, config, __func__),</span>
 <span class="cl" data-line="3810">              res, exit);</span></code></pre></figure>
 <p class="prose">excludeRanksList 列出要从<a class="term" href="#Def184bdd5e2818e1">通信组</a>排除的 <a class="term" href="#Def18c2aaec5fcdcc">rank</a>，剩余成员组成新组。若被排除的 rank 独有某片 optimizer 状态，需从检查点或冗余副本加载。<a class="term" href="#Def183c5a9d286599">恢复边界</a>放在一次已提交的优化器步，重建相容的 mesh 和数据游标。</p>
 <p class="caption"><strong>代码 10　</strong>单边窗口的创建仍需要所有组员按同一顺序参与</p>
-<figure class="code"><figcaption><span><strong>Python    </strong><a href="https://github.com/pytorch/pytorch/blob/8494b157890dfb90df1d13cf080eda5efdf7e522/torch/distributed/distributed_c10d.py#L8520-L8530">pytorch / distributed_c10d.py    L8520–8530</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code><span class="cl" data-line="8520"><span class="kw">def</span> _new_window(</span>
-<span class="cl" data-line="8521">    tensor: torch.Tensor | <span class="kw">None</span> = <span class="kw">None</span>,</span>
-<span class="cl" data-line="8522">    group: ProcessGroup | <span class="kw">None</span> = <span class="kw">None</span>,</span>
-<span class="cl" data-line="8523">) -&gt; Window:</span>
-<span class="cl" data-line="8524">    <span class="str">"""</span></span>
-<span class="cl" data-line="8525"><span class="str">    Create a new one-sided (RMA) communication window on ``group``.</span></span>
+<figure class="code" data-language="python"><figcaption><span><strong>Python    </strong><a href="https://github.com/pytorch/pytorch/blob/8494b157890dfb90df1d13cf080eda5efdf7e522/torch/distributed/distributed_c10d.py#L8520-L8530">pytorch / distributed_c10d.py    L8520–8530</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code class="language-python"><span class="cl" data-line="8520"><span class="tok-keyword">def</span> <span class="tok-function">_new_window</span>(</span>
+<span class="cl" data-line="8521">    tensor: torch<span class="tok-operator">.</span>Tensor <span class="tok-operator">|</span> <span class="tok-keyword">None</span> <span class="tok-operator">=</span> <span class="tok-keyword">None</span>,</span>
+<span class="cl" data-line="8522">    group: ProcessGroup <span class="tok-operator">|</span> <span class="tok-keyword">None</span> <span class="tok-operator">=</span> <span class="tok-keyword">None</span>,</span>
+<span class="cl" data-line="8523">) <span class="tok-operator">-&gt;</span> Window:</span>
+<span class="cl" data-line="8524">    <span class="tok-string">"""</span></span>
+<span class="cl" data-line="8525"><span class="tok-string">    Create a new one-sided (RMA) communication window on ``group``.</span></span>
 <span class="cl" data-line="8526"></span>
-<span class="cl" data-line="8527"><span class="str">    This is a collective operation. Every rank in ``group`` must call it in</span></span>
-<span class="cl" data-line="8528"><span class="str">    the same order. If ``tensor`` is omitted, the subsequent</span></span>
-<span class="cl" data-line="8529"><span class="str">    ``Window.tensor_register`` call is also collective and must be called by</span></span>
-<span class="cl" data-line="8530"><span class="str">    every rank in the same order.</span></span></code></pre></figure>
+<span class="cl" data-line="8527"><span class="tok-string">    This is a collective operation. Every rank in ``group`` must call it in</span></span>
+<span class="cl" data-line="8528"><span class="tok-string">    the same order. If ``tensor`` is omitted, the subsequent</span></span>
+<span class="cl" data-line="8529"><span class="tok-string">    ``Window.tensor_register`` call is also collective and must be called by</span></span>
+<span class="cl" data-line="8530"><span class="tok-string">    every rank in the same order.</span></span></code></pre></figure>
 <p class="prose">重启或缩组后，旧 peer 映射和未完成访问需依后端约定<a class="term" href="#Def18ada18e969553">排空</a>或作废，再注册新窗口。给通知带上代际编号，可防止旧<a class="term" href="#Def18d66ac523350d">完成事件</a>误释放新 buffer。这一入口带下划线，实际接入要核对固定版本。</p>
 <p class="prose">假设同步保存阻塞 <span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><mi>C</mi><mo>=</mo><mn>30</mn></math></span> 秒，整个作业平均每 <span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><mi>M</mi><mo>=</mo><mn>6</mn></math></span> 小时故障一次。每训练 I 秒保存一次，在罕见且均匀到达的故障近似下，平均丢失 <span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><mfrac><mrow><mi>I</mi></mrow><mrow><mn>2</mn></mrow></mfrac></math></span> 的进度。暂将固定重启时间单列，长期浪费的一阶估计与其最优间隔如下。代入约 1,138 秒，即 19 分钟。</p>
 <p class="eq"><span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><mtext>w</mtext><mtext>(</mtext><mtext>I</mtext><mtext>)</mtext><mtext> ≈ </mtext><mfrac><mrow><mtext>C</mtext></mrow><mrow><mtext>I</mtext></mrow></mfrac><mtext> + </mtext><mfrac><mrow><mtext>I</mtext></mrow><mrow><mtext>2</mtext><mtext>M</mtext></mrow></mfrac></math></span></p>
@@ -584,37 +584,37 @@
 <a class="back" href="#idx-l18-s041">↑ 返回知识点目录</a></section><section class="topic" id="l18-s042">
 <h2><strong>7　每训练步的 GPU 成本</strong></h2>
 <p class="caption"><strong>代码 11　</strong>整步吞吐的时间包含等数据</p>
-<figure class="code"><figcaption><span><strong>Python    </strong><a href="https://github.com/pytorch/torchtitan/blob/e8d94c2d2b421dd94fa37dbb374b40fd18a731fa/torchtitan/rl/controller/metrics.py#L116-L130">torchtitan / metrics.py    L116–130</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code><span class="cl" data-line="116"><span class="kw">def</span> _add_metric(key: str, value: float) -&gt; <span class="kw">None</span>:</span>
-<span class="cl" data-line="117">    out.append(m.Metric(key, m.NoReduce(value)))</span>
+<figure class="code" data-language="python"><figcaption><span><strong>Python    </strong><a href="https://github.com/pytorch/torchtitan/blob/e8d94c2d2b421dd94fa37dbb374b40fd18a731fa/torchtitan/rl/controller/metrics.py#L116-L130">torchtitan / metrics.py    L116–130</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code class="language-python"><span class="cl" data-line="116"><span class="tok-keyword">def</span> <span class="tok-function">_add_metric</span>(key: <span class="tok-type">str</span>, value: <span class="tok-type">float</span>) <span class="tok-operator">-&gt;</span> <span class="tok-keyword">None</span>:</span>
+<span class="cl" data-line="117">    out<span class="tok-operator">.</span><span class="tok-function">append</span>(m<span class="tok-operator">.</span><span class="tok-function">Metric</span>(key, m<span class="tok-operator">.</span><span class="tok-function">NoReduce</span>(value)))</span>
 <span class="cl" data-line="118"></span>
-<span class="cl" data-line="119"># Throughput over the whole step (includes the idle wait for the next batch).</span>
-<span class="cl" data-line="120">_add_metric(</span>
-<span class="cl" data-line="121">    <span class="str">"perf/trainer/tokens_per_second_full_step"</span>, num_global_valid_tokens / step_s</span>
+<span class="cl" data-line="119"><span class="tok-comment"># Throughput over the whole step (includes the idle wait for the next batch).</span></span>
+<span class="cl" data-line="120"><span class="tok-function">_add_metric</span>(</span>
+<span class="cl" data-line="121">    <span class="tok-string">"perf/trainer/tokens_per_second_full_step"</span>, num_global_valid_tokens <span class="tok-operator">/</span> step_s</span>
 <span class="cl" data-line="122">)</span>
 <span class="cl" data-line="123"></span>
-<span class="cl" data-line="124"># Each span's share of the step wall-clock (skip a span that was not recorded).</span>
-<span class="cl" data-line="125"><span class="kw">if</span> wait_s <span class="kw">is</span> <span class="kw">not</span> <span class="kw">None</span>:</span>
-<span class="cl" data-line="126">    _add_metric(<span class="str">"perf/trainer/step_time_ratio/batch"</span>, wait_s / step_s)</span>
-<span class="cl" data-line="127"><span class="kw">if</span> blocking_trainer_push_s <span class="kw">is</span> <span class="kw">not</span> <span class="kw">None</span>:</span>
-<span class="cl" data-line="128">    _add_metric(</span>
-<span class="cl" data-line="129">        <span class="str">"perf/trainer/step_time_ratio/blocking_trainer_push_model_state_dict"</span>,</span>
-<span class="cl" data-line="130">        blocking_trainer_push_s / step_s,</span></code></pre></figure>
+<span class="cl" data-line="124"><span class="tok-comment"># Each span's share of the step wall-clock (skip a span that was not recorded).</span></span>
+<span class="cl" data-line="125"><span class="tok-keyword">if</span> wait_s <span class="tok-keyword">is</span> <span class="tok-keyword">not</span> <span class="tok-keyword">None</span>:</span>
+<span class="cl" data-line="126">    <span class="tok-function">_add_metric</span>(<span class="tok-string">"perf/trainer/step_time_ratio/batch"</span>, wait_s <span class="tok-operator">/</span> step_s)</span>
+<span class="cl" data-line="127"><span class="tok-keyword">if</span> blocking_trainer_push_s <span class="tok-keyword">is</span> <span class="tok-keyword">not</span> <span class="tok-keyword">None</span>:</span>
+<span class="cl" data-line="128">    <span class="tok-function">_add_metric</span>(</span>
+<span class="cl" data-line="129">        <span class="tok-string">"perf/trainer/step_time_ratio/blocking_trainer_push_model_state_dict"</span>,</span>
+<span class="cl" data-line="130">        blocking_trainer_push_s <span class="tok-operator">/</span> step_s,</span></code></pre></figure>
 <p class="prose">8 张卡、600 秒处理 480 万<strong>有效 </strong><a class="term" href="#Def18397a73c4e319"><strong>token</strong></a>，按整组设备计算的吞吐为 8,000 token/s，每 <a class="term" href="#Def188552a9d24381">GPU</a> 小时 360 万 token。每卡时按 3 个货币单位，窗口成本为 4，每百万有效 token 约 0.833。若只取 480 秒计算时间能得到 10,000 token/s，却无法据此结清 600 秒的资源账。</p>
 <p class="caption"><strong>代码 12　</strong>TorchTitan 给 attention 的 MFU 分子选定 FLOP 口径</p>
-<figure class="code"><figcaption><span><strong>Python    </strong><a href="https://github.com/pytorch/torchtitan/blob/e8d94c2d2b421dd94fa37dbb374b40fd18a731fa/torchtitan/models/common/flops.py#L33-L46">torchtitan / flops.py    L33–46</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code><span class="cl" data-line="33"><span class="str">2. the flash attention does 1 more matmul recomputation in the backward</span></span>
-<span class="cl" data-line="34"><span class="str">   but recomputation should not be counted in calculating MFU           (+0)</span></span>
-<span class="cl" data-line="35"><span class="str">3. each matmul performs 1 multiplication and 1 addition                 (*2)</span></span>
-<span class="cl" data-line="36"><span class="str">4. we follow the convention and do not account for sparsity in causal attention</span></span>
+<figure class="code" data-language="python"><figcaption><span><strong>Python    </strong><a href="https://github.com/pytorch/torchtitan/blob/e8d94c2d2b421dd94fa37dbb374b40fd18a731fa/torchtitan/models/common/flops.py#L33-L46">torchtitan / flops.py    L33–46</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code class="language-python"><span class="cl" data-line="33"><span class="tok-number">2.</span> the flash attention does <span class="tok-number">1</span> more matmul recomputation <span class="tok-keyword">in</span> the backward</span>
+<span class="cl" data-line="34">   but recomputation should <span class="tok-keyword">not</span> be counted <span class="tok-keyword">in</span> calculating <span class="tok-function">MFU</span>           (<span class="tok-operator">+</span><span class="tok-number">0</span>)</span>
+<span class="cl" data-line="35"><span class="tok-number">3.</span> each matmul performs <span class="tok-number">1</span> multiplication <span class="tok-keyword">and</span> <span class="tok-number">1</span> <span class="tok-function">addition</span>                 (<span class="tok-operator">*</span><span class="tok-number">2</span>)</span>
+<span class="cl" data-line="36"><span class="tok-number">4.</span> we follow the convention <span class="tok-keyword">and</span> do <span class="tok-keyword">not</span> account <span class="tok-keyword">for</span> sparsity <span class="tok-keyword">in</span> causal attention</span>
 <span class="cl" data-line="37"></span>
-<span class="cl" data-line="38"><span class="str">``qk_head_dim`` and ``v_head_dim`` describe the two attention</span></span>
-<span class="cl" data-line="39"><span class="str">contractions. The factor of 6 accounts for multiply-adds in forward and</span></span>
-<span class="cl" data-line="40"><span class="str">backward. As in the existing MFU convention, causal sparsity and backward</span></span>
-<span class="cl" data-line="41"><span class="str">recomputation are not counted.</span></span>
-<span class="cl" data-line="42"><span class="str">"""</span></span>
-<span class="cl" data-line="43">attended_tokens = (</span>
-<span class="cl" data-line="44">    seq_len <span class="kw">if</span> sliding_window_size <span class="kw">is</span> <span class="kw">None</span> <span class="kw">else</span> min(seq_len, sliding_window_size)</span>
-<span class="cl" data-line="45">)</span>
-<span class="cl" data-line="46"><span class="kw">return</span> <span class="fn">6</span> * num_heads * (qk_head_dim + v_head_dim) * attended_tokens</span></code></pre></figure>
+<span class="cl" data-line="38">``qk_head_dim`` <span class="tok-keyword">and</span> ``v_head_dim`` describe the two attention</span>
+<span class="cl" data-line="39">contractions<span class="tok-operator">.</span> The factor of <span class="tok-number">6</span> accounts <span class="tok-keyword">for</span> multiply<span class="tok-operator">-</span>adds <span class="tok-keyword">in</span> forward <span class="tok-keyword">and</span></span>
+<span class="cl" data-line="40">backward<span class="tok-operator">.</span> As <span class="tok-keyword">in</span> the existing MFU convention, causal sparsity <span class="tok-keyword">and</span> backward</span>
+<span class="cl" data-line="41">recomputation are <span class="tok-keyword">not</span> counted<span class="tok-operator">.</span></span>
+<span class="cl" data-line="42"><span class="tok-string">"""</span></span>
+<span class="cl" data-line="43"><span class="tok-string">attended_tokens = (</span></span>
+<span class="cl" data-line="44"><span class="tok-string">    seq_len if sliding_window_size is None else min(seq_len, sliding_window_size)</span></span>
+<span class="cl" data-line="45"><span class="tok-string">)</span></span>
+<span class="cl" data-line="46"><span class="tok-string">return 6 * num_heads * (qk_head_dim + v_head_dim) * attended_tokens</span></span></code></pre></figure>
 <p class="prose">这段实现对滑窗截断 <code class="inline-id">attended_tokens</code>，约定忽略 causal 稀疏和额外重算。报告 <a class="term" href="#Def189e17a95d0720">MFU</a> 时列出模型 <a class="term" href="#Def18dc3c9e236521">FLOP</a> 估算、dtype 峰值、卡数和实际耗时。跨模型比较还要统一 <a class="term" href="#Def18b3b8fcb4bc6c">MoE</a> 活跃参数及长上下文注意力项。</p>
 <p class="eq"><span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><mtext>M</mtext><mtext>F</mtext><mtext>U</mtext><mtext> = </mtext><mfrac><mrow><msub><mrow><mtext>F</mtext></mrow><mrow><mtext>m</mtext><mtext>o</mtext><mtext>d</mtext><mtext>e</mtext><mtext>l</mtext></mrow></msub></mrow><mrow><mtext>N</mtext><msub><mrow><mtext>P</mtext></mrow><mrow><mtext>p</mtext><mtext>e</mtext><mtext>a</mtext><mtext>k</mtext></mrow></msub><mtext>T</mtext></mrow></mfrac></math></span></p>
 <p class="prose">重算带来的额外指令会消耗设备时间，计入有用模型 FLOP 会抬高分子。<a class="term" href="#Def18bba03723d890">重放</a>同一段数据两次要付两次卡时，有效训练进度只计一次。对账时，在等存储的卡只要仍被分配，也占用卡时。</p>

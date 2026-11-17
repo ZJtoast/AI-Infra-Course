@@ -8,8 +8,10 @@ from functools import lru_cache
 from hashlib import sha256
 from pathlib import Path
 
+from listings import expand
 from lxml import etree as ET
 from matrix import NAME, snapshot
+from source_highlight import highlight
 
 GENERATED = {}
 
@@ -97,11 +99,14 @@ def read(path):
                 or not text(q.find("answer"))
             ):
                 raise ValueError("Incomplete exercise " + str(q.get("id")))
+        for listing in list(ch.iter("listing")):
+            expand(listing)
         for fig in ch.xpath('.//figure[@class="code"]'):
             if len(fig.xpath('.//span[@class="cl"]')) < 5:
                 raise ValueError(
                     "Code sample shorter than five lines: " + text(fig)[:60]
                 )
+            highlight(fig)
         for im in ch.iter("img"):
             image_path(im.get("src"))
     if not chapters or not chapters[0].get("slug").startswith("00-"):

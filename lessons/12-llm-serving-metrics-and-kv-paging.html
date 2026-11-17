@@ -1,24 +1,24 @@
 <!doctype html>
-<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light"><title>推理服务指标与 KV 分页 · AI Infra Course</title><style>.response textarea{box-sizing:border-box;width:100%;max-width:100%}</style><link rel="stylesheet" href="../assets/course.css?v=1d44bb5810ec"><script defer src="../assets/index-data.js?v=09042a38dcfe"></script><script defer src="../assets/course.js?v=b58933c84ead"></script></head><body class="articlepage" data-root="../"><a href="#main" class="skip">跳至正文</a><header class="top"><div class="bar"><a class="brand" href="../index.html"><span class="brandmark" aria-hidden="true"><i></i><i></i><i></i></span>AI Infra Course</a><button class="toc-toggle" type="button" data-toc-toggle aria-controls="reader-toc" aria-expanded="true" hidden>收起目录</button><nav aria-label="主导航"><a href="../index.html">课程</a><a href="../roadmap.html">学习路线</a><a href="../handbook.html">合订本</a><a href="https://github.com/ZJtoast/AI-Infra-Course">GitHub ↗</a></nav></div></header><main id="main" class="reader"><div class="articlehero"><div class="eyebrow">第 12 课　/　推理系统</div><h1>推理服务指标与 KV 分页</h1><p>客户端记录首个 token 的到达时间，引擎记录排队、调度和生成事件。两组时间戳可用于区分排队延迟和实际执行时间。</p><div class="actions"><a class="btn" href="../word/12-llm-serving-metrics-and-kv-paging.docx">下载 Word ↓</a></div></div><div class="layout"><aside id="reader-toc" aria-label="知识点目录"><details class="tocbox" open><summary>本页知识点 <small>14</small></summary><ol class="toc"><li class="lv2" id="idx-l12-s001"><a class="" href="#l12-s001">1　请求生命周期与计时边界</a></li><li class="lv2" id="idx-l12-s002"><a class="" href="#l12-s002">2　流式接口的 TTFT、ITL 与 TPOT</a></li><li class="lv2" id="idx-l12-s003"><a class="" href="#l12-s003">3　分位数、均值与 SLO</a></li><li class="lv2" id="idx-l12-s004"><a class="" href="#l12-s004">4　Prefill 与 decode 的权重复用</a></li><li class="lv2" id="idx-l12-s005"><a class="" href="#l12-s005">5　前缀命中后的注意力计算</a></li><li class="lv2" id="idx-l12-s006"><a class="" href="#l12-s006">6　Decode 的 KV 读写</a></li><li class="lv2" id="idx-l12-s007"><a class="" href="#l12-s007">7　KV 页表与物理页</a></li><li class="lv2" id="idx-l12-s008"><a class="" href="#l12-s008">8　页大小、追加写入与执行计划</a></li><li class="lv2" id="idx-l12-s009"><a class="" href="#l12-s009">9　连续批处理的逐轮调度</a></li><li class="lv2" id="idx-l12-s010"><a class="" href="#l12-s010">10　分块 prefill 对 decode 时延的影响</a></li><li class="lv2" id="idx-l12-s011"><a class="" href="#l12-s011">11　计算与 KV 容量的准入限制</a></li><li class="lv2" id="idx-l12-s012"><a class="" href="#l12-s012">12　吞吐量与达标吞吐量</a></li><li class="lv2" id="idx-l12-s013"><a class="" href="#l12-s013">13　开环与闭环负载</a></li><li class="lv2" id="idx-l12-s014"><a class="" href="#l12-s014">14　生成服务的延迟诊断</a></li></ol></details></aside><div class="toc-divider" role="separator" tabindex="0" aria-label="目录宽度" aria-controls="reader-toc" aria-orientation="vertical" aria-valuemin="180" aria-valuemax="560" aria-valuenow="300" title="拖动调宽，也可用左右方向键" hidden></div><div class="toc-shade" aria-hidden="true" hidden></div><article><p class="prose">代码块旁的行号链接指向本课采用的提交，仓库及许可见课末。</p><nav class="practice-route" aria-label="第 12 课练习顺序" id="Route12"><strong>本课练习顺序</strong><ol><li><a href="#Q12_01">普通题</a><span>按逻辑页定位 KV，用同一请求的计时端点与质量门槛核对达标比例。</span></li><li><a href="#Q12_403">进阶题</a><span>把同一组样本按请求和按 token 间隔重算，判断权重变化怎样改变指标。</span></li><li><a href="#Q12_510">情景面试题</a><span>固定到达轨迹追踪分块调度，分别解释长 prompt 的首词与短请求出词延迟。</span></li></ol></nav><section class="topic" id="l12-s001">
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light"><title>推理服务指标与 KV 分页 · AI Infra Course</title><style>.response textarea{box-sizing:border-box;width:100%;max-width:100%}</style><link rel="stylesheet" href="../assets/course.css?v=1d44bb5810ec"><script defer src="../assets/index-data.js?v=09042a38dcfe"></script><script defer src="../assets/course.js?v=b58933c84ead"></script><style>.code .tok-keyword{color:#CDB1FF}.code .tok-type{color:#82E0D1}.code .tok-function{color:#F6D78E}.code .tok-string{color:#F6B797}.code .tok-comment{color:#A2B9A0}.code .tok-number{color:#B6DEA3}.code .tok-variable{color:#9AD8FF}.code .tok-operator{color:#E5B2E9}.code .tok-added{color:#98DDA4}.code .tok-removed{color:#FF9F9F}@media print{.code .tok-keyword{color:#5E258F}.code .tok-type{color:#005C55}.code .tok-function{color:#714900}.code .tok-string{color:#85380D}.code .tok-comment{color:#3C6143}.code .tok-number{color:#345E26}.code .tok-variable{color:#154F7C}.code .tok-operator{color:#733B79}.code .tok-added{color:#1D6234}.code .tok-removed{color:#972F38}}</style></head><body class="articlepage" data-root="../"><a href="#main" class="skip">跳至正文</a><header class="top"><div class="bar"><a class="brand" href="../index.html"><span class="brandmark" aria-hidden="true"><i></i><i></i><i></i></span>AI Infra Course</a><button class="toc-toggle" type="button" data-toc-toggle aria-controls="reader-toc" aria-expanded="true" hidden>收起目录</button><nav aria-label="主导航"><a href="../index.html">课程</a><a href="../roadmap.html">学习路线</a><a href="../handbook.html">合订本</a><a href="https://github.com/ZJtoast/AI-Infra-Course">GitHub ↗</a></nav></div></header><main id="main" class="reader"><div class="articlehero"><div class="eyebrow">第 12 课　/　推理系统</div><h1>推理服务指标与 KV 分页</h1><p>客户端记录首个 token 的到达时间，引擎记录排队、调度和生成事件。两组时间戳可用于区分排队延迟和实际执行时间。</p><div class="actions"><a class="btn" href="../word/12-llm-serving-metrics-and-kv-paging.docx">下载 Word ↓</a></div></div><div class="layout"><aside id="reader-toc" aria-label="知识点目录"><details class="tocbox" open><summary>本页知识点 <small>14</small></summary><ol class="toc"><li class="lv2" id="idx-l12-s001"><a class="" href="#l12-s001">1　请求生命周期与计时边界</a></li><li class="lv2" id="idx-l12-s002"><a class="" href="#l12-s002">2　流式接口的 TTFT、ITL 与 TPOT</a></li><li class="lv2" id="idx-l12-s003"><a class="" href="#l12-s003">3　分位数、均值与 SLO</a></li><li class="lv2" id="idx-l12-s004"><a class="" href="#l12-s004">4　Prefill 与 decode 的权重复用</a></li><li class="lv2" id="idx-l12-s005"><a class="" href="#l12-s005">5　前缀命中后的注意力计算</a></li><li class="lv2" id="idx-l12-s006"><a class="" href="#l12-s006">6　Decode 的 KV 读写</a></li><li class="lv2" id="idx-l12-s007"><a class="" href="#l12-s007">7　KV 页表与物理页</a></li><li class="lv2" id="idx-l12-s008"><a class="" href="#l12-s008">8　页大小、追加写入与执行计划</a></li><li class="lv2" id="idx-l12-s009"><a class="" href="#l12-s009">9　连续批处理的逐轮调度</a></li><li class="lv2" id="idx-l12-s010"><a class="" href="#l12-s010">10　分块 prefill 对 decode 时延的影响</a></li><li class="lv2" id="idx-l12-s011"><a class="" href="#l12-s011">11　计算与 KV 容量的准入限制</a></li><li class="lv2" id="idx-l12-s012"><a class="" href="#l12-s012">12　吞吐量与达标吞吐量</a></li><li class="lv2" id="idx-l12-s013"><a class="" href="#l12-s013">13　开环与闭环负载</a></li><li class="lv2" id="idx-l12-s014"><a class="" href="#l12-s014">14　生成服务的延迟诊断</a></li></ol></details></aside><div class="toc-divider" role="separator" tabindex="0" aria-label="目录宽度" aria-controls="reader-toc" aria-orientation="vertical" aria-valuemin="180" aria-valuemax="560" aria-valuenow="300" title="拖动调宽，也可用左右方向键" hidden></div><div class="toc-shade" aria-hidden="true" hidden></div><article><p class="prose">代码块旁的行号链接指向本课采用的提交，仓库及许可见课末。</p><nav class="practice-route" aria-label="第 12 课练习顺序" id="Route12"><strong>本课练习顺序</strong><ol><li><a href="#Q12_01">普通题</a><span>按逻辑页定位 KV，用同一请求的计时端点与质量门槛核对达标比例。</span></li><li><a href="#Q12_403">进阶题</a><span>把同一组样本按请求和按 token 间隔重算，判断权重变化怎样改变指标。</span></li><li><a href="#Q12_510">情景面试题</a><span>固定到达轨迹追踪分块调度，分别解释长 prompt 的首词与短请求出词延迟。</span></li></ol></nav><section class="topic" id="l12-s001">
 <h2><strong>1　请求生命周期与计时边界</strong></h2>
 <p class="prose">用户输入一段文本后，服务需要解析请求、按对话模板拼接消息、分词、<a class="term" href="#Def1284a10b079a41">准入</a>与排队，再把<a class="term" href="#Def12397a73c4e319">token</a>交给引擎。<a class="term" href="#Def120247674f810d">prefill</a>处理尚未计算的输入位置，生成首个输出token；随后各轮<a class="term" href="#Def12f28fe0b0f9e5">decode</a>处理已有输出并继续采样，直到停止条件满足。协议处理、模型执行和流式发送可以交叠，因此总耗时通常不能用几个随手采样的CPU函数时间相加得到。</p>
 <p class="prose">设客户端在0秒发起请求，0.10秒引擎接纳，0.30秒首次调度，0.80秒生成首token，0.86秒客户端收到首个有效输出；第二个输出在0.90秒到达，第三个在0.98秒到达，结束标记在1.02秒到达。客户端首输出延迟为0.86秒，两个消息间隔为40与80毫秒，最后输出延迟0.98秒，完整协议关闭延迟1.02秒。每个数字都有对应事件，不能统称“推理时间”。</p>
 <p class="prose"><a class="term" href="#Def12b9a844471798">TTFT</a>（Time To First Token）必须说明起点在哪里、首个什么事件算输出。引擎内部可以从收到token IDs或加入队列开始；客户端通常从发送HTTP请求开始。TTFT包含的分词、网络与排队范围不同，两套数值可以同时正确。单调时钟适合计算同一时钟域内的间隔，不能直接拿不同机器的<code class="inline-id">perf_counter</code>相减。</p>
 <p class="caption"><strong>代码 1　</strong>vLLM的prefill和decode指标包含相应区间内的抢占等待</p>
-<figure class="code"><figcaption><span><strong>Python    </strong><a href="https://github.com/vllm-project/vllm/blob/93eeae695f5178eddff728fe50eb18e30c90c33a/vllm/v1/metrics/stats.py#L600-L613">vllm / stats.py    L600–613</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code><span class="cl" data-line="600"># Queued interval is from first QUEUED event to first SCHEDULED</span>
-<span class="cl" data-line="601">queued_time = req_stats.scheduled_ts - req_stats.queued_ts</span>
+<figure class="code" data-language="python"><figcaption><span><strong>Python    </strong><a href="https://github.com/vllm-project/vllm/blob/93eeae695f5178eddff728fe50eb18e30c90c33a/vllm/v1/metrics/stats.py#L600-L613">vllm / stats.py    L600–613</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code class="language-python"><span class="cl" data-line="600"><span class="tok-comment"># Queued interval is from first QUEUED event to first SCHEDULED</span></span>
+<span class="cl" data-line="601">queued_time <span class="tok-operator">=</span> req_stats<span class="tok-operator">.</span>scheduled_ts <span class="tok-operator">-</span> req_stats<span class="tok-operator">.</span>queued_ts</span>
 <span class="cl" data-line="602"></span>
-<span class="cl" data-line="603"># Prefill interval is from first SCHEDULED to first NEW_TOKEN</span>
-<span class="cl" data-line="604"># Any preemptions during prefill is included in the interval</span>
-<span class="cl" data-line="605">prefill_time = req_stats.first_token_ts - req_stats.scheduled_ts</span>
+<span class="cl" data-line="603"><span class="tok-comment"># Prefill interval is from first SCHEDULED to first NEW_TOKEN</span></span>
+<span class="cl" data-line="604"><span class="tok-comment"># Any preemptions during prefill is included in the interval</span></span>
+<span class="cl" data-line="605">prefill_time <span class="tok-operator">=</span> req_stats<span class="tok-operator">.</span>first_token_ts <span class="tok-operator">-</span> req_stats<span class="tok-operator">.</span>scheduled_ts</span>
 <span class="cl" data-line="606"></span>
-<span class="cl" data-line="607"># Decode interval is from first NEW_TOKEN to last NEW_TOKEN</span>
-<span class="cl" data-line="608"># Any preemptions during decode are included</span>
-<span class="cl" data-line="609">decode_time = req_stats.last_token_ts - req_stats.first_token_ts</span>
+<span class="cl" data-line="607"><span class="tok-comment"># Decode interval is from first NEW_TOKEN to last NEW_TOKEN</span></span>
+<span class="cl" data-line="608"><span class="tok-comment"># Any preemptions during decode are included</span></span>
+<span class="cl" data-line="609">decode_time <span class="tok-operator">=</span> req_stats<span class="tok-operator">.</span>last_token_ts <span class="tok-operator">-</span> req_stats<span class="tok-operator">.</span>first_token_ts</span>
 <span class="cl" data-line="610"></span>
-<span class="cl" data-line="611"># Inference interval is from first SCHEDULED to last NEW_TOKEN</span>
-<span class="cl" data-line="612"># Any preemptions during prefill or decode are included</span>
-<span class="cl" data-line="613">inference_time = req_stats.last_token_ts - req_stats.scheduled_ts</span></code></pre></figure>
+<span class="cl" data-line="611"><span class="tok-comment"># Inference interval is from first SCHEDULED to last NEW_TOKEN</span></span>
+<span class="cl" data-line="612"><span class="tok-comment"># Any preemptions during prefill or decode are included</span></span>
+<span class="cl" data-line="613">inference_time <span class="tok-operator">=</span> req_stats<span class="tok-operator">.</span>last_token_ts <span class="tok-operator">-</span> req_stats<span class="tok-operator">.</span>scheduled_ts</span></code></pre></figure>
 <p class="prose"><code class="inline-id">queued_time</code> 覆盖首次 QUEUED 到首次 SCHEDULED，<code class="inline-id">prefill_time</code> 从首次调度延伸到首个 <code class="inline-id">NEW_TOKEN</code>，<code class="inline-id">decode_time</code> 从首个 <code class="inline-id">NEW_TOKEN</code> 延伸到末个 <code class="inline-id">NEW_TOKEN</code>。这些时间戳量的是两个框架事件之间实际经过的时间，区间内可能发生抢占。要计算设备上的 kernel 耗时，还需对齐 <a class="term" href="#Def128552a9d24381">GPU</a> <a class="term" href="#Def121f3fb14715bc">时间线</a>。</p>
 <p class="prose">服务变慢时先确定是哪条时间线变长。客户端TTFT增加而引擎排队与prefill稳定，可以继续检查入口、分词和流式发送；引擎<code class="inline-id">prefill_time</code>增加，也可能来自调度等待或重算。只有进一步分解到具体执行事件，才适合判断某个attention kernel是否退化。</p>
 <figure class="diagram"><a href="../assets/figures/aac8009a8fec358bf3.png?v=8b43b210a9b2" target="_blank" rel="noopener" aria-label="打开原图"><img loading="lazy" src="../assets/figures/aac8009a8fec358bf3.png?v=8b43b210a9b2" alt="课程示意图" width="1800" height="1130"></a></figure>
@@ -29,37 +29,37 @@
 <p class="prose">每个输出<a class="term" href="#Def12397a73c4e319">token</a>单独发送时，<a class="term" href="#Def1292cd926c5ffe">ITL</a>是相邻token到达时间之差；如果代理缓冲、推测解码或stream配置把多个token合成一条消息，客户端能直接测到的是消息间隔。vLLM benchmark读取有效stream chunk时记录时间，后续使用实际输出token总数计算<strong>平均</strong><a class="term" href="#Def129cbd8f7072d6"><strong>TPOT</strong></a>，两者的样本单位因此可能不同。</p>
 <p class="prose">以流式服务的一条完整记录为例。请求在 0 ms 发出，10 ms 获准，70、90、140 ms 收到三个输出 token。客户端 <a class="term" href="#Def12b9a844471798">TTFT</a> 为 70 ms，两个相邻输出间隔为 20、50 ms，整条请求的平均输出间隔为 <span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><mfrac><mrow><mn>140</mn><mo>−</mo><mn>70</mn></mrow><mrow><mn>3</mn><mo>−</mo><mn>1</mn></mrow></mfrac><mo>=</mo><mn>35</mn><mi mathvariant="normal">m</mi><mi mathvariant="normal">s</mi></math></span>。若另有一个只输出一词的请求，它也有 TTFT，却没有任何后续间隔。按请求求平均和把所有 token 间隔混合统计，长请求获得的权重不同。写出计时端点、首词是否算入和统计对象，才能解释两张时延图为何不同。</p>
 <p class="caption"><strong>代码 2　</strong>客户端在有效流式输出到达时记录TTFT与间隔</p>
-<figure class="code"><figcaption><span><strong>Python    </strong><a href="https://github.com/vllm-project/vllm/blob/93eeae695f5178eddff728fe50eb18e30c90c33a/vllm/benchmarks/lib/endpoint_request_func.py#L480-L496">vllm / endpoint_request_func.py    L480–496</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code><span class="cl" data-line="480"><span class="kw">elif</span> (</span>
-<span class="cl" data-line="481">    choices := data.get(<span class="str">"choices"</span>)</span>
-<span class="cl" data-line="482">) <span class="kw">and</span> _choice_has_streamed_output(choices[<span class="fn">0</span>]):</span>
-<span class="cl" data-line="483">    content = choices[<span class="fn">0</span>][<span class="str">"delta"</span>].get(<span class="str">"content"</span>)</span>
-<span class="cl" data-line="484">    # First token</span>
-<span class="cl" data-line="485">    <span class="kw">if</span> <span class="kw">not</span> first_chunk_received:</span>
-<span class="cl" data-line="486">        first_chunk_received = <span class="kw">True</span></span>
-<span class="cl" data-line="487">        output.ttft = timestamp - st</span>
+<figure class="code" data-language="python"><figcaption><span><strong>Python    </strong><a href="https://github.com/vllm-project/vllm/blob/93eeae695f5178eddff728fe50eb18e30c90c33a/vllm/benchmarks/lib/endpoint_request_func.py#L480-L496">vllm / endpoint_request_func.py    L480–496</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code class="language-python"><span class="cl" data-line="480"><span class="tok-keyword">elif</span> (</span>
+<span class="cl" data-line="481">    choices <span class="tok-operator">:=</span> data<span class="tok-operator">.</span><span class="tok-function">get</span>(<span class="tok-string">"choices"</span>)</span>
+<span class="cl" data-line="482">) <span class="tok-keyword">and</span> <span class="tok-function">_choice_has_streamed_output</span>(choices[<span class="tok-number">0</span>]):</span>
+<span class="cl" data-line="483">    content <span class="tok-operator">=</span> choices[<span class="tok-number">0</span>][<span class="tok-string">"delta"</span>]<span class="tok-operator">.</span><span class="tok-function">get</span>(<span class="tok-string">"content"</span>)</span>
+<span class="cl" data-line="484">    <span class="tok-comment"># First token</span></span>
+<span class="cl" data-line="485">    <span class="tok-keyword">if</span> <span class="tok-keyword">not</span> first_chunk_received:</span>
+<span class="cl" data-line="486">        first_chunk_received <span class="tok-operator">=</span> <span class="tok-keyword">True</span></span>
+<span class="cl" data-line="487">        output<span class="tok-operator">.</span>ttft <span class="tok-operator">=</span> timestamp <span class="tok-operator">-</span> st</span>
 <span class="cl" data-line="488"></span>
-<span class="cl" data-line="489">    # Decoding phase</span>
-<span class="cl" data-line="490">    <span class="kw">else</span>:</span>
-<span class="cl" data-line="491">        output.itl.append(timestamp - most_recent_timestamp)</span>
+<span class="cl" data-line="489">    <span class="tok-comment"># Decoding phase</span></span>
+<span class="cl" data-line="490">    <span class="tok-keyword">else</span>:</span>
+<span class="cl" data-line="491">        output<span class="tok-operator">.</span>itl<span class="tok-operator">.</span><span class="tok-function">append</span>(timestamp <span class="tok-operator">-</span> most_recent_timestamp)</span>
 <span class="cl" data-line="492"></span>
-<span class="cl" data-line="493">    generated_text += content <span class="kw">or</span> <span class="str">""</span></span>
-<span class="cl" data-line="494">    # Only token chunks advance the request end;</span>
-<span class="cl" data-line="495">    # the trailing usage chunk carries no token.</span>
-<span class="cl" data-line="496">    most_recent_timestamp = timestamp</span></code></pre></figure>
+<span class="cl" data-line="493">    generated_text <span class="tok-operator">+=</span> content <span class="tok-keyword">or</span> <span class="tok-string">""</span></span>
+<span class="cl" data-line="494">    <span class="tok-comment"># Only token chunks advance the request end;</span></span>
+<span class="cl" data-line="495">    <span class="tok-comment"># the trailing usage chunk carries no token.</span></span>
+<span class="cl" data-line="496">    most_recent_timestamp <span class="tok-operator">=</span> timestamp</span></code></pre></figure>
 <p class="prose"><code class="inline-id">first_chunk_received</code>只决定首个有效输出事件；之后每收到一个有效数据块便记录一个到达间隔。<code class="inline-id">most_recent_timestamp</code>仅由输出chunk推进，后面的usage统计消息不会人为延长末token时间。一个chunk包含多少token，需要额外从usage或tokenizer获取。</p>
 <p class="prose">当前<code class="inline-id">_choice_has_streamed_output</code>还认可reasoning、<code class="inline-id">reasoning_content</code>、<code class="inline-id">tool_calls</code>和<code class="inline-id">function_call</code>等输出；包含content但没有role的空字符串也可能对应一个有效token。因此“首个可见正文字符”可能晚于benchmark的首个输出。带思考和工具调用的业务需要在指标名称中保留这种差异。</p>
 <p class="eq"><span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><msub><mrow><mtext>T</mtext></mrow><mrow><mtext>T</mtext><mtext>P</mtext><mtext>O</mtext><mtext>T</mtext></mrow></msub><mtext> = </mtext><mfrac><mrow><msub><mrow><mtext>t</mtext></mrow><mrow><mtext>l</mtext><mtext>a</mtext><mtext>s</mtext><mtext>t</mtext></mrow></msub><mtext>-</mtext><msub><mrow><mtext>t</mtext></mrow><mrow><mtext>f</mtext><mtext>i</mtext><mtext>r</mtext><mtext>s</mtext><mtext>t</mtext></mrow></msub></mrow><mrow><mtext>O</mtext><mtext>-</mtext><mtext>1</mtext></mrow></mfrac><mtext>,</mtext><mtext>    </mtext><mtext>O</mtext><mtext>&gt;</mtext><mtext>1</mtext></math></span></p>
 <p class="caption"><strong>代码 3　</strong>平均TPOT使用输出token数，ITL另行收集chunk间隔</p>
-<figure class="code"><figcaption><span><strong>Python    </strong><a href="https://github.com/vllm-project/vllm/blob/93eeae695f5178eddff728fe50eb18e30c90c33a/vllm/benchmarks/serve.py#L654-L663">vllm / serve.py    L654–663</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code><span class="cl" data-line="654">tpot = <span class="fn">0.0</span></span>
-<span class="cl" data-line="655"><span class="kw">if</span> output_len &gt; <span class="fn">1</span>:</span>
-<span class="cl" data-line="656">    latency_minus_ttft = outputs[i].latency - outputs[i].ttft</span>
-<span class="cl" data-line="657">    tpot = latency_minus_ttft / (output_len - <span class="fn">1</span>)</span>
-<span class="cl" data-line="658">    tpots.append(tpot)</span>
-<span class="cl" data-line="659"># Note: if output_len &lt;= 1, we regard tpot as 0 for goodput</span>
-<span class="cl" data-line="660">all_tpots.append(tpot)</span>
-<span class="cl" data-line="661">itls += outputs[i].itl</span>
-<span class="cl" data-line="662">ttfts.append(outputs[i].ttft)</span>
-<span class="cl" data-line="663">e2els.append(outputs[i].latency)</span></code></pre></figure>
+<figure class="code" data-language="python"><figcaption><span><strong>Python    </strong><a href="https://github.com/vllm-project/vllm/blob/93eeae695f5178eddff728fe50eb18e30c90c33a/vllm/benchmarks/serve.py#L654-L663">vllm / serve.py    L654–663</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code class="language-python"><span class="cl" data-line="654">tpot <span class="tok-operator">=</span> <span class="tok-number">0.0</span></span>
+<span class="cl" data-line="655"><span class="tok-keyword">if</span> output_len <span class="tok-operator">&gt;</span> <span class="tok-number">1</span>:</span>
+<span class="cl" data-line="656">    latency_minus_ttft <span class="tok-operator">=</span> outputs[i]<span class="tok-operator">.</span>latency <span class="tok-operator">-</span> outputs[i]<span class="tok-operator">.</span>ttft</span>
+<span class="cl" data-line="657">    tpot <span class="tok-operator">=</span> latency_minus_ttft <span class="tok-operator">/</span> (output_len <span class="tok-operator">-</span> <span class="tok-number">1</span>)</span>
+<span class="cl" data-line="658">    tpots<span class="tok-operator">.</span><span class="tok-function">append</span>(tpot)</span>
+<span class="cl" data-line="659"><span class="tok-comment"># Note: if output_len &lt;= 1, we regard tpot as 0 for goodput</span></span>
+<span class="cl" data-line="660">all_tpots<span class="tok-operator">.</span><span class="tok-function">append</span>(tpot)</span>
+<span class="cl" data-line="661">itls <span class="tok-operator">+=</span> outputs[i]<span class="tok-operator">.</span>itl</span>
+<span class="cl" data-line="662">ttfts<span class="tok-operator">.</span><span class="tok-function">append</span>(outputs[i]<span class="tok-operator">.</span>ttft)</span>
+<span class="cl" data-line="663">e2els<span class="tok-operator">.</span><span class="tok-function">append</span>(outputs[i]<span class="tok-operator">.</span>latency)</span></code></pre></figure>
 <p class="prose">仅<code class="inline-id">output_len&gt;1</code>时将TPOT加入tpots；对goodput使用的<code class="inline-id">all_tpots</code>，单token输出按0处理。这个约定避免除零，却不表示单token请求没有计算成本。ITL列表来自stream消息，不能用它的长度直接代替<span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><mi mathvariant="normal">o</mi><mi mathvariant="normal">u</mi><mi mathvariant="normal">t</mi><mi mathvariant="normal">p</mi><mi mathvariant="normal">u</mi><mi mathvariant="normal">t</mi><mo>_</mo><mi mathvariant="normal">l</mi><mi mathvariant="normal">e</mi><mi mathvariant="normal">n</mi><mo>−</mo><mn>1</mn></math></span>。</p>
 <p class="prose">设四个token被分成三条消息：首条含1个token，0.50秒到达；第二条含2个，0.70秒到达；第三条含1个，0.80秒到达。观测到的消息间隔为0.20和0.10秒，平均150毫秒；按4个输出token计算TPOT为<span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><mfrac><mrow><mn>0.80</mn><mo>−</mo><mn>0.50</mn></mrow><mrow><mn>3</mn></mrow></mfrac><mo>=</mo><mn>100</mn></math></span>毫秒。我们无法从这些消息时间反推出第二条消息内两个token各自生成的时刻。</p>
 <p class="prose">vLLM引擎内部的<code class="inline-id">NEW_TOKEN</code>事件也可能一次携带多个token。<code class="inline-id">stats.py</code>按事件时间更新<code class="inline-id">last_token_ts</code>，同时按<code class="inline-id">new_token_ids</code>长度累计token数。分析speculative <a class="term" href="#Def12f28fe0b0f9e5">decode</a>时，事件间隔、token归一化耗时和客户端chunk间隔都要分别看。</p>
@@ -88,16 +88,16 @@
 <p class="prose">取<span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><mi>P</mi><mo>=</mo><mn>4096</mn></math></span>、<span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><mi>Q</mi><mo>=</mo><mn>256</mn></math></span>，有1081472个<a class="term" href="#Def12f7af29e2eeb6">有效配对</a>。若只算一个孤立256-token序列，则为32896个；相差约32.88倍。<a class="term" href="#Def12d7767a4d0b48"><strong>前缀命中</strong></a>省去了旧token的<a class="term" href="#Def12076e61dd94e8">投影</a>、<a class="term" href="#Def124334c30d7308">MLP</a>和旧query attention，但新增query仍读取前缀KV。对于长前缀短后缀，这部分访问可以成为主要成本。</p>
 <p class="prose">分成多个<a class="term" href="#Def120247674f810d">prefill</a> chunk不会减少这些满足<a class="term" href="#Def12c944ab435b34">因果掩码</a>的 query-key 配对总数：每个chunk读取此前所有可见历史。它改变单轮工作量与调度机会，也可能增加权重重读和元数据准备次数。小chunk能限制一次占用时间，但吞吐损失与质量不相关；保持位置、mask与KV追加正确时，数学函数保持相同，浮点<a class="term" href="#Def128de0dcc95ca5">归约</a>仍可能产生小差异。</p>
 <p class="caption"><strong>代码 4　</strong>完整前缀命中仍可能重算末尾，以获得logits</p>
-<figure class="code"><figcaption><span><strong>Python    </strong><a href="https://github.com/vllm-project/vllm/blob/93eeae695f5178eddff728fe50eb18e30c90c33a/vllm/v1/core/kv_cache_manager.py#L317-L328">vllm / kv_cache_manager.py    L317–328</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code><span class="cl" data-line="317"># NOTE: When all tokens hit the cache, we must recompute the last token</span>
-<span class="cl" data-line="318"># to obtain logits. Thus, set max_cache_hit_length to prompt_length - 1.</span>
-<span class="cl" data-line="319"># This can trigger recomputation of an entire block, rather than just</span>
-<span class="cl" data-line="320"># the single last token, because allocate_slots() requires</span>
-<span class="cl" data-line="321"># num_computed_tokens to be block-size aligned. Removing this limitation</span>
-<span class="cl" data-line="322"># could slightly improve performance in the future.</span>
-<span class="cl" data-line="323">max_cache_hit_length = request.get_max_cache_hit_length(max_cache_hit_length)</span>
-<span class="cl" data-line="324">computed_blocks, num_new_computed_tokens, num_uncached = (</span>
-<span class="cl" data-line="325">    self.coordinator.find_longest_cache_hit(</span>
-<span class="cl" data-line="326">        request.block_hashes, max_cache_hit_length</span>
+<figure class="code" data-language="python"><figcaption><span><strong>Python    </strong><a href="https://github.com/vllm-project/vllm/blob/93eeae695f5178eddff728fe50eb18e30c90c33a/vllm/v1/core/kv_cache_manager.py#L317-L328">vllm / kv_cache_manager.py    L317–328</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code class="language-python"><span class="cl" data-line="317"><span class="tok-comment"># NOTE: When all tokens hit the cache, we must recompute the last token</span></span>
+<span class="cl" data-line="318"><span class="tok-comment"># to obtain logits. Thus, set max_cache_hit_length to prompt_length - 1.</span></span>
+<span class="cl" data-line="319"><span class="tok-comment"># This can trigger recomputation of an entire block, rather than just</span></span>
+<span class="cl" data-line="320"><span class="tok-comment"># the single last token, because allocate_slots() requires</span></span>
+<span class="cl" data-line="321"><span class="tok-comment"># num_computed_tokens to be block-size aligned. Removing this limitation</span></span>
+<span class="cl" data-line="322"><span class="tok-comment"># could slightly improve performance in the future.</span></span>
+<span class="cl" data-line="323">max_cache_hit_length <span class="tok-operator">=</span> request<span class="tok-operator">.</span><span class="tok-function">get_max_cache_hit_length</span>(max_cache_hit_length)</span>
+<span class="cl" data-line="324">computed_blocks, num_new_computed_tokens, num_uncached <span class="tok-operator">=</span> (</span>
+<span class="cl" data-line="325">    <span class="tok-type">self</span><span class="tok-operator">.</span>coordinator<span class="tok-operator">.</span><span class="tok-function">find_longest_cache_hit</span>(</span>
+<span class="cl" data-line="326">        request<span class="tok-operator">.</span>block_hashes, max_cache_hit_length</span>
 <span class="cl" data-line="327">    )</span>
 <span class="cl" data-line="328">)</span></code></pre></figure>
 <p class="prose">这个版本把命中长度限制到<span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><mi mathvariant="normal">p</mi><mi mathvariant="normal">r</mi><mi mathvariant="normal">o</mi><mi mathvariant="normal">m</mi><mi mathvariant="normal">p</mi><mi mathvariant="normal">t</mi><mo>_</mo><mi mathvariant="normal">l</mi><mi mathvariant="normal">e</mi><mi mathvariant="normal">n</mi><mi mathvariant="normal">g</mi><mi mathvariant="normal">t</mi><mi mathvariant="normal">h</mi><mo>−</mo><mn>1</mn></math></span>，并要求缓存命中块完整。若提示长度恰为块大小的倍数，可能重算末尾整块。不能根据“100%重复输入”推断本次完全没有prefill计算。</p>
@@ -119,25 +119,25 @@
 <p class="prose">A的<a class="term" href="#Def12d14771b9c45f">逻辑位置</a>5位于逻辑页1、页内偏移1。页表<a class="term" href="#Def12f8ae7371d186">槽位</a>为indptr<span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><mo>[</mo><mi>A</mi><mo>]</mo><mo>+</mo><mn>1</mn><mo>=</mo><mn>1</mn></math></span>，indices<span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><mo>[</mo><mn>1</mn><mo>]</mo><mo>=</mo><mn>1</mn></math></span>，因此读取物理页1的第1个位置。B的逻辑位置1位于物理页9的第1个位置。若错误地把逻辑页号直接当物理页号，请求长度与张量维度仍然合法，读出的内容却属于其他位置。</p>
 <p class="prose">页表把一个请求的逻辑页号翻译成物理页号。页长 4，请求 A 的逻辑页 0、1 映射到物理页 8、3。逻辑位置 5 的商为 1、余数为 1，因此在物理页 3 的槽 1。请求 B 也有自己的位置 5，必须先用 B 的页表。只有当特定前缀页的内容与缓存约定都兼容时才能共享物理页。若共享的是尚未写满的尾页，而两个请求接下来要追加不同的词，就需按实现保证写入隔离，例如写前复制。</p>
 <p class="caption"><strong>代码 5　</strong>设备端先查物理页，再用stride计算元素地址</p>
-<figure class="code"><figcaption><span><strong>CUDA    </strong><a href="https://github.com/flashinfer-ai/flashinfer/blob/ae58183fa8a21324c92a1bf2ad2ec658339cfed8/include/flashinfer/page.cuh#L217-L226">flashinfer / page.cuh    L217–226</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code><span class="cl" data-line="217">__host__ __device__ __forceinline__ size_t get_elem_offset_in_page(size_t head_idx,</span>
-<span class="cl" data-line="218">                                                                   size_t entry_idx,</span>
-<span class="cl" data-line="219">                                                                   size_t feat_idx) <span class="kw">const</span> {</span>
-<span class="cl" data-line="220">  <span class="kw">return</span> head_idx * stride_h + entry_idx * stride_n + feat_idx;</span>
+<figure class="code" data-language="cuda"><figcaption><span><strong>CUDA C++    </strong><a href="https://github.com/flashinfer-ai/flashinfer/blob/ae58183fa8a21324c92a1bf2ad2ec658339cfed8/include/flashinfer/page.cuh#L217-L226">flashinfer / page.cuh    L217–226</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code class="language-cuda"><span class="cl" data-line="217"><span class="tok-keyword">__host__</span> <span class="tok-type">__device__</span> <span class="tok-keyword">__forceinline__</span> <span class="tok-type">size_t</span> <span class="tok-function">get_elem_offset_in_page</span>(<span class="tok-type">size_t</span> head_idx,</span>
+<span class="cl" data-line="218">                                                                   <span class="tok-type">size_t</span> entry_idx,</span>
+<span class="cl" data-line="219">                                                                   <span class="tok-type">size_t</span> feat_idx) <span class="tok-keyword">const</span> {</span>
+<span class="cl" data-line="220">  <span class="tok-keyword">return</span> head_idx <span class="tok-operator">*</span> stride_h <span class="tok-operator">+</span> entry_idx <span class="tok-operator">*</span> stride_n <span class="tok-operator">+</span> feat_idx;</span>
 <span class="cl" data-line="221">}</span>
 <span class="cl" data-line="222"></span>
-<span class="cl" data-line="223">__device__ __forceinline__ DType* get_k_ptr(IdType page_iter, uint32_t head_idx,</span>
-<span class="cl" data-line="224">                                            uint32_t entry_idx, uint32_t feat_idx) <span class="kw">const</span> {</span>
-<span class="cl" data-line="225">  <span class="kw">return</span> k_data + get_elem_offset(__ldg(indices + page_iter), head_idx, entry_idx, feat_idx);</span>
+<span class="cl" data-line="223"><span class="tok-type">__device__</span> <span class="tok-keyword">__forceinline__</span> DType<span class="tok-operator">*</span> <span class="tok-function">get_k_ptr</span>(IdType page_iter, <span class="tok-type">uint32_t</span> head_idx,</span>
+<span class="cl" data-line="224">                                            <span class="tok-type">uint32_t</span> entry_idx, <span class="tok-type">uint32_t</span> feat_idx) <span class="tok-keyword">const</span> {</span>
+<span class="cl" data-line="225">  <span class="tok-keyword">return</span> k_data <span class="tok-operator">+</span> <span class="tok-function">get_elem_offset</span>(<span class="tok-function">__ldg</span>(indices <span class="tok-operator">+</span> page_iter), head_idx, entry_idx, feat_idx);</span>
 <span class="cl" data-line="226">}</span></code></pre></figure>
 <p class="prose"><code class="inline-id">page_iter</code>是页列表中的槽位，<code class="inline-id">__ldg(indices+page_iter)</code>取得物理页号；<code class="inline-id">get_elem_offset</code>再叠加页、head、页内token和feature偏移。页表仅保存映射，KV数值在另一份存储中。</p>
 <p class="caption"><strong>代码 6　</strong>完整页数与末页有效长度还原逻辑序列长度</p>
-<figure class="code"><figcaption><span><strong>Python    </strong><a href="https://github.com/flashinfer-ai/flashinfer/blob/ae58183fa8a21324c92a1bf2ad2ec658339cfed8/flashinfer/page.py#L460-L466">flashinfer / page.py    L460–466</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code><span class="cl" data-line="460"><span class="str">seq_lens: torch.Tensor</span></span>
-<span class="cl" data-line="461"><span class="str">    The sequence lengths of each request in the paged kv-cache, shape: ``[batch_size]``.</span></span>
-<span class="cl" data-line="462"><span class="str">"""</span></span>
-<span class="cl" data-line="463"><span class="kw">return</span> (</span>
-<span class="cl" data-line="464">    torch.clamp(kv_indptr[<span class="fn">1</span>:] - kv_indptr[:-<span class="fn">1</span>] - <span class="fn">1</span>, min=<span class="fn">0</span>) * page_size</span>
-<span class="cl" data-line="465">    + kv_last_page_len</span>
-<span class="cl" data-line="466">)</span></code></pre></figure>
+<figure class="code" data-language="python"><figcaption><span><strong>Python    </strong><a href="https://github.com/flashinfer-ai/flashinfer/blob/ae58183fa8a21324c92a1bf2ad2ec658339cfed8/flashinfer/page.py#L460-L466">flashinfer / page.py    L460–466</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code class="language-python"><span class="cl" data-line="460">seq_lens: torch<span class="tok-operator">.</span>Tensor</span>
+<span class="cl" data-line="461">    The sequence lengths of each request <span class="tok-keyword">in</span> the paged kv<span class="tok-operator">-</span>cache, shape: ``[batch_size]``<span class="tok-operator">.</span></span>
+<span class="cl" data-line="462"><span class="tok-string">"""</span></span>
+<span class="cl" data-line="463"><span class="tok-string">return (</span></span>
+<span class="cl" data-line="464"><span class="tok-string">    torch.clamp(kv_indptr[1:] - kv_indptr[:-1] - 1, min=0) * page_size</span></span>
+<span class="cl" data-line="465"><span class="tok-string">    + kv_last_page_len</span></span>
+<span class="cl" data-line="466"><span class="tok-string">)</span></span></code></pre></figure>
 <p class="prose">对非空请求，长度=(页数<span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><mo>−</mo><mn>1</mn></math></span>)×<span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><mi mathvariant="normal">p</mi><mi mathvariant="normal">a</mi><mi mathvariant="normal">g</mi><mi mathvariant="normal">e</mi><mo>_</mo><mi mathvariant="normal">s</mi><mi mathvariant="normal">i</mi><mi mathvariant="normal">z</mi><mi mathvariant="normal">e</mi><mo>+</mo><mi mathvariant="normal">l</mi><mi mathvariant="normal">a</mi><mi mathvariant="normal">s</mi><mi mathvariant="normal">t</mi><mo>_</mo><mi mathvariant="normal">p</mi><mi mathvariant="normal">a</mi><mi mathvariant="normal">g</mi><mi mathvariant="normal">e</mi><mo>_</mo><mi mathvariant="normal">l</mi><mi mathvariant="normal">e</mi><mi mathvariant="normal">n</mi></math></span>。clamp处理零完整页边界，但空请求还需调用方提供一致的末页长度，不能用负页数表达。</p>
 <figure class="diagram"><a href="../assets/figures/a877eb60f2aab58e56.png?v=2c01d8a81d84" target="_blank" rel="noopener" aria-label="打开原图"><img loading="lazy" src="../assets/figures/a877eb60f2aab58e56.png?v=2c01d8a81d84" alt="课程示意图" width="1800" height="1180"></a></figure>
 <p class="caption">同一批请求的逻辑页指向不连续物理页。浅灰槽为空闲尾部，不参与attention。</p>
@@ -147,42 +147,42 @@
 <p class="prose"><code class="inline-id">page_size=16</code>时，31和33个<a class="term" href="#Def12397a73c4e319">token</a>分别需要2<a class="term" href="#Def12b39504bb5cc8">页</a>与3页，共80个槽，64个有效、16 个未用槽，均位于各请求的<strong>末页</strong>。较大页通常减少<a class="term" href="#Def128aadfaf04bcd">页表</a>项，却增加尾部浪费；较小页减少尾部浪费，却增加元数据和寻址工作，并可能不符合某些kernel支持的layout。页大小需要与kernel和缓存共享粒度一起选择。</p>
 <p class="prose">只有完整内容身份相同的前缀页才适合共享，<a class="term" href="#Def12d7699c6d17c1">引用计数</a>决定何时可释放。若共享尾页还允许继续追加，两条分支写入不同token时需要分离存储或写时复制。容量计算既要数逻辑引用，也要数唯一物理页，不能把共享引用重复计入分配字节。</p>
 <p class="caption"><strong>代码 7　</strong>追加位置由更新后的序列长度确定，再写入对应页</p>
-<figure class="code"><figcaption><span><strong>CUDA    </strong><a href="https://github.com/flashinfer-ai/flashinfer/blob/ae58183fa8a21324c92a1bf2ad2ec658339cfed8/include/flashinfer/page.cuh#L390-L403">flashinfer / page.cuh    L390–403</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code><span class="cl" data-line="390">uint32_t seq_len =</span>
-<span class="cl" data-line="391">    (paged_kv.indptr[batch_idx + <span class="fn">1</span>] - paged_kv.indptr[batch_idx] - <span class="fn">1</span>) * paged_kv.page_size +</span>
+<figure class="code" data-language="cuda"><figcaption><span><strong>CUDA C++    </strong><a href="https://github.com/flashinfer-ai/flashinfer/blob/ae58183fa8a21324c92a1bf2ad2ec658339cfed8/include/flashinfer/page.cuh#L390-L403">flashinfer / page.cuh    L390–403</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code class="language-cuda"><span class="cl" data-line="390"><span class="tok-type">uint32_t</span> seq_len <span class="tok-operator">=</span></span>
+<span class="cl" data-line="391">    (paged_kv.indptr[batch_idx <span class="tok-operator">+</span> <span class="tok-number">1</span>] <span class="tok-operator">-</span> paged_kv.indptr[batch_idx] <span class="tok-operator">-</span> <span class="tok-number">1</span>) <span class="tok-operator">*</span> paged_kv.page_size <span class="tok-operator">+</span></span>
 <span class="cl" data-line="392">    paged_kv.last_page_len[batch_idx];</span>
 <span class="cl" data-line="393"></span>
-<span class="cl" data-line="394">uint32_t page_iter = paged_kv.indptr[batch_idx] + (seq_len - <span class="fn">1</span>) / paged_kv.page_size;</span>
-<span class="cl" data-line="395">uint32_t entry_idx = (seq_len - <span class="fn">1</span>) % paged_kv.page_size;</span>
+<span class="cl" data-line="394"><span class="tok-type">uint32_t</span> page_iter <span class="tok-operator">=</span> paged_kv.indptr[batch_idx] <span class="tok-operator">+</span> (seq_len <span class="tok-operator">-</span> <span class="tok-number">1</span>) <span class="tok-operator">/</span> paged_kv.page_size;</span>
+<span class="cl" data-line="395"><span class="tok-type">uint32_t</span> entry_idx <span class="tok-operator">=</span> (seq_len <span class="tok-operator">-</span> <span class="tok-number">1</span>) <span class="tok-operator">%</span> paged_kv.page_size;</span>
 <span class="cl" data-line="396"></span>
-<span class="cl" data-line="397">DType* k_ptr = paged_kv.get_k_ptr(page_iter, head_idx, entry_idx, tx * vec_size);</span>
-<span class="cl" data-line="398">DType* v_ptr = paged_kv.get_v_ptr(page_iter, head_idx, entry_idx, tx * vec_size);</span>
-<span class="cl" data-line="399">vec_t&lt;DType, vec_size&gt;::memcpy(</span>
-<span class="cl" data-line="400">    k_ptr, key + (batch_idx * num_heads + head_idx) * head_dim + tx * vec_size);</span>
+<span class="cl" data-line="397">DType<span class="tok-operator">*</span> k_ptr <span class="tok-operator">=</span> paged_kv.<span class="tok-function">get_k_ptr</span>(page_iter, head_idx, entry_idx, tx <span class="tok-operator">*</span> vec_size);</span>
+<span class="cl" data-line="398">DType<span class="tok-operator">*</span> v_ptr <span class="tok-operator">=</span> paged_kv.<span class="tok-function">get_v_ptr</span>(page_iter, head_idx, entry_idx, tx <span class="tok-operator">*</span> vec_size);</span>
+<span class="cl" data-line="399">vec_t<span class="tok-operator">&lt;</span>DType, vec_size<span class="tok-operator">&gt;::</span><span class="tok-function">memcpy</span>(</span>
+<span class="cl" data-line="400">    k_ptr, key <span class="tok-operator">+</span> (batch_idx <span class="tok-operator">*</span> num_heads <span class="tok-operator">+</span> head_idx) <span class="tok-operator">*</span> head_dim <span class="tok-operator">+</span> tx <span class="tok-operator">*</span> vec_size);</span>
 <span class="cl" data-line="401"></span>
-<span class="cl" data-line="402">vec_t&lt;DType, vec_size&gt;::memcpy(</span>
-<span class="cl" data-line="403">    v_ptr, value + (batch_idx * num_heads + head_idx) * head_dim + tx * vec_size);</span></code></pre></figure>
+<span class="cl" data-line="402">vec_t<span class="tok-operator">&lt;</span>DType, vec_size<span class="tok-operator">&gt;::</span><span class="tok-function">memcpy</span>(</span>
+<span class="cl" data-line="403">    v_ptr, value <span class="tok-operator">+</span> (batch_idx <span class="tok-operator">*</span> num_heads <span class="tok-operator">+</span> head_idx) <span class="tok-operator">*</span> head_dim <span class="tok-operator">+</span> tx <span class="tok-operator">*</span> vec_size);</span></code></pre></figure>
 <p class="prose"><code class="inline-id">seq_len</code>表示包含本次追加token的长度，所以使用<span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><mi mathvariant="normal">s</mi><mi mathvariant="normal">e</mi><mi mathvariant="normal">q</mi><mo>_</mo><mi mathvariant="normal">l</mi><mi mathvariant="normal">e</mi><mi mathvariant="normal">n</mi><mo>−</mo><mn>1</mn></math></span>确定零起始位置。到达新页边界前，调用方必须已经分配物理页并更新页表与末页长度；kernel本身不替调度器申请存储。</p>
 <p class="prose">例如A从7增长到8，只需把物理页1的最后一个槽写满，<code class="inline-id">last_page_len</code>从3变4；从8增长到9时需要新页，页表追加该物理页号，末页长度重置为1。<a class="term" href="#Def12d14771b9c45f">逻辑位置</a>8不能写到旧末页之后未经分配的地址。</p>
 <p class="caption"><strong>代码 8　</strong>官方示例先plan，再在多层run时复用元数据</p>
-<figure class="code"><figcaption><span><strong>Python    </strong><a href="https://github.com/flashinfer-ai/flashinfer/blob/ae58183fa8a21324c92a1bf2ad2ec658339cfed8/flashinfer/decode.py#L1365-L1383">flashinfer / decode.py    L1365–1383</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code><span class="cl" data-line="1365"><span class="str">&gt;&gt;&gt; # create auxiliary data structures for batch decode attention</span></span>
-<span class="cl" data-line="1366"><span class="str">&gt;&gt;&gt; decode_wrapper.plan(</span></span>
-<span class="cl" data-line="1367"><span class="str">...     kv_page_indptr,</span></span>
-<span class="cl" data-line="1368"><span class="str">...     kv_page_indices,</span></span>
-<span class="cl" data-line="1369"><span class="str">...     kv_last_page_len,</span></span>
-<span class="cl" data-line="1370"><span class="str">...     num_qo_heads,</span></span>
-<span class="cl" data-line="1371"><span class="str">...     num_kv_heads,</span></span>
-<span class="cl" data-line="1372"><span class="str">...     head_dim,</span></span>
-<span class="cl" data-line="1373"><span class="str">...     page_size,</span></span>
-<span class="cl" data-line="1374"><span class="str">...     pos_encoding_mode="NONE",</span></span>
-<span class="cl" data-line="1375"><span class="str">...     data_type=torch.float16</span></span>
-<span class="cl" data-line="1376"><span class="str">... )</span></span>
-<span class="cl" data-line="1377"><span class="str">&gt;&gt;&gt; outputs = []</span></span>
-<span class="cl" data-line="1378"><span class="str">&gt;&gt;&gt; for i in range(num_layers):</span></span>
-<span class="cl" data-line="1379"><span class="str">...     q = torch.randn(batch_size, num_qo_heads, head_dim).half().to("cuda:0")</span></span>
-<span class="cl" data-line="1380"><span class="str">...     kv_cache = kv_cache_at_layer[i]</span></span>
-<span class="cl" data-line="1381"><span class="str">...     # compute batch decode attention, reuse auxiliary data structures for all layers</span></span>
-<span class="cl" data-line="1382"><span class="str">...     o = decode_wrapper.run(q, kv_cache)</span></span>
-<span class="cl" data-line="1383"><span class="str">...     outputs.append(o)</span></span></code></pre></figure>
+<figure class="code" data-language="python"><figcaption><span><strong>Python    </strong><a href="https://github.com/flashinfer-ai/flashinfer/blob/ae58183fa8a21324c92a1bf2ad2ec658339cfed8/flashinfer/decode.py#L1365-L1383">flashinfer / decode.py    L1365–1383</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code class="language-python"><span class="cl" data-line="1365"><span class="tok-operator">&gt;&gt;&gt;</span> <span class="tok-comment"># create auxiliary data structures for batch decode attention</span></span>
+<span class="cl" data-line="1366"><span class="tok-operator">&gt;&gt;&gt;</span> decode_wrapper<span class="tok-operator">.</span><span class="tok-function">plan</span>(</span>
+<span class="cl" data-line="1367"><span class="tok-operator">...</span>     kv_page_indptr,</span>
+<span class="cl" data-line="1368"><span class="tok-operator">...</span>     kv_page_indices,</span>
+<span class="cl" data-line="1369"><span class="tok-operator">...</span>     kv_last_page_len,</span>
+<span class="cl" data-line="1370"><span class="tok-operator">...</span>     num_qo_heads,</span>
+<span class="cl" data-line="1371"><span class="tok-operator">...</span>     num_kv_heads,</span>
+<span class="cl" data-line="1372"><span class="tok-operator">...</span>     head_dim,</span>
+<span class="cl" data-line="1373"><span class="tok-operator">...</span>     page_size,</span>
+<span class="cl" data-line="1374"><span class="tok-operator">...</span>     pos_encoding_mode<span class="tok-operator">=</span><span class="tok-string">"NONE"</span>,</span>
+<span class="cl" data-line="1375"><span class="tok-operator">...</span>     data_type<span class="tok-operator">=</span>torch<span class="tok-operator">.</span>float16</span>
+<span class="cl" data-line="1376"><span class="tok-operator">...</span> )</span>
+<span class="cl" data-line="1377"><span class="tok-operator">&gt;&gt;&gt;</span> outputs <span class="tok-operator">=</span> []</span>
+<span class="cl" data-line="1378"><span class="tok-operator">&gt;&gt;&gt;</span> <span class="tok-keyword">for</span> i <span class="tok-keyword">in</span> <span class="tok-function">range</span>(num_layers):</span>
+<span class="cl" data-line="1379"><span class="tok-operator">...</span>     q <span class="tok-operator">=</span> torch<span class="tok-operator">.</span><span class="tok-function">randn</span>(batch_size, num_qo_heads, head_dim)<span class="tok-operator">.</span><span class="tok-function">half</span>()<span class="tok-operator">.</span><span class="tok-function">to</span>(<span class="tok-string">"cuda:0"</span>)</span>
+<span class="cl" data-line="1380"><span class="tok-operator">...</span>     kv_cache <span class="tok-operator">=</span> kv_cache_at_layer[i]</span>
+<span class="cl" data-line="1381"><span class="tok-operator">...</span>     <span class="tok-comment"># compute batch decode attention, reuse auxiliary data structures for all layers</span></span>
+<span class="cl" data-line="1382"><span class="tok-operator">...</span>     o <span class="tok-operator">=</span> decode_wrapper<span class="tok-operator">.</span><span class="tok-function">run</span>(q, kv_cache)</span>
+<span class="cl" data-line="1383"><span class="tok-operator">...</span>     outputs<span class="tok-operator">.</span><span class="tok-function">append</span>(o)</span></code></pre></figure>
 <p class="prose">plan接收页表、长度、head数量和<code class="inline-id">page_size</code>，准备执行所需辅助结构；每层run传入当前层的<a class="term" href="#Def123b7755ef3059">query</a>与<a class="term" href="#Def12221e82c84d42">KV</a>。示例代码来自源码docstring，保留&gt;&gt;&gt;与...提示符，讲义没有执行它。</p>
 <p class="prose">跨层<a class="term" href="#Def12f465e0254961">复用</a>要求这些层使用相容的页<a class="term" href="#Def12bbaa2ba9297f">布局</a>和问题规格。请求加入退出、长度增长、页数变化或backend条件改变时，需要按接口重新准备或更新相应计划，不能永远沿用最初状态。</p>
 <p class="prose">NHD表示页内token维在head之前，单份K通常为<code class="inline-id">[num_pages,page_size,H_{kv},d]</code>；HND则为<code class="inline-id">[num_pages,H_{kv},page_size,d]</code>。dtype与scale、<a class="term" href="#Def127d96883537b6">stride</a>、head分组和页大小都影响backend选择。同一层的逻辑KV可以有不同物理layout；将<a class="term" href="#Def1245bb44d04ce3">张量</a>view成另一个<a class="term" href="#Def120890b549e548">shape</a>并不会自动完成正确的数据转置。</p>
@@ -194,20 +194,20 @@
 <p class="prose"><a href="https://www.usenix.org/conference/osdi22/presentation/yu">Orca：迭代级调度与selective batching</a></p>
 <p class="prose">教学例子：两<a class="term" href="#Def12f8ae7371d186">槽位</a>，A还需2步，B还需4步，C等待且需2步，暂忽略prefill并假设每轮10毫秒。静态分组先运行<span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><mfrac><mrow><mi>A</mi></mrow><mrow><mi>B</mi></mrow></mfrac></math></span>四轮，再运行C两轮，共60毫秒；逐轮补位让C在第3轮加入，与B一起在第4轮完成，共40毫秒。两者生成的有效<a class="term" href="#Def12397a73c4e319">token</a>均为8个；实际轮耗时会随batch和历史长度变化，不能直接把这个比例当真实提速。</p>
 <p class="caption"><strong>代码 9　</strong>vLLM用已计算token数与目标token数描述每轮进度</p>
-<figure class="code"><figcaption><span><strong>Python    </strong><a href="https://github.com/vllm-project/vllm/blob/93eeae695f5178eddff728fe50eb18e30c90c33a/vllm/v1/core/sched/scheduler.py#L687-L700">vllm / scheduler.py    L687–700</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code><span class="cl" data-line="687"># NOTE(woosuk) on the scheduling algorithm:</span>
-<span class="cl" data-line="688"># There's no "decoding phase" nor "prefill phase" in the scheduler.</span>
-<span class="cl" data-line="689"># Each request just has the num_computed_tokens and</span>
-<span class="cl" data-line="690"># num_tokens_with_spec. num_tokens_with_spec =</span>
-<span class="cl" data-line="691"># len(prompt_token_ids) + len(output_token_ids) + len(spec_token_ids).</span>
-<span class="cl" data-line="692"># At each step, the scheduler tries to assign tokens to the requests</span>
-<span class="cl" data-line="693"># so that each request's num_computed_tokens can catch up its</span>
-<span class="cl" data-line="694"># num_tokens_with_spec. This is general enough to cover</span>
-<span class="cl" data-line="695"># chunked prefills, prefix caching, speculative decoding,</span>
-<span class="cl" data-line="696"># and the "jump decoding" optimization in the future.</span>
+<figure class="code" data-language="python"><figcaption><span><strong>Python    </strong><a href="https://github.com/vllm-project/vllm/blob/93eeae695f5178eddff728fe50eb18e30c90c33a/vllm/v1/core/sched/scheduler.py#L687-L700">vllm / scheduler.py    L687–700</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code class="language-python"><span class="cl" data-line="687"><span class="tok-comment"># NOTE(woosuk) on the scheduling algorithm:</span></span>
+<span class="cl" data-line="688"><span class="tok-comment"># There's no "decoding phase" nor "prefill phase" in the scheduler.</span></span>
+<span class="cl" data-line="689"><span class="tok-comment"># Each request just has the num_computed_tokens and</span></span>
+<span class="cl" data-line="690"><span class="tok-comment"># num_tokens_with_spec. num_tokens_with_spec =</span></span>
+<span class="cl" data-line="691"><span class="tok-comment"># len(prompt_token_ids) + len(output_token_ids) + len(spec_token_ids).</span></span>
+<span class="cl" data-line="692"><span class="tok-comment"># At each step, the scheduler tries to assign tokens to the requests</span></span>
+<span class="cl" data-line="693"><span class="tok-comment"># so that each request's num_computed_tokens can catch up its</span></span>
+<span class="cl" data-line="694"><span class="tok-comment"># num_tokens_with_spec. This is general enough to cover</span></span>
+<span class="cl" data-line="695"><span class="tok-comment"># chunked prefills, prefix caching, speculative decoding,</span></span>
+<span class="cl" data-line="696"><span class="tok-comment"># and the "jump decoding" optimization in the future.</span></span>
 <span class="cl" data-line="697"></span>
-<span class="cl" data-line="698">scheduled_new_reqs: list[Request] = []</span>
-<span class="cl" data-line="699">scheduled_running_reqs: list[Request] = []</span>
-<span class="cl" data-line="700">preempted_reqs: list[Request] = []</span></code></pre></figure>
+<span class="cl" data-line="698">scheduled_new_reqs: <span class="tok-type">list</span>[Request] <span class="tok-operator">=</span> []</span>
+<span class="cl" data-line="699">scheduled_running_reqs: <span class="tok-type">list</span>[Request] <span class="tok-operator">=</span> []</span>
+<span class="cl" data-line="700">preempted_reqs: <span class="tok-type">list</span>[Request] <span class="tok-operator">=</span> []</span></code></pre></figure>
 <p class="prose">目标包含prompt、已经产生的output和spec token；<code class="inline-id">num_computed_tokens</code>表示已完成前向的范围。这个表示统一了prefill chunk、缓存前缀与多token验证，调度器无需仅靠一个prefill/<a class="term" href="#Def12f28fe0b0f9e5">decode</a>标签决定工作量。</p>
 <p class="prose">请求并发数、运行请求数、单轮<a class="term" href="#Def123b7755ef3059">query</a> token数和<a class="term" href="#Def128552a9d24381">GPU</a> microbatch大小是不同量。100个连接可以对应20个运行请求、其余等待；一轮也可能包含16个decode query和240个prefill query。只报告<code class="inline-id">batch_size=256</code>无法说明实际请求集合和历史访问成本。</p>
 <figure class="diagram"><a href="../assets/figures/ef6cc7562898df23c8.png?v=f131455043b4" target="_blank" rel="noopener" aria-label="打开原图"><img loading="lazy" src="../assets/figures/ef6cc7562898df23c8.png?v=f131455043b4" alt="课程示意图" width="1800" height="1100"></a></figure>
@@ -218,24 +218,24 @@
 <p class="prose">一段<strong>长</strong><a class="term" href="#Def120247674f810d"><strong>prefill</strong></a>若在一轮调度中独占设备很久，已有<a class="term" href="#Def12f28fe0b0f9e5">decode</a>请求必须等待这一轮结束才能继续输出。chunked prefill把输入分段，允许每轮保留decode请求并混入有限prefill工作。Sarathi-Serve围绕这种混合构造较均匀的迭代，改善吞吐与尾延迟之间的取舍。它没有消除prefill的计算量，只改变工作分配到各轮的方式。</p>
 <p class="prose"><a href="https://www.usenix.org/conference/osdi24/presentation/agrawal">Sarathi-Serve：chunked prefill与stall-free调度</a></p>
 <p class="caption"><strong>代码 10　</strong>候选token数先受长prefill阈值、总预算和模型长度限制</p>
-<figure class="code"><figcaption><span><strong>Python    </strong><a href="https://github.com/vllm-project/vllm/blob/93eeae695f5178eddff728fe50eb18e30c90c33a/vllm/v1/core/sched/scheduler.py#L807-L825">vllm / scheduler.py    L807–825</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code><span class="cl" data-line="807">num_new_tokens = (</span>
-<span class="cl" data-line="808">    request.num_tokens_with_spec</span>
-<span class="cl" data-line="809">    + request.num_output_placeholders</span>
-<span class="cl" data-line="810">    - request.num_computed_tokens</span>
+<figure class="code" data-language="python"><figcaption><span><strong>Python    </strong><a href="https://github.com/vllm-project/vllm/blob/93eeae695f5178eddff728fe50eb18e30c90c33a/vllm/v1/core/sched/scheduler.py#L807-L825">vllm / scheduler.py    L807–825</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code class="language-python"><span class="cl" data-line="807">num_new_tokens <span class="tok-operator">=</span> (</span>
+<span class="cl" data-line="808">    request<span class="tok-operator">.</span>num_tokens_with_spec</span>
+<span class="cl" data-line="809">    <span class="tok-operator">+</span> request<span class="tok-operator">.</span>num_output_placeholders</span>
+<span class="cl" data-line="810">    <span class="tok-operator">-</span> request<span class="tok-operator">.</span>num_computed_tokens</span>
 <span class="cl" data-line="811">)</span>
-<span class="cl" data-line="812"><span class="kw">if</span> <span class="fn">0</span> &lt; long_prefill_token_threshold &lt; num_new_tokens:</span>
-<span class="cl" data-line="813">    num_new_tokens = long_prefill_token_threshold</span>
-<span class="cl" data-line="814">num_new_tokens = min(</span>
-<span class="cl" data-line="815">    num_new_tokens, token_budget, input_budget - draft_slots</span>
+<span class="cl" data-line="812"><span class="tok-keyword">if</span> <span class="tok-number">0</span> <span class="tok-operator">&lt;</span> long_prefill_token_threshold <span class="tok-operator">&lt;</span> num_new_tokens:</span>
+<span class="cl" data-line="813">    num_new_tokens <span class="tok-operator">=</span> long_prefill_token_threshold</span>
+<span class="cl" data-line="814">num_new_tokens <span class="tok-operator">=</span> <span class="tok-function">min</span>(</span>
+<span class="cl" data-line="815">    num_new_tokens, token_budget, input_budget <span class="tok-operator">-</span> draft_slots</span>
 <span class="cl" data-line="816">)</span>
 <span class="cl" data-line="817"></span>
-<span class="cl" data-line="818"># Make sure the input position does not exceed the max model len.</span>
-<span class="cl" data-line="819"># This is necessary when using spec decoding.</span>
-<span class="cl" data-line="820">num_new_tokens = min(</span>
+<span class="cl" data-line="818"><span class="tok-comment"># Make sure the input position does not exceed the max model len.</span></span>
+<span class="cl" data-line="819"><span class="tok-comment"># This is necessary when using spec decoding.</span></span>
+<span class="cl" data-line="820">num_new_tokens <span class="tok-operator">=</span> <span class="tok-function">min</span>(</span>
 <span class="cl" data-line="821">    num_new_tokens,</span>
-<span class="cl" data-line="822">    self.max_model_len</span>
-<span class="cl" data-line="823">    - request.num_computed_tokens</span>
-<span class="cl" data-line="824">    - self.num_sampled_tokens_per_step,</span>
+<span class="cl" data-line="822">    <span class="tok-type">self</span><span class="tok-operator">.</span>max_model_len</span>
+<span class="cl" data-line="823">    <span class="tok-operator">-</span> request<span class="tok-operator">.</span>num_computed_tokens</span>
+<span class="cl" data-line="824">    <span class="tok-operator">-</span> <span class="tok-type">self</span><span class="tok-operator">.</span>num_sampled_tokens_per_step,</span>
 <span class="cl" data-line="825">)</span></code></pre></figure>
 <p class="prose"><code class="inline-id">num_tokens_with_spec</code>加上output placeholders后减<code class="inline-id">num_computed_tokens</code>得到待处理数量；<code class="inline-id">long_prefill_token_threshold</code>可以限制单请求本轮长度，<code class="inline-id">token_budget</code>与<code class="inline-id">input_budget</code>再限制总量。<code class="inline-id">draft_slots</code>和sampled tokens还占用相应边界，不能只按prompt长度分配。</p>
 <p class="prose">取教学预算256个<a class="term" href="#Def123b7755ef3059">query</a> <a class="term" href="#Def12397a73c4e319">token</a>，已有16路普通decode各需1个query，剩余240可给一个长prefill。4096-token输入至少需要<span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><mo>⌈</mo><mn>4096</mn><mo>/</mo><mn>240</mn><mo>⌉</mo><mo>=</mo><mn>18</mn></math></span>轮才能完成，前17轮各240，最后16。若这些轮各耗8毫秒，则首token至少经历约144毫秒执行跨度，再加排队与入口开销。这个时间假设用于解释调度，不意味着240与256token总有相同耗时。</p>
@@ -246,18 +246,18 @@
 <h2><strong>11　计算与 KV 容量的准入限制</strong></h2>
 <p class="prose">调度器即使还能计算更多 <a class="term" href="#Def12397a73c4e319">token</a>，也可能已没有足够的 <a class="term" href="#Def12221e82c84d42">KV</a> <a class="term" href="#Def12b39504bb5cc8">页</a>接纳新请求。调度器还需为新<a class="term" href="#Def123b7755ef3059">query</a>写入的KV、lookahead和共享分支<a class="term" href="#Def12974b5c80a5fc"><strong>预留空间</strong></a>。权重、<a class="term" href="#Def122b7ba77a5b3e">图捕获</a>池、attention workspace与其他<a class="term" href="#Def12d74e2538f88c">常驻</a>状态也占<a class="term" href="#Def129150ae85d1b5">HBM</a>，留给KV的可用容量应从完整<a class="term" href="#Def12a9ee0ebd3974">显存</a>账中扣出。超出容量后的抢占与重算会额外消耗计算，导致并发提高却吞吐下降。</p>
 <p class="caption"><strong>代码 11　</strong>只有KV槽位分配成功，本次请求才能继续被调度</p>
-<figure class="code"><figcaption><span><strong>Python    </strong><a href="https://github.com/vllm-project/vllm/blob/93eeae695f5178eddff728fe50eb18e30c90c33a/vllm/v1/core/sched/scheduler.py#L879-L890">vllm / scheduler.py    L879–890</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code><span class="cl" data-line="879"># Schedule newly needed KV blocks for the request.</span>
-<span class="cl" data-line="880"><span class="kw">with</span> record_function_or_nullcontext(<span class="str">"schedule: allocate_slots"</span>):</span>
-<span class="cl" data-line="881">    <span class="kw">while</span> <span class="kw">True</span>:</span>
-<span class="cl" data-line="882">        new_blocks = self.kv_cache_manager.allocate_slots(</span>
+<figure class="code" data-language="python"><figcaption><span><strong>Python    </strong><a href="https://github.com/vllm-project/vllm/blob/93eeae695f5178eddff728fe50eb18e30c90c33a/vllm/v1/core/sched/scheduler.py#L879-L890">vllm / scheduler.py    L879–890</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code class="language-python"><span class="cl" data-line="879"><span class="tok-comment"># Schedule newly needed KV blocks for the request.</span></span>
+<span class="cl" data-line="880"><span class="tok-keyword">with</span> <span class="tok-function">record_function_or_nullcontext</span>(<span class="tok-string">"schedule: allocate_slots"</span>):</span>
+<span class="cl" data-line="881">    <span class="tok-keyword">while</span> <span class="tok-keyword">True</span>:</span>
+<span class="cl" data-line="882">        new_blocks <span class="tok-operator">=</span> <span class="tok-type">self</span><span class="tok-operator">.</span>kv_cache_manager<span class="tok-operator">.</span><span class="tok-function">allocate_slots</span>(</span>
 <span class="cl" data-line="883">            request,</span>
 <span class="cl" data-line="884">            num_new_tokens,</span>
-<span class="cl" data-line="885">            num_lookahead_tokens=self.num_lookahead_tokens,</span>
+<span class="cl" data-line="885">            num_lookahead_tokens<span class="tok-operator">=</span><span class="tok-type">self</span><span class="tok-operator">.</span>num_lookahead_tokens,</span>
 <span class="cl" data-line="886">        )</span>
 <span class="cl" data-line="887"></span>
-<span class="cl" data-line="888">        <span class="kw">if</span> new_blocks <span class="kw">is</span> <span class="kw">not</span> <span class="kw">None</span>:</span>
-<span class="cl" data-line="889">            # The request can be scheduled.</span>
-<span class="cl" data-line="890">            <span class="kw">break</span></span></code></pre></figure>
+<span class="cl" data-line="888">        <span class="tok-keyword">if</span> new_blocks <span class="tok-keyword">is</span> <span class="tok-keyword">not</span> <span class="tok-keyword">None</span>:</span>
+<span class="cl" data-line="889">            <span class="tok-comment"># The request can be scheduled.</span></span>
+<span class="cl" data-line="890">            <span class="tok-keyword">break</span></span></code></pre></figure>
 <p class="prose"><code class="inline-id">allocate_slots</code>接收本轮token数和lookahead数量；返回非None才离开分配循环。分配失败后继续检查待释放块与抢占路径，因此token预算和KV分配构成两道不同约束。</p>
 <p class="prose">当前代码的抢占路径还检查块能否立即释放：如果某请求的块仍被异步操作引用，逻辑上结束或移出运行队列也不能立即把那段存储交给新写入。通信完成、<a class="term" href="#Def12d7699c6d17c1">引用计数</a>与<a class="term" href="#Def128552a9d24381">GPU</a>访问完成共同决定回收时刻。分布式KV课程会进一步追踪这类完成条件。</p>
 <p class="prose">若可用KV容量为40 <a class="term" href="#Def12d027fdf77d2c">GiB</a>，采用128 <a class="term" href="#Def12748b595647bb">KiB</a>/token教学模型，总<a class="term" href="#Def12f8ae7371d186">槽位</a>上限为327680 token，忽略碎片时最多容纳40个8K请求。若需要为每个请求再预留1K输出，只能按9K计，理论上限降为35个；实际还需考虑页取整、<a class="term" href="#Def12c89f700f36d7">工作区</a>和调度安全余量。未预留全部最大输出时，必须有后续增长失败的处理策略。</p>
@@ -267,28 +267,28 @@
 <h2><strong>12　吞吐量与达标吞吐量</strong></h2>
 <p class="prose">以请求/秒计的<a class="term" href="#Def125659e7452c94">吞吐量</a>，分子是测量窗口内完成的请求数；output <a class="term" href="#Def12397a73c4e319">token</a>/s按实际生成token数计算；total token/s还包括输入。长prompt可以显著推高total token/s，即使首token延迟很差。每<a class="term" href="#Def128552a9d24381">GPU</a>吞吐需明确分母包含多少GPU，以及是否包含<a class="term" href="#Def120247674f810d">prefill</a>池、<a class="term" href="#Def12f28fe0b0f9e5">decode</a>池和其他服务设备。只报告decode卡的数量会改变整服务成本口径。</p>
 <p class="caption"><strong>代码 12　</strong>vLLM同时保存请求吞吐、达标吞吐、输出与总token吞吐</p>
-<figure class="code"><figcaption><span><strong>Python    </strong><a href="https://github.com/vllm-project/vllm/blob/93eeae695f5178eddff728fe50eb18e30c90c33a/vllm/benchmarks/serve.py#L773-L781">vllm / serve.py    L773–781</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code><span class="cl" data-line="773">metrics = BenchmarkMetrics(</span>
-<span class="cl" data-line="774">    completed=completed,</span>
-<span class="cl" data-line="775">    failed=len(failed_outputs),</span>
-<span class="cl" data-line="776">    total_input=total_input,</span>
-<span class="cl" data-line="777">    total_output=sum(actual_output_lens),</span>
-<span class="cl" data-line="778">    request_throughput=completed / dur_s,</span>
-<span class="cl" data-line="779">    request_goodput=good_completed / dur_s,</span>
-<span class="cl" data-line="780">    output_throughput=sum(actual_output_lens) / dur_s,</span>
-<span class="cl" data-line="781">    total_token_throughput=(total_input + sum(actual_output_lens)) / dur_s,</span></code></pre></figure>
+<figure class="code" data-language="python"><figcaption><span><strong>Python    </strong><a href="https://github.com/vllm-project/vllm/blob/93eeae695f5178eddff728fe50eb18e30c90c33a/vllm/benchmarks/serve.py#L773-L781">vllm / serve.py    L773–781</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code class="language-python"><span class="cl" data-line="773">metrics <span class="tok-operator">=</span> <span class="tok-function">BenchmarkMetrics</span>(</span>
+<span class="cl" data-line="774">    completed<span class="tok-operator">=</span>completed,</span>
+<span class="cl" data-line="775">    failed<span class="tok-operator">=</span><span class="tok-function">len</span>(failed_outputs),</span>
+<span class="cl" data-line="776">    total_input<span class="tok-operator">=</span>total_input,</span>
+<span class="cl" data-line="777">    total_output<span class="tok-operator">=</span><span class="tok-function">sum</span>(actual_output_lens),</span>
+<span class="cl" data-line="778">    request_throughput<span class="tok-operator">=</span>completed <span class="tok-operator">/</span> dur_s,</span>
+<span class="cl" data-line="779">    request_goodput<span class="tok-operator">=</span>good_completed <span class="tok-operator">/</span> dur_s,</span>
+<span class="cl" data-line="780">    output_throughput<span class="tok-operator">=</span><span class="tok-function">sum</span>(actual_output_lens) <span class="tok-operator">/</span> dur_s,</span>
+<span class="cl" data-line="781">    total_token_throughput<span class="tok-operator">=</span>(total_input <span class="tok-operator">+</span> <span class="tok-function">sum</span>(actual_output_lens)) <span class="tok-operator">/</span> dur_s,</span></code></pre></figure>
 <p class="prose">所有这些值使用<code class="inline-id">dur_s</code>作分母；<code class="inline-id">good_completed</code>只计算满足所选<a class="term" href="#Def1296d09541493e">SLO</a>的请求。失败数单独报告，不能用成功请求吞吐掩盖失败比例。输入和输出分别计数，跨配置比较时必须保持定义一致。</p>
 <p class="eq"><span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><mtext>G</mtext><mtext> = </mtext><mfrac><mrow><mtext>#</mtext><mtext>{</mtext><mtext>s</mtext><mtext>u</mtext><mtext>c</mtext><mtext>c</mtext><mtext>e</mtext><mtext>s</mtext><mtext>s</mtext><mtext>f</mtext><mtext>u</mtext><mtext>l</mtext><mtext> </mtext><mtext>r</mtext><mtext>e</mtext><mtext>q</mtext><mtext>u</mtext><mtext>e</mtext><mtext>s</mtext><mtext>t</mtext><mtext>s</mtext><mtext> </mtext><mtext>s</mtext><mtext>a</mtext><mtext>t</mtext><mtext>i</mtext><mtext>s</mtext><mtext>f</mtext><mtext>y</mtext><mtext>i</mtext><mtext>n</mtext><mtext>g</mtext><mtext> </mtext><mtext>a</mtext><mtext>l</mtext><mtext>l</mtext><mtext> </mtext><mtext>S</mtext><mtext>L</mtext><mtext>O</mtext><mtext>s</mtext><mtext>}</mtext></mrow><mrow><msub><mrow><mtext>T</mtext></mrow><mrow><mtext>w</mtext><mtext>i</mtext><mtext>n</mtext><mtext>d</mtext><mtext>o</mtext><mtext>w</mtext></mrow></msub></mrow></mfrac></math></span></p>
 <p class="caption"><strong>代码 13　</strong>同一请求的各指标必须同时满足阈值才算goodput</p>
-<figure class="code"><figcaption><span><strong>Python    </strong><a href="https://github.com/vllm-project/vllm/blob/93eeae695f5178eddff728fe50eb18e30c90c33a/vllm/benchmarks/serve.py#L683-L692">vllm / serve.py    L683–692</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code><span class="cl" data-line="683"><span class="kw">if</span> <span class="str">"e2el"</span> <span class="kw">in</span> goodput_config_dict:</span>
-<span class="cl" data-line="684">    valid_metrics.append(e2els)</span>
-<span class="cl" data-line="685">    slo_values.append(</span>
-<span class="cl" data-line="686">        goodput_config_dict[<span class="str">"e2el"</span>] / MILLISECONDS_TO_SECONDS_CONVERSION</span>
+<figure class="code" data-language="python"><figcaption><span><strong>Python    </strong><a href="https://github.com/vllm-project/vllm/blob/93eeae695f5178eddff728fe50eb18e30c90c33a/vllm/benchmarks/serve.py#L683-L692">vllm / serve.py    L683–692</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code class="language-python"><span class="cl" data-line="683"><span class="tok-keyword">if</span> <span class="tok-string">"e2el"</span> <span class="tok-keyword">in</span> goodput_config_dict:</span>
+<span class="cl" data-line="684">    valid_metrics<span class="tok-operator">.</span><span class="tok-function">append</span>(e2els)</span>
+<span class="cl" data-line="685">    slo_values<span class="tok-operator">.</span><span class="tok-function">append</span>(</span>
+<span class="cl" data-line="686">        goodput_config_dict[<span class="tok-string">"e2el"</span>] <span class="tok-operator">/</span> MILLISECONDS_TO_SECONDS_CONVERSION</span>
 <span class="cl" data-line="687">    )</span>
 <span class="cl" data-line="688"></span>
-<span class="cl" data-line="689"><span class="kw">for</span> req_metric <span class="kw">in</span> zip(*valid_metrics):</span>
-<span class="cl" data-line="690">    is_good_req = all([s &gt;= r <span class="kw">for</span> s, r <span class="kw">in</span> zip(slo_values, req_metric)])</span>
-<span class="cl" data-line="691">    <span class="kw">if</span> is_good_req:</span>
-<span class="cl" data-line="692">        good_completed += <span class="fn">1</span></span></code></pre></figure>
+<span class="cl" data-line="689"><span class="tok-keyword">for</span> req_metric <span class="tok-keyword">in</span> <span class="tok-function">zip</span>(<span class="tok-operator">*</span>valid_metrics):</span>
+<span class="cl" data-line="690">    is_good_req <span class="tok-operator">=</span> <span class="tok-function">all</span>([s <span class="tok-operator">&gt;=</span> r <span class="tok-keyword">for</span> s, r <span class="tok-keyword">in</span> <span class="tok-function">zip</span>(slo_values, req_metric)])</span>
+<span class="cl" data-line="691">    <span class="tok-keyword">if</span> is_good_req:</span>
+<span class="cl" data-line="692">        good_completed <span class="tok-operator">+=</span> <span class="tok-number">1</span></span></code></pre></figure>
 <p class="prose">E2E阈值先转换为秒，与<a class="term" href="#Def12b9a844471798">TTFT</a>、<a class="term" href="#Def129cbd8f7072d6">TPOT</a>等一起加入<code class="inline-id">valid_metrics</code>；zip按请求配对，all要求<strong>同时达标</strong>。分别计算TTFT达标率和TPOT达标率再相乘，通常无法得到联合达标率。</p>
 <p class="prose">例如10秒内完成100个请求，其中70个同时满足TTFT与TPOT，goodput为7 request/s。另一配置完成120个但只有60个达标，原始吞吐12 request/s更高，goodput却只有6 request/s。若额外有失败或超时，还需报告它们占全部发起请求的比例，保证读者知道服务可靠性。</p>
 <p class="prose">在稳定阶段记录服务能力时，需要说明观察窗口是否包含warmup、发压后的<a class="term" href="#Def12ada18e969553">排空</a>，以及窗口开始前已在执行的请求。只统计一段中间输出峰值、却把请求完成数换成另一段数据，会破坏分母一致性。批量离线完成时间和在线持续服务容量也需要使用不同说明。</p>
@@ -297,33 +297,33 @@
 <h2><strong>13　开环与闭环负载</strong></h2>
 <p class="prose">闭环固定并发，某请求完成后再补入下一个；服务变慢会自动降低发送速率，因此适合观察固定并发下的延迟和吞吐，却可能掩盖外部到达率不变时的积压。开环按独立时间过程发请求，能显示服务容量不足时队列增长，但发压客户端必须有足够连接、CPU和网络能力。</p>
 <p class="caption"><strong>代码 14　</strong>vLLM按<code class="inline-id">request_rate</code>与burstiness构造到达间隔</p>
-<figure class="code"><figcaption><span><strong>Python    </strong><a href="https://github.com/vllm-project/vllm/blob/93eeae695f5178eddff728fe50eb18e30c90c33a/vllm/benchmarks/serve.py#L496-L508">vllm / serve.py    L496–508</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code><span class="cl" data-line="496">request_rates.append(current_request_rate)</span>
-<span class="cl" data-line="497"><span class="kw">if</span> current_request_rate == float(<span class="str">"inf"</span>):</span>
-<span class="cl" data-line="498">    delay_ts.append(<span class="fn">0</span>)</span>
-<span class="cl" data-line="499"><span class="kw">elif</span> burstiness == float(<span class="str">"inf"</span>):</span>
-<span class="cl" data-line="500">    # when burstiness tends to infinity, the delay time becomes constant</span>
-<span class="cl" data-line="501">    # and tends to the inverse of the request rate</span>
-<span class="cl" data-line="502">    delay_ts.append(<span class="fn">1.0</span> / current_request_rate)</span>
-<span class="cl" data-line="503"><span class="kw">else</span>:</span>
-<span class="cl" data-line="504">    theta = <span class="fn">1.0</span> / (current_request_rate * burstiness)</span>
+<figure class="code" data-language="python"><figcaption><span><strong>Python    </strong><a href="https://github.com/vllm-project/vllm/blob/93eeae695f5178eddff728fe50eb18e30c90c33a/vllm/benchmarks/serve.py#L496-L508">vllm / serve.py    L496–508</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code class="language-python"><span class="cl" data-line="496">request_rates<span class="tok-operator">.</span><span class="tok-function">append</span>(current_request_rate)</span>
+<span class="cl" data-line="497"><span class="tok-keyword">if</span> current_request_rate <span class="tok-operator">==</span> <span class="tok-function">float</span>(<span class="tok-string">"inf"</span>):</span>
+<span class="cl" data-line="498">    delay_ts<span class="tok-operator">.</span><span class="tok-function">append</span>(<span class="tok-number">0</span>)</span>
+<span class="cl" data-line="499"><span class="tok-keyword">elif</span> burstiness <span class="tok-operator">==</span> <span class="tok-function">float</span>(<span class="tok-string">"inf"</span>):</span>
+<span class="cl" data-line="500">    <span class="tok-comment"># when burstiness tends to infinity, the delay time becomes constant</span></span>
+<span class="cl" data-line="501">    <span class="tok-comment"># and tends to the inverse of the request rate</span></span>
+<span class="cl" data-line="502">    delay_ts<span class="tok-operator">.</span><span class="tok-function">append</span>(<span class="tok-number">1.0</span> <span class="tok-operator">/</span> current_request_rate)</span>
+<span class="cl" data-line="503"><span class="tok-keyword">else</span>:</span>
+<span class="cl" data-line="504">    theta <span class="tok-operator">=</span> <span class="tok-number">1.0</span> <span class="tok-operator">/</span> (current_request_rate <span class="tok-operator">*</span> burstiness)</span>
 <span class="cl" data-line="505"></span>
-<span class="cl" data-line="506">    # Sample the request interval from the gamma distribution.</span>
-<span class="cl" data-line="507">    # If burstiness is 1, it follows exponential distribution.</span>
-<span class="cl" data-line="508">    delay_ts.append(np.random.gamma(shape=burstiness, scale=theta))</span></code></pre></figure>
+<span class="cl" data-line="506">    <span class="tok-comment"># Sample the request interval from the gamma distribution.</span></span>
+<span class="cl" data-line="507">    <span class="tok-comment"># If burstiness is 1, it follows exponential distribution.</span></span>
+<span class="cl" data-line="508">    delay_ts<span class="tok-operator">.</span><span class="tok-function">append</span>(np<span class="tok-operator">.</span>random<span class="tok-operator">.</span><span class="tok-function">gamma</span>(shape<span class="tok-operator">=</span>burstiness, scale<span class="tok-operator">=</span>theta))</span></code></pre></figure>
 <p class="prose">无穷<code class="inline-id">request_rate</code>对应零等待，burstiness无穷对应固定间隔；其他情况从Gamma分布采样，<span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><mi mathvariant="normal">s</mi><mi mathvariant="normal">h</mi><mi mathvariant="normal">a</mi><mi mathvariant="normal">p</mi><mi mathvariant="normal">e</mi><mo>=</mo><mn>1</mn></math></span>为指数间隔。该版本随后对有限固定速率的整段累计时间做归一化，使最终时间接近指定请求数/速率，因此不要把输出轨迹称为未经修改的独立Poisson样本。</p>
 <p class="prose">同时设置有限的发送速率和最大并发数时会引入客户端<a class="term" href="#Def1288e8ffde1e53">信号</a>量等待。<strong>计划到达</strong>时间到了，请求也可能仍未真正发出；只看HTTP发送后的<a class="term" href="#Def12b9a844471798">TTFT</a>会漏掉这段等待。当前benchmark将<code class="inline-id">client_queue_time</code>单独记录，分析过载时应把它与服务端队列一起检查。</p>
 <p class="caption"><strong>代码 15　</strong>发送前的客户端等待独立于请求函数计时</p>
-<figure class="code"><figcaption><span><strong>Python    </strong><a href="https://github.com/vllm-project/vllm/blob/93eeae695f5178eddff728fe50eb18e30c90c33a/vllm/benchmarks/serve.py#L1007-L1017">vllm / serve.py    L1007–1017</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code><span class="cl" data-line="1007"><span class="kw">async</span> <span class="kw">def</span> limited_request_func(</span>
+<figure class="code" data-language="python"><figcaption><span><strong>Python    </strong><a href="https://github.com/vllm-project/vllm/blob/93eeae695f5178eddff728fe50eb18e30c90c33a/vllm/benchmarks/serve.py#L1007-L1017">vllm / serve.py    L1007–1017</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code class="language-python"><span class="cl" data-line="1007"><span class="tok-keyword">async</span> <span class="tok-keyword">def</span> <span class="tok-function">limited_request_func</span>(</span>
 <span class="cl" data-line="1008">    request_func_input, session, pbar, request_arrival_time</span>
 <span class="cl" data-line="1009">):</span>
-<span class="cl" data-line="1010">    <span class="kw">async</span> <span class="kw">with</span> semaphore:</span>
-<span class="cl" data-line="1011">        output = <span class="kw">await</span> request_func(</span>
-<span class="cl" data-line="1012">            request_func_input=request_func_input, session=session, pbar=pbar</span>
+<span class="cl" data-line="1010">    <span class="tok-keyword">async</span> <span class="tok-keyword">with</span> semaphore:</span>
+<span class="cl" data-line="1011">        output <span class="tok-operator">=</span> <span class="tok-keyword">await</span> <span class="tok-function">request_func</span>(</span>
+<span class="cl" data-line="1012">            request_func_input<span class="tok-operator">=</span>request_func_input, session<span class="tok-operator">=</span>session, pbar<span class="tok-operator">=</span>pbar</span>
 <span class="cl" data-line="1013">        )</span>
-<span class="cl" data-line="1014">    # Preserve start_time as the time the request was sent. It is used by</span>
-<span class="cl" data-line="1015">    # throughput calculations; record client-side semaphore delay separately.</span>
-<span class="cl" data-line="1016">    output.client_queue_time = output.start_time - request_arrival_time</span>
-<span class="cl" data-line="1017">    <span class="kw">return</span> output</span></code></pre></figure>
+<span class="cl" data-line="1014">    <span class="tok-comment"># Preserve start_time as the time the request was sent. It is used by</span></span>
+<span class="cl" data-line="1015">    <span class="tok-comment"># throughput calculations; record client-side semaphore delay separately.</span></span>
+<span class="cl" data-line="1016">    output<span class="tok-operator">.</span>client_queue_time <span class="tok-operator">=</span> output<span class="tok-operator">.</span>start_time <span class="tok-operator">-</span> request_arrival_time</span>
+<span class="cl" data-line="1017">    <span class="tok-keyword">return</span> output</span></code></pre></figure>
 <p class="prose"><code class="inline-id">request_func</code>在进入semaphore后才执行；输出<code class="inline-id">start_time</code>保留实际发送时刻，减计划到达时刻得到<code class="inline-id">client_queue_time</code>。有限速率与并发上限同时使用时，实际服务端到达过程已经受到客户端反馈限制。</p>
 <p class="prose"><a class="term" href="#Def12a1a871769569">稳态</a>下Little 定律 <span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><mover accent="false"><mrow><mi>N</mi></mrow><mo>¯</mo></mover><mo>=</mo><mi>λ</mi><mover accent="false"><mrow><mi>W</mi></mrow><mo>¯</mo></mover></math></span> 要求平均<a class="term" href="#Def1273223db16fe4">在途</a>请求数 <span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><mover accent="false"><mrow><mi>N</mi></mrow><mo>¯</mo></mover></math></span>、到达/完成速率λ与平均<a class="term" href="#Def12c0c8484528dc">驻留</a>时间W使用同一系统边界。若稳定并发64、平均E2E为5.92秒，则约10.81 request/s；平均输出257token时约2778 output <a class="term" href="#Def12397a73c4e319">token</a>/s。它使用平均量，不能用<a class="term" href="#Def126d700fca8b05">P99</a>延迟替换W，也不适用于持续发散的队列。</p>
 <p class="eq"><span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><mover accent="false"><mrow><mtext>N</mtext></mrow><mo>¯</mo></mover><mtext> = </mtext><mtext>λ</mtext><mover accent="false"><mrow><mtext>W</mtext></mrow><mo>¯</mo></mover></math></span></p>

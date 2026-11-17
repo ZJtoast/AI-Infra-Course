@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light"><title>分离式推理与 KV 传输 · AI Infra Course</title><style>.response textarea{box-sizing:border-box;width:100%;max-width:100%}</style><link rel="stylesheet" href="../assets/course.css?v=1d44bb5810ec"><script defer src="../assets/index-data.js?v=09042a38dcfe"></script><script defer src="../assets/course.js?v=b58933c84ead"></script></head><body class="articlepage" data-root="../"><a href="#main" class="skip">跳至正文</a><header class="top"><div class="bar"><a class="brand" href="../index.html"><span class="brandmark" aria-hidden="true"><i></i><i></i><i></i></span>AI Infra Course</a><button class="toc-toggle" type="button" data-toc-toggle aria-controls="reader-toc" aria-expanded="true" hidden>收起目录</button><nav aria-label="主导航"><a href="../index.html">课程</a><a href="../roadmap.html">学习路线</a><a href="../handbook.html">合订本</a><a href="https://github.com/ZJtoast/AI-Infra-Course">GitHub ↗</a></nav></div></header><main id="main" class="reader"><div class="articlehero"><div class="eyebrow">第 14 课　/　推理系统</div><h1>分离式推理与 KV 传输</h1><p>Prefill 与 decode 分开部署后，一次交接包括 KV 查找、传输、必要的重排和目标端确认。这些步骤都会影响交付首个 token 的时间。</p><div class="actions"><a class="btn" href="../word/14-disaggregated-inference-and-kv-transfer.docx">下载 Word ↓</a></div></div><div class="layout"><aside id="reader-toc" aria-label="知识点目录"><details class="tocbox" open><summary>本页知识点 <small>18</small></summary><ol class="toc"><li class="lv2" id="idx-l14-s001"><a class="" href="#l14-s001">1　分离式推理的排队与交接</a></li><li class="lv2" id="idx-l14-s002"><a class="" href="#l14-s002">2　KV 传输的有效字节数</a></li><li class="lv2" id="idx-l14-s003"><a class="" href="#l14-s003">3　KV 交接协议</a></li><li class="lv2" id="idx-l14-s004"><a class="" href="#l14-s004">4　调度器中的外部命中与加载状态</a></li><li class="lv2" id="idx-l14-s005"><a class="" href="#l14-s005">5　KV 读取与源页释放</a></li><li class="lv2" id="idx-l14-s006"><a class="" href="#l14-s006">6　NIXL 的内存注册与传输描述符</a></li><li class="lv2" id="idx-l14-s007"><a class="" href="#l14-s007">7　Mooncake 的批传输完成条件</a></li><li class="lv2" id="idx-l14-s008"><a class="" href="#l14-s008">8　传输超时、取消与缓冲释放</a></li><li class="lv2" id="idx-l14-s009"><a class="" href="#l14-s009">9　TP8 到 TP4 的 KV 重排</a></li><li class="lv2" id="idx-l14-s010"><a class="" href="#l14-s010">10　跨进程页映射与有效范围</a></li><li class="lv2" id="idx-l14-s011"><a class="" href="#l14-s011">11　逐层传输的 token 依赖</a></li><li class="lv2" id="idx-l14-s012"><a class="" href="#l14-s012">12　分层缓存的预留与发布</a></li><li class="lv2" id="idx-l14-s013"><a class="" href="#l14-s013">13　预取完成与缓存读锁</a></li><li class="lv2" id="idx-l14-s014"><a class="" href="#l14-s014">14　远端 KV 恢复与本地重算</a></li><li class="lv2" id="idx-l14-s015"><a class="" href="#l14-s015">15　Dynamo 的缓存感知路由</a></li><li class="lv2" id="idx-l14-s016"><a class="" href="#l14-s016">16　缓存事件与 worker 确认</a></li><li class="lv2" id="idx-l14-s017"><a class="" href="#l14-s017">17　故障恢复中的在途读写</a></li><li class="lv2" id="idx-l14-s018"><a class="" href="#l14-s018">18　网络与两阶段容量估算</a></li></ol></details></aside><div class="toc-divider" role="separator" tabindex="0" aria-label="目录宽度" aria-controls="reader-toc" aria-orientation="vertical" aria-valuemin="180" aria-valuemax="560" aria-valuenow="300" title="拖动调宽，也可用左右方向键" hidden></div><div class="toc-shade" aria-hidden="true" hidden></div><article><p class="prose">代码块旁的行号链接指向本课采用的提交，仓库及许可见课末。</p><nav class="practice-route" aria-label="第 14 课练习顺序" id="Route14"><strong>本课练习顺序</strong><ol><li><a href="#Q14_01">普通题</a><span>逐端追踪源页、目的页和传输句柄的有效期，再比较本地重算与远端恢复。</span></li><li><a href="#Q14_409">进阶题</a><span>在张量并行度变化与末页未满时，按层、token 和头重排有效的 K、V 字节。</span></li><li><a href="#Q14_517">情景面试题</a><span>让取消后的旧传输延迟完成，用页代次和隔离对照识别仍在途的物理写入。</span></li></ol></nav><section class="topic" id="l14-s001">
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light"><title>分离式推理与 KV 传输 · AI Infra Course</title><style>.response textarea{box-sizing:border-box;width:100%;max-width:100%}</style><link rel="stylesheet" href="../assets/course.css?v=1d44bb5810ec"><script defer src="../assets/index-data.js?v=09042a38dcfe"></script><script defer src="../assets/course.js?v=b58933c84ead"></script><style>.code .tok-keyword{color:#CDB1FF}.code .tok-type{color:#82E0D1}.code .tok-function{color:#F6D78E}.code .tok-string{color:#F6B797}.code .tok-comment{color:#A2B9A0}.code .tok-number{color:#B6DEA3}.code .tok-variable{color:#9AD8FF}.code .tok-operator{color:#E5B2E9}.code .tok-added{color:#98DDA4}.code .tok-removed{color:#FF9F9F}@media print{.code .tok-keyword{color:#5E258F}.code .tok-type{color:#005C55}.code .tok-function{color:#714900}.code .tok-string{color:#85380D}.code .tok-comment{color:#3C6143}.code .tok-number{color:#345E26}.code .tok-variable{color:#154F7C}.code .tok-operator{color:#733B79}.code .tok-added{color:#1D6234}.code .tok-removed{color:#972F38}}</style></head><body class="articlepage" data-root="../"><a href="#main" class="skip">跳至正文</a><header class="top"><div class="bar"><a class="brand" href="../index.html"><span class="brandmark" aria-hidden="true"><i></i><i></i><i></i></span>AI Infra Course</a><button class="toc-toggle" type="button" data-toc-toggle aria-controls="reader-toc" aria-expanded="true" hidden>收起目录</button><nav aria-label="主导航"><a href="../index.html">课程</a><a href="../roadmap.html">学习路线</a><a href="../handbook.html">合订本</a><a href="https://github.com/ZJtoast/AI-Infra-Course">GitHub ↗</a></nav></div></header><main id="main" class="reader"><div class="articlehero"><div class="eyebrow">第 14 课　/　推理系统</div><h1>分离式推理与 KV 传输</h1><p>Prefill 与 decode 分开部署后，一次交接包括 KV 查找、传输、必要的重排和目标端确认。这些步骤都会影响交付首个 token 的时间。</p><div class="actions"><a class="btn" href="../word/14-disaggregated-inference-and-kv-transfer.docx">下载 Word ↓</a></div></div><div class="layout"><aside id="reader-toc" aria-label="知识点目录"><details class="tocbox" open><summary>本页知识点 <small>18</small></summary><ol class="toc"><li class="lv2" id="idx-l14-s001"><a class="" href="#l14-s001">1　分离式推理的排队与交接</a></li><li class="lv2" id="idx-l14-s002"><a class="" href="#l14-s002">2　KV 传输的有效字节数</a></li><li class="lv2" id="idx-l14-s003"><a class="" href="#l14-s003">3　KV 交接协议</a></li><li class="lv2" id="idx-l14-s004"><a class="" href="#l14-s004">4　调度器中的外部命中与加载状态</a></li><li class="lv2" id="idx-l14-s005"><a class="" href="#l14-s005">5　KV 读取与源页释放</a></li><li class="lv2" id="idx-l14-s006"><a class="" href="#l14-s006">6　NIXL 的内存注册与传输描述符</a></li><li class="lv2" id="idx-l14-s007"><a class="" href="#l14-s007">7　Mooncake 的批传输完成条件</a></li><li class="lv2" id="idx-l14-s008"><a class="" href="#l14-s008">8　传输超时、取消与缓冲释放</a></li><li class="lv2" id="idx-l14-s009"><a class="" href="#l14-s009">9　TP8 到 TP4 的 KV 重排</a></li><li class="lv2" id="idx-l14-s010"><a class="" href="#l14-s010">10　跨进程页映射与有效范围</a></li><li class="lv2" id="idx-l14-s011"><a class="" href="#l14-s011">11　逐层传输的 token 依赖</a></li><li class="lv2" id="idx-l14-s012"><a class="" href="#l14-s012">12　分层缓存的预留与发布</a></li><li class="lv2" id="idx-l14-s013"><a class="" href="#l14-s013">13　预取完成与缓存读锁</a></li><li class="lv2" id="idx-l14-s014"><a class="" href="#l14-s014">14　远端 KV 恢复与本地重算</a></li><li class="lv2" id="idx-l14-s015"><a class="" href="#l14-s015">15　Dynamo 的缓存感知路由</a></li><li class="lv2" id="idx-l14-s016"><a class="" href="#l14-s016">16　缓存事件与 worker 确认</a></li><li class="lv2" id="idx-l14-s017"><a class="" href="#l14-s017">17　故障恢复中的在途读写</a></li><li class="lv2" id="idx-l14-s018"><a class="" href="#l14-s018">18　网络与两阶段容量估算</a></li></ol></details></aside><div class="toc-divider" role="separator" tabindex="0" aria-label="目录宽度" aria-controls="reader-toc" aria-orientation="vertical" aria-valuemin="180" aria-valuemax="560" aria-valuenow="300" title="拖动调宽，也可用左右方向键" hidden></div><div class="toc-shade" aria-hidden="true" hidden></div><article><p class="prose">代码块旁的行号链接指向本课采用的提交，仓库及许可见课末。</p><nav class="practice-route" aria-label="第 14 课练习顺序" id="Route14"><strong>本课练习顺序</strong><ol><li><a href="#Q14_01">普通题</a><span>逐端追踪源页、目的页和传输句柄的有效期，再比较本地重算与远端恢复。</span></li><li><a href="#Q14_409">进阶题</a><span>在张量并行度变化与末页未满时，按层、token 和头重排有效的 K、V 字节。</span></li><li><a href="#Q14_517">情景面试题</a><span>让取消后的旧传输延迟完成，用页代次和隔离对照识别仍在途的物理写入。</span></li></ol></nav><section class="topic" id="l14-s001">
 <h2><strong>1　分离式推理的排队与交接</strong></h2>
 <p class="prose">考虑一个32K输入、持续生成数百<a class="term" href="#Def14397a73c4e319">token</a>的请求。<a class="term" href="#Def144e49704f917a">共置</a>部署在同一组设备上执行<a class="term" href="#Def140247674f810d">prefill</a>和<a class="term" href="#Def14f28fe0b0f9e5">decode</a>，<a class="term" href="#Def14221e82c84d42">KV</a>可以原地接续；长prefill也会占用正在服务其他decode请求的计算、带宽与调度机会。<span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><mfrac><mrow><mi>P</mi></mrow><mrow><mi>D</mi></mrow></mfrac></math></span> disaggregation把prefill与decode交给不同资源池，允许分别配置并行度、batch与容量，同时增加跨池<strong>交接</strong>及新的排队。</p>
 <p class="prose">prefill通常有较多<a class="term" href="#Def143b7755ef3059">query</a>行，decode需要持续推进众多长驻请求，两类工作适合的资源配置可能不同。拆分可以减少直接干扰，但代价包括KV搬运、元数据协商、源<a class="term" href="#Def1433ea6b6f0cb4">页滞留</a>、目标容量预留与<a class="term" href="#Def141107220df2c0">故障恢复</a>。短输入、低并发或网络繁忙时，这些新增成本可能超过收益。DistServe讨论的目标是满足<a class="term" href="#Def14b9a844471798">TTFT</a>与<a class="term" href="#Def149cbd8f7072d6">TPOT</a>约束后的goodput，不能用无延迟约束的峰值吞吐替代。</p>
@@ -22,24 +22,24 @@
 <h2><strong>3　KV 交接协议</strong></h2>
 <p class="prose">一次交接至少要记录：这是哪个模型与请求的哪次尝试，已计算到哪个<a class="term" href="#Def14397a73c4e319">token</a>边界，各层或region的数据在哪些源<a class="term" href="#Def14b39504bb5cc8">页</a>，目标页由谁分配，使用哪种dtype和物理<a class="term" href="#Def14bbaa2ba9297f">布局</a>，以及谁在什么条件下允许释放。网络库只看到地址和长度，无法替上层判断某个字节区间是否属于正确的模型历史。</p>
 <p class="caption"><strong>代码 1　</strong>vLLM NIXL握手描述包含地址、页长、步幅与布局</p>
-<figure class="code"><figcaption><span><strong>Python    </strong><a href="https://github.com/vllm-project/vllm/blob/93eeae695f5178eddff728fe50eb18e30c90c33a/vllm/distributed/kv_transfer/kv_connector/v1/nixl/metadata.py#L60-L77">vllm / metadata.py    L60–77</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code><span class="cl" data-line="60">@dataclass</span>
-<span class="cl" data-line="61"><span class="kw">class</span> NixlAgentMetadata:</span>
-<span class="cl" data-line="62">    engine_id: str</span>
-<span class="cl" data-line="63">    agent_metadata: bytes</span>
-<span class="cl" data-line="64">    kv_caches_base_addr: list[int]</span>
-<span class="cl" data-line="65">    device_id: int</span>
-<span class="cl" data-line="66">    num_blocks: int</span>
-<span class="cl" data-line="67">    block_lens: list[int]</span>
-<span class="cl" data-line="68">    block_strides: list[int]</span>
-<span class="cl" data-line="69">    kv_cache_layout: str</span>
-<span class="cl" data-line="70">    block_size: int</span>
-<span class="cl" data-line="71">    ssm_sizes: tuple[int, int]</span>
-<span class="cl" data-line="72">    attn_backend_name: str</span>
-<span class="cl" data-line="73">    physical_blocks_per_logical_kv_block: int</span>
-<span class="cl" data-line="74">    region_num_blocks: list[int] | <span class="kw">None</span> = <span class="kw">None</span></span>
-<span class="cl" data-line="75">    region_group_ids: list[int] | <span class="kw">None</span> = <span class="kw">None</span></span>
-<span class="cl" data-line="76">    region_names: list[str] | <span class="kw">None</span> = <span class="kw">None</span></span>
-<span class="cl" data-line="77">    region_mem_types: list[str] | <span class="kw">None</span> = <span class="kw">None</span></span></code></pre></figure>
+<figure class="code" data-language="python"><figcaption><span><strong>Python    </strong><a href="https://github.com/vllm-project/vllm/blob/93eeae695f5178eddff728fe50eb18e30c90c33a/vllm/distributed/kv_transfer/kv_connector/v1/nixl/metadata.py#L60-L77">vllm / metadata.py    L60–77</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code class="language-python"><span class="cl" data-line="60"><span class="tok-function">@dataclass</span></span>
+<span class="cl" data-line="61"><span class="tok-keyword">class</span> <span class="tok-type">NixlAgentMetadata</span>:</span>
+<span class="cl" data-line="62">    engine_id: <span class="tok-type">str</span></span>
+<span class="cl" data-line="63">    agent_metadata: <span class="tok-type">bytes</span></span>
+<span class="cl" data-line="64">    kv_caches_base_addr: <span class="tok-type">list</span>[<span class="tok-type">int</span>]</span>
+<span class="cl" data-line="65">    device_id: <span class="tok-type">int</span></span>
+<span class="cl" data-line="66">    num_blocks: <span class="tok-type">int</span></span>
+<span class="cl" data-line="67">    block_lens: <span class="tok-type">list</span>[<span class="tok-type">int</span>]</span>
+<span class="cl" data-line="68">    block_strides: <span class="tok-type">list</span>[<span class="tok-type">int</span>]</span>
+<span class="cl" data-line="69">    kv_cache_layout: <span class="tok-type">str</span></span>
+<span class="cl" data-line="70">    block_size: <span class="tok-type">int</span></span>
+<span class="cl" data-line="71">    ssm_sizes: <span class="tok-type">tuple</span>[<span class="tok-type">int</span>, <span class="tok-type">int</span>]</span>
+<span class="cl" data-line="72">    attn_backend_name: <span class="tok-type">str</span></span>
+<span class="cl" data-line="73">    physical_blocks_per_logical_kv_block: <span class="tok-type">int</span></span>
+<span class="cl" data-line="74">    region_num_blocks: <span class="tok-type">list</span>[<span class="tok-type">int</span>] <span class="tok-operator">|</span> <span class="tok-keyword">None</span> <span class="tok-operator">=</span> <span class="tok-keyword">None</span></span>
+<span class="cl" data-line="75">    region_group_ids: <span class="tok-type">list</span>[<span class="tok-type">int</span>] <span class="tok-operator">|</span> <span class="tok-keyword">None</span> <span class="tok-operator">=</span> <span class="tok-keyword">None</span></span>
+<span class="cl" data-line="76">    region_names: <span class="tok-type">list</span>[<span class="tok-type">str</span>] <span class="tok-operator">|</span> <span class="tok-keyword">None</span> <span class="tok-operator">=</span> <span class="tok-keyword">None</span></span>
+<span class="cl" data-line="77">    region_mem_types: <span class="tok-type">list</span>[<span class="tok-type">str</span>] <span class="tok-operator">|</span> <span class="tok-keyword">None</span> <span class="tok-operator">=</span> <span class="tok-keyword">None</span></span></code></pre></figure>
 <p class="prose"><code class="inline-id">kv_caches_base_addr</code>提供region基址，<code class="inline-id">block_lens</code>与<code class="inline-id">block_strides</code>描述每块<a class="term" href="#Def146d186c04e9df">载荷</a>及相邻块距离；<code class="inline-id">block_size</code>是token粒度。<code class="inline-id">region_mem_types</code>还能区分所在内存介质。这些量不能互相替代，尤其不能默认<a class="term" href="#Def147d96883537b6">stride</a>等于<a class="term" href="#Def142382ed32b1da">有效载荷</a>长度。</p>
 <p class="prose"><code class="inline-id">metadata.py</code>第90—104行把<strong>握手</strong>分成两阶段：先解析兼容性hash，再在兼容条件成立后解析具体agent metadata。协议版本覆盖字段、wire格式、页组织等变化。一次字节复制全部完成，也可能因为两端布局或推测模型配置不兼容而得到错误状态；兼容性检查需要在<a class="term" href="#Def14d17303ad5e2b">发布</a>传输前完成。</p>
 <p class="prose">引擎重启或重新注册缓存后，旧基址与旧访问凭据可能失效。<code class="inline-id">pull_worker.py</code>第146—155行比较remote registration generation，发现新代后清理旧agent并重新握手。request ID和registration generation描述不同层次：前者区分业务请求，后者区分一批底层<a class="term" href="#Def14a7b4d98fdc6d">内存注册</a>的有效时期。</p>
@@ -50,111 +50,111 @@
 <h2><strong>4　调度器中的外部命中与加载状态</strong></h2>
 <p class="prose">vLLM的connector把命中查询和资源分配留给调度器，把实际搬运交给工作进程。scheduler先查询本地已计算前缀之外还能从外部恢复多少<a class="term" href="#Def14397a73c4e319">token</a>，再为这些token分配本地<a class="term" href="#Def14b39504bb5cc8">页</a>。异步恢复期间，请求需要等待接收完成；worker按照本轮绑定的metadata执行实际搬运，并把完成或失败报告回调度器。</p>
 <p class="caption"><strong>代码 2　</strong>外部命中接口区分未知、零命中和异步加载</p>
-<figure class="code"><figcaption><span><strong>Python    </strong><a href="https://github.com/vllm-project/vllm/blob/93eeae695f5178eddff728fe50eb18e30c90c33a/vllm/distributed/kv_transfer/kv_connector/v1/base.py#L561-L577">vllm / base.py    L561–577</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code><span class="cl" data-line="561"><span class="str">Returns:</span></span>
-<span class="cl" data-line="562"><span class="str">    A tuple with the following elements:</span></span>
-<span class="cl" data-line="563"><span class="str">        - An optional number of tokens that can be loaded from the</span></span>
-<span class="cl" data-line="564"><span class="str">          external KV cache beyond what is already computed.</span></span>
-<span class="cl" data-line="565"><span class="str">          If None, it means that the connector needs more time to</span></span>
-<span class="cl" data-line="566"><span class="str">          determine the number of matched tokens, and the scheduler</span></span>
-<span class="cl" data-line="567"><span class="str">          should query for this request again later.</span></span>
-<span class="cl" data-line="568"><span class="str">        - `True` if external KV cache tokens will be loaded</span></span>
-<span class="cl" data-line="569"><span class="str">          asynchronously (between scheduler steps). Must be</span></span>
-<span class="cl" data-line="570"><span class="str">          'False' if the first element is 0.</span></span>
+<figure class="code" data-language="python"><figcaption><span><strong>Python    </strong><a href="https://github.com/vllm-project/vllm/blob/93eeae695f5178eddff728fe50eb18e30c90c33a/vllm/distributed/kv_transfer/kv_connector/v1/base.py#L561-L577">vllm / base.py    L561–577</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code class="language-python"><span class="cl" data-line="561">Returns:</span>
+<span class="cl" data-line="562">    A <span class="tok-type">tuple</span> <span class="tok-keyword">with</span> the following elements:</span>
+<span class="cl" data-line="563">        <span class="tok-operator">-</span> An optional number of tokens that can be loaded <span class="tok-keyword">from</span> <span class="tok-type">the</span></span>
+<span class="cl" data-line="564">          external KV cache beyond what <span class="tok-keyword">is</span> already computed<span class="tok-operator">.</span></span>
+<span class="cl" data-line="565">          If <span class="tok-keyword">None</span>, it means that the connector needs more time to</span>
+<span class="cl" data-line="566">          determine the number of matched tokens, <span class="tok-keyword">and</span> the scheduler</span>
+<span class="cl" data-line="567">          should query <span class="tok-keyword">for</span> this request again later<span class="tok-operator">.</span></span>
+<span class="cl" data-line="568">        <span class="tok-operator">-</span> `<span class="tok-keyword">True</span>` <span class="tok-keyword">if</span> external KV cache tokens will be loaded</span>
+<span class="cl" data-line="569">          <span class="tok-function">asynchronously</span> (between scheduler steps)<span class="tok-operator">.</span> Must be</span>
+<span class="cl" data-line="570">          <span class="tok-string">'False'</span> <span class="tok-keyword">if</span> the first element <span class="tok-keyword">is</span> <span class="tok-number">0.</span></span>
 <span class="cl" data-line="571"></span>
-<span class="cl" data-line="572"><span class="str">Notes:</span></span>
-<span class="cl" data-line="573"><span class="str">    The connector should only consider the largest prefix of prompt-</span></span>
-<span class="cl" data-line="574"><span class="str">    tokens for which KV cache is actually available at the time of the</span></span>
-<span class="cl" data-line="575"><span class="str">    call. If the cache cannot be loaded for some tokens (e.g., due to</span></span>
-<span class="cl" data-line="576"><span class="str">    connectivity issues or eviction), those tokens must not be taken</span></span>
-<span class="cl" data-line="577"><span class="str">    into account.</span></span></code></pre></figure>
+<span class="cl" data-line="572">Notes:</span>
+<span class="cl" data-line="573">    The connector should only consider the largest prefix of prompt<span class="tok-operator">-</span></span>
+<span class="cl" data-line="574">    tokens <span class="tok-keyword">for</span> which KV cache <span class="tok-keyword">is</span> actually available at the time of the</span>
+<span class="cl" data-line="575">    call<span class="tok-operator">.</span> If the cache cannot be loaded <span class="tok-keyword">for</span> some <span class="tok-function">tokens</span> (e<span class="tok-operator">.</span>g<span class="tok-operator">.</span>, due to</span>
+<span class="cl" data-line="576">    connectivity issues <span class="tok-keyword">or</span> eviction), those tokens must <span class="tok-keyword">not</span> be taken</span>
+<span class="cl" data-line="577">    into account<span class="tok-operator">.</span></span></code></pre></figure>
 <p class="prose">返回None表示查询尚未确定，需要以后再查；返回0表示没有可加载token，此时异步标志必须为False。非零匹配只能覆盖当前确实可获取的有效前缀，不能把已经驱逐或无法连接的数据算进可<a class="term" href="#Def144b40ec61fc0a">复用长度</a>。</p>
 <p class="prose">例如提示1024个token，本地已算256，外部缓存可恢复到768，则新增<a class="term" href="#Def142a816b51e0e2"><strong>外部命中</strong></a>为512，剩余256需要计算。接口报告的数量是超出本地进度的增量，不能把768再次加到256上。页对齐、最后位置<a class="term" href="#Def140d47b14df7c9">logits</a>需求和模型状态可能进一步限制有效命中边界。</p>
 <p class="caption"><strong>代码 3　</strong>异步路径可以经历两次分配回调，加载由<code class="inline-id">num_external_tokens</code>决定</p>
-<figure class="code"><figcaption><span><strong>Python    </strong><a href="https://github.com/vllm-project/vllm/blob/93eeae695f5178eddff728fe50eb18e30c90c33a/vllm/distributed/kv_transfer/kv_connector/v1/base.py#L604-L621">vllm / base.py    L604–621</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code><span class="cl" data-line="604"><span class="str">"""Update KVConnector state after block allocation.</span></span>
+<figure class="code" data-language="python"><figcaption><span><strong>Python    </strong><a href="https://github.com/vllm-project/vllm/blob/93eeae695f5178eddff728fe50eb18e30c90c33a/vllm/distributed/kv_transfer/kv_connector/v1/base.py#L604-L621">vllm / base.py    L604–621</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code class="language-python"><span class="cl" data-line="604"><span class="tok-string">"""Update KVConnector state after block allocation.</span></span>
 <span class="cl" data-line="605"></span>
-<span class="cl" data-line="606"><span class="str">If get_num_new_matched_tokens previously returned True for a</span></span>
-<span class="cl" data-line="607"><span class="str">request, this function may be called twice for that same request -</span></span>
-<span class="cl" data-line="608"><span class="str">first when blocks are allocated for the connector tokens to be</span></span>
-<span class="cl" data-line="609"><span class="str">asynchronously loaded into, and second when any additional blocks</span></span>
-<span class="cl" data-line="610"><span class="str">are allocated, after the load/transfer is complete.</span></span>
+<span class="cl" data-line="606"><span class="tok-string">If get_num_new_matched_tokens previously returned True for a</span></span>
+<span class="cl" data-line="607"><span class="tok-string">request, this function may be called twice for that same request -</span></span>
+<span class="cl" data-line="608"><span class="tok-string">first when blocks are allocated for the connector tokens to be</span></span>
+<span class="cl" data-line="609"><span class="tok-string">asynchronously loaded into, and second when any additional blocks</span></span>
+<span class="cl" data-line="610"><span class="tok-string">are allocated, after the load/transfer is complete.</span></span>
 <span class="cl" data-line="611"></span>
-<span class="cl" data-line="612"><span class="str">Decide whether to load based on `num_external_tokens`, not on</span></span>
-<span class="cl" data-line="613"><span class="str">whether `blocks` is empty: `blocks` may be non-empty even when</span></span>
-<span class="cl" data-line="614"><span class="str">`num_external_tokens == 0` (e.g. a non-chosen sub-connector of</span></span>
-<span class="cl" data-line="615"><span class="str">MultiConnector still receives the request's real blocks).</span></span>
+<span class="cl" data-line="612"><span class="tok-string">Decide whether to load based on `num_external_tokens`, not on</span></span>
+<span class="cl" data-line="613"><span class="tok-string">whether `blocks` is empty: `blocks` may be non-empty even when</span></span>
+<span class="cl" data-line="614"><span class="tok-string">`num_external_tokens == 0` (e.g. a non-chosen sub-connector of</span></span>
+<span class="cl" data-line="615"><span class="tok-string">MultiConnector still receives the request's real blocks).</span></span>
 <span class="cl" data-line="616"></span>
-<span class="cl" data-line="617"><span class="str">Args:</span></span>
-<span class="cl" data-line="618"><span class="str">    request (Request): the request object.</span></span>
-<span class="cl" data-line="619"><span class="str">    blocks (KVCacheBlocks): the blocks allocated for the request.</span></span>
-<span class="cl" data-line="620"><span class="str">    num_external_tokens (int): the number of tokens to load from the</span></span>
-<span class="cl" data-line="621"><span class="str">        external KV cache. 0 means nothing should be loaded.</span></span></code></pre></figure>
+<span class="cl" data-line="617"><span class="tok-string">Args:</span></span>
+<span class="cl" data-line="618"><span class="tok-string">    request (Request): the request object.</span></span>
+<span class="cl" data-line="619"><span class="tok-string">    blocks (KVCacheBlocks): the blocks allocated for the request.</span></span>
+<span class="cl" data-line="620"><span class="tok-string">    num_external_tokens (int): the number of tokens to load from the</span></span>
+<span class="cl" data-line="621"><span class="tok-string">        external KV cache. 0 means nothing should be loaded.</span></span></code></pre></figure>
 <p class="prose">第一次分配目标缓存页以供异步接收，完成后还可能为新计算分配额外页。源码特别说明blocks非空也可能没有选中该子connector的加载工作，因此不能用“存在<a class="term" href="#Def148aadfaf04bcd">页表</a>”替代<code class="inline-id">num_external_tokens&gt;0</code>。</p>
 <p class="prose">恢复失败时，已分配目标页里可能只有部分有效内容。调度器应根据失败结果重新确定可用前缀或转入重算，不能只把等待状态改成RUNNING。对于多<a class="term" href="#Def14c2aaec5fcdcc">rank</a>执行，完成条件还要覆盖所有必要<a class="term" href="#Def143770e3485f96">分片</a>；某个rank没有实际传输，也必须给出相应完成报告，否则聚合端会一直等待。</p>
 <p class="caption"><strong>代码 4　</strong>合法的空分片仍需参加完成报告</p>
-<figure class="code"><figcaption><span><strong>Python    </strong><a href="https://github.com/vllm-project/vllm/blob/93eeae695f5178eddff728fe50eb18e30c90c33a/vllm/distributed/kv_transfer/kv_connector/v1/nixl/pull_worker.py#L207-L216">vllm / pull_worker.py    L207–216</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code><span class="cl" data-line="207"><span class="kw">if</span> any(len(group) &gt; <span class="fn">0</span> <span class="kw">for</span> group <span class="kw">in</span> meta.local_block_ids):</span>
-<span class="cl" data-line="208">    # The scheduler waits for finished_recving from *every* worker.</span>
-<span class="cl" data-line="209">    # Under DCP a rank's slice can legitimately come out empty when its</span>
-<span class="cl" data-line="210">    # interleaved positions fall past the end of the sequence. _read_blocks</span>
-<span class="cl" data-line="211">    # then takes the notify-only path without registering a transfer.</span>
-<span class="cl" data-line="212">    # Seed the entry so this rank still reports completion.</span>
-<span class="cl" data-line="213">    self._recving_transfers.setdefault(req_id, [])</span>
+<figure class="code" data-language="python"><figcaption><span><strong>Python    </strong><a href="https://github.com/vllm-project/vllm/blob/93eeae695f5178eddff728fe50eb18e30c90c33a/vllm/distributed/kv_transfer/kv_connector/v1/nixl/pull_worker.py#L207-L216">vllm / pull_worker.py    L207–216</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code class="language-python"><span class="cl" data-line="207"><span class="tok-keyword">if</span> <span class="tok-function">any</span>(<span class="tok-function">len</span>(group) <span class="tok-operator">&gt;</span> <span class="tok-number">0</span> <span class="tok-keyword">for</span> group <span class="tok-keyword">in</span> meta<span class="tok-operator">.</span>local_block_ids):</span>
+<span class="cl" data-line="208">    <span class="tok-comment"># The scheduler waits for finished_recving from *every* worker.</span></span>
+<span class="cl" data-line="209">    <span class="tok-comment"># Under DCP a rank's slice can legitimately come out empty when its</span></span>
+<span class="cl" data-line="210">    <span class="tok-comment"># interleaved positions fall past the end of the sequence. _read_blocks</span></span>
+<span class="cl" data-line="211">    <span class="tok-comment"># then takes the notify-only path without registering a transfer.</span></span>
+<span class="cl" data-line="212">    <span class="tok-comment"># Seed the entry so this rank still reports completion.</span></span>
+<span class="cl" data-line="213">    <span class="tok-type">self</span><span class="tok-operator">.</span>_recving_transfers<span class="tok-operator">.</span><span class="tok-function">setdefault</span>(req_id, [])</span>
 <span class="cl" data-line="214"></span>
-<span class="cl" data-line="215">remote_region_groups = self.dst_region_group_ids[engine_id]</span>
-<span class="cl" data-line="216">local_region_groups = self.region_group_ids <span class="kw">or</span> remote_region_groups</span></code></pre></figure>
+<span class="cl" data-line="215">remote_region_groups <span class="tok-operator">=</span> <span class="tok-type">self</span><span class="tok-operator">.</span>dst_region_group_ids[engine_id]</span>
+<span class="cl" data-line="216">local_region_groups <span class="tok-operator">=</span> <span class="tok-type">self</span><span class="tok-operator">.</span>region_group_ids <span class="tok-keyword">or</span> remote_region_groups</span></code></pre></figure>
 <p class="prose"><a class="term" href="#Def14f5508a954ab3">DCP</a>下某rank负责的位置可能越过序列末尾，读路径只有通知而没有实际transfer。预先建立空<a class="term" href="#Def1473223db16fe4">在途</a>条目使该rank也能报告完成，避免“没有工作”变成“永远没完成”。</p>
 <p class="prose">若 worker 本地已有前 64 个 token，外部系统称“可恢复到 96”，本次新增候选只有 32 个。目标端须为相应逻辑范围取得足够的页、发起读取，并在所需数据可见后推进计算边界。等待期间仍可调度别的请求。若后端只返回了前 16 个新增 token，就只能把连续边界推进到 80；后面零散的成功页无法跨过缺口。</p>
 <a class="back" href="#idx-l14-s004">↑ 返回知识点目录</a></section><section class="topic" id="l14-s005">
 <h2><strong>5　KV 读取与源页释放</strong></h2>
 <p class="caption"><strong>代码 5　</strong>attention消费某层之前，需要确认该层恢复可见</p>
-<figure class="code"><figcaption><span><strong>Python    </strong><a href="https://github.com/vllm-project/vllm/blob/93eeae695f5178eddff728fe50eb18e30c90c33a/vllm/distributed/kv_transfer/kv_connector/v1/base.py#L381-L393">vllm / base.py    L381–393</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code><span class="cl" data-line="381">@abstractmethod</span>
-<span class="cl" data-line="382"><span class="kw">def</span> wait_for_layer_load(self, layer_name: str) -&gt; <span class="kw">None</span>:</span>
-<span class="cl" data-line="383">    <span class="str">"""Block until the KV for a specific layer is loaded into vLLM's</span></span>
-<span class="cl" data-line="384"><span class="str">    paged buffer. This is called from within attention layer to ensure</span></span>
-<span class="cl" data-line="385"><span class="str">    async copying from start_load_kv is complete.</span></span>
+<figure class="code" data-language="python"><figcaption><span><strong>Python    </strong><a href="https://github.com/vllm-project/vllm/blob/93eeae695f5178eddff728fe50eb18e30c90c33a/vllm/distributed/kv_transfer/kv_connector/v1/base.py#L381-L393">vllm / base.py    L381–393</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code class="language-python"><span class="cl" data-line="381"><span class="tok-function">@abstractmethod</span></span>
+<span class="cl" data-line="382"><span class="tok-keyword">def</span> <span class="tok-function">wait_for_layer_load</span>(<span class="tok-type">self</span>, layer_name: <span class="tok-type">str</span>) <span class="tok-operator">-&gt;</span> <span class="tok-keyword">None</span>:</span>
+<span class="cl" data-line="383">    <span class="tok-string">"""Block until the KV for a specific layer is loaded into vLLM's</span></span>
+<span class="cl" data-line="384"><span class="tok-string">    paged buffer. This is called from within attention layer to ensure</span></span>
+<span class="cl" data-line="385"><span class="tok-string">    async copying from start_load_kv is complete.</span></span>
 <span class="cl" data-line="386"></span>
-<span class="cl" data-line="387"><span class="str">    This interface will be useful for layer-by-layer pipelining.</span></span>
+<span class="cl" data-line="387"><span class="tok-string">    This interface will be useful for layer-by-layer pipelining.</span></span>
 <span class="cl" data-line="388"></span>
-<span class="cl" data-line="389"><span class="str">    Args:</span></span>
-<span class="cl" data-line="390"><span class="str">        layer_name: the name of that layer</span></span>
+<span class="cl" data-line="389"><span class="tok-string">    Args:</span></span>
+<span class="cl" data-line="390"><span class="tok-string">        layer_name: the name of that layer</span></span>
 <span class="cl" data-line="391"></span>
-<span class="cl" data-line="392"><span class="str">    """</span></span>
-<span class="cl" data-line="393">    <span class="kw">pass</span></span></code></pre></figure>
+<span class="cl" data-line="392"><span class="tok-string">    """</span></span>
+<span class="cl" data-line="393">    <span class="tok-keyword">pass</span></span></code></pre></figure>
 <p class="prose">连接器在这里提供逐层等待缓存加载的接口；具体实现可能采用全请求接收完成后再运行，也可能逐层流水。看到这个接口存在，无法直接断言某个NIXL或Mooncake后端已实现所有分层<a class="term" href="#Def146b4ca1a43b48">重叠</a>。</p>
 <p class="prose">数据从网络进入设备内存以后，还要满足具体平台、后端与执行stream要求的可见性契约。模型开始读取的事件必须排在写入完成之后；host staging路径还包含<a class="term" href="#Def1486a02b7b9c8b">DRAM</a>到<a class="term" href="#Def149150ae85d1b5">HBM</a>复制。完成报告、设备内存可见性与模型消费三个边界应沿实现逐个核对。</p>
 <p class="caption"><strong>代码 6　</strong>异步保存必须保留源页直到完成已回报给scheduler</p>
-<figure class="code"><figcaption><span><strong>Python    </strong><a href="https://github.com/vllm-project/vllm/blob/93eeae695f5178eddff728fe50eb18e30c90c33a/vllm/distributed/kv_transfer/kv_connector/v1/base.py#L418-L428">vllm / base.py    L418–428</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code><span class="cl" data-line="418"><span class="kw">def</span> wait_for_save(self):</span>
-<span class="cl" data-line="419">    <span class="str">"""Submit saves and perform required synchronization.</span></span>
+<figure class="code" data-language="python"><figcaption><span><strong>Python    </strong><a href="https://github.com/vllm-project/vllm/blob/93eeae695f5178eddff728fe50eb18e30c90c33a/vllm/distributed/kv_transfer/kv_connector/v1/base.py#L418-L428">vllm / base.py    L418–428</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code class="language-python"><span class="cl" data-line="418"><span class="tok-keyword">def</span> <span class="tok-function">wait_for_save</span>(<span class="tok-type">self</span>):</span>
+<span class="cl" data-line="419">    <span class="tok-string">"""Submit saves and perform required synchronization.</span></span>
 <span class="cl" data-line="420"></span>
-<span class="cl" data-line="421"><span class="str">    Called once per step, including empty steps, after any target and draft</span></span>
-<span class="cl" data-line="422"><span class="str">    forwards. Metadata remains bound during this call. Do nothing if there</span></span>
-<span class="cl" data-line="423"><span class="str">    is no save work.</span></span>
+<span class="cl" data-line="421"><span class="tok-string">    Called once per step, including empty steps, after any target and draft</span></span>
+<span class="cl" data-line="422"><span class="tok-string">    forwards. Metadata remains bound during this call. Do nothing if there</span></span>
+<span class="cl" data-line="423"><span class="tok-string">    is no save work.</span></span>
 <span class="cl" data-line="424"></span>
-<span class="cl" data-line="425"><span class="str">    Async saves must retain their source blocks until completion is reported</span></span>
-<span class="cl" data-line="426"><span class="str">    to the scheduler. Otherwise, wait for saves to finish before returning.</span></span>
-<span class="cl" data-line="427"><span class="str">    """</span></span>
-<span class="cl" data-line="428">    <span class="kw">pass</span></span></code></pre></figure>
+<span class="cl" data-line="425"><span class="tok-string">    Async saves must retain their source blocks until completion is reported</span></span>
+<span class="cl" data-line="426"><span class="tok-string">    to the scheduler. Otherwise, wait for saves to finish before returning.</span></span>
+<span class="cl" data-line="427"><span class="tok-string">    """</span></span>
+<span class="cl" data-line="428">    <span class="tok-keyword">pass</span></span></code></pre></figure>
 <p class="prose">每轮target和draft forward结束后调用，包括空step。若异步保存无法继续持有源块，函数就必须等保存完成再返回；方法名中的wait并不强制所有实现采用同一种同步方式。</p>
 <p class="caption"><strong>代码 7　</strong>业务生成结束时，connector可以接管延迟释放责任</p>
-<figure class="code"><figcaption><span><strong>Python    </strong><a href="https://github.com/vllm-project/vllm/blob/93eeae695f5178eddff728fe50eb18e30c90c33a/vllm/distributed/kv_transfer/kv_connector/v1/base.py#L675-L694">vllm / base.py    L675–694</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code><span class="cl" data-line="675"><span class="kw">def</span> request_finished(</span>
-<span class="cl" data-line="676">    self,</span>
-<span class="cl" data-line="677">    request: <span class="str">"Request"</span>,</span>
-<span class="cl" data-line="678">    block_ids: list[int],</span>
-<span class="cl" data-line="679">) -&gt; tuple[bool, dict[str, Any] | <span class="kw">None</span>]:</span>
-<span class="cl" data-line="680">    <span class="str">"""Called exactly once when a request has finished, before its blocks are</span></span>
-<span class="cl" data-line="681"><span class="str">    freed.</span></span>
+<figure class="code" data-language="python"><figcaption><span><strong>Python    </strong><a href="https://github.com/vllm-project/vllm/blob/93eeae695f5178eddff728fe50eb18e30c90c33a/vllm/distributed/kv_transfer/kv_connector/v1/base.py#L675-L694">vllm / base.py    L675–694</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code class="language-python"><span class="cl" data-line="675"><span class="tok-keyword">def</span> <span class="tok-function">request_finished</span>(</span>
+<span class="cl" data-line="676">    <span class="tok-type">self</span>,</span>
+<span class="cl" data-line="677">    request: <span class="tok-string">"Request"</span>,</span>
+<span class="cl" data-line="678">    block_ids: <span class="tok-type">list</span>[<span class="tok-type">int</span>],</span>
+<span class="cl" data-line="679">) <span class="tok-operator">-&gt;</span> <span class="tok-type">tuple</span>[<span class="tok-type">bool</span>, <span class="tok-type">dict</span>[<span class="tok-type">str</span>, Any] <span class="tok-operator">|</span> <span class="tok-keyword">None</span>]:</span>
+<span class="cl" data-line="680">    <span class="tok-string">"""Called exactly once when a request has finished, before its blocks are</span></span>
+<span class="cl" data-line="681"><span class="tok-string">    freed.</span></span>
 <span class="cl" data-line="682"></span>
-<span class="cl" data-line="683"><span class="str">    The connector may assume responsibility for freeing the blocks</span></span>
-<span class="cl" data-line="684"><span class="str">    asynchronously by returning True.</span></span>
+<span class="cl" data-line="683"><span class="tok-string">    The connector may assume responsibility for freeing the blocks</span></span>
+<span class="cl" data-line="684"><span class="tok-string">    asynchronously by returning True.</span></span>
 <span class="cl" data-line="685"></span>
-<span class="cl" data-line="686"><span class="str">    Returns:</span></span>
-<span class="cl" data-line="687"><span class="str">        True if the request is being saved/sent asynchronously and blocks</span></span>
-<span class="cl" data-line="688"><span class="str">        should not be freed until the request_id is returned from</span></span>
-<span class="cl" data-line="689"><span class="str">        get_finished().</span></span>
-<span class="cl" data-line="690"><span class="str">        Optional KVTransferParams to be included in the request outputs</span></span>
-<span class="cl" data-line="691"><span class="str">        returned by the engine.</span></span>
+<span class="cl" data-line="686"><span class="tok-string">    Returns:</span></span>
+<span class="cl" data-line="687"><span class="tok-string">        True if the request is being saved/sent asynchronously and blocks</span></span>
+<span class="cl" data-line="688"><span class="tok-string">        should not be freed until the request_id is returned from</span></span>
+<span class="cl" data-line="689"><span class="tok-string">        get_finished().</span></span>
+<span class="cl" data-line="690"><span class="tok-string">        Optional KVTransferParams to be included in the request outputs</span></span>
+<span class="cl" data-line="691"><span class="tok-string">        returned by the engine.</span></span>
 <span class="cl" data-line="692"></span>
-<span class="cl" data-line="693"><span class="str">    """</span></span>
-<span class="cl" data-line="694">    <span class="kw">return</span> <span class="kw">False</span>, <span class="kw">None</span></span></code></pre></figure>
+<span class="cl" data-line="693"><span class="tok-string">    """</span></span>
+<span class="cl" data-line="694">    <span class="tok-keyword">return</span> <span class="tok-keyword">False</span>, <span class="tok-keyword">None</span></span></code></pre></figure>
 <p class="prose">返回True表示块暂时不能释放，直到<code class="inline-id">get_finished</code>回报该请求完成。这个布尔值交接的是<a class="term" href="#Def14b39504bb5cc8">页</a>生命周期责任，不能理解成数据已经保存成功。</p>
 <p class="prose">P节点刚完成请求时，D可能还没开始读取。若立即把P页返还allocator，新请求可向相同地址写入<a class="term" href="#Def14221e82c84d42">KV</a>；D随后读到的内容就可能混合两代请求。延迟释放需要一直持有源页或等价所有权，直到所有获准读者结束，或通信后端已确认取消生效，且相关访问已结束。</p>
 <p class="prose"><code class="inline-id">pull_scheduler.py</code>第254—279行给需要延迟释放的块设置保留期，并导出远端已计算<a class="term" href="#Def14397a73c4e319">token</a>数和裁剪后的块列表。<strong>租约</strong>可以防止对端失联时无限保留，但需要与续约、到期拒读及确认<a class="term" href="#Def1473223db16fe4">在途</a>传输已结束的机制配合。一个超时钟表本身无法终止已经发给<a class="term" href="#Def1466fdd6135d68">NIC</a>的读写。</p>
@@ -163,62 +163,62 @@
 <h2><strong>6　NIXL 的内存注册与传输描述符</strong></h2>
 <p class="prose"><strong>注册</strong>描述的是较长期有效的内存区域及访问能力；传输描述符列出本次操作访问的具体子区间。把一个大<a class="term" href="#Def14221e82c84d42">KV</a>池注册一次，再为请求挑选其中的<a class="term" href="#Def14b39504bb5cc8">页</a>，可以摊薄注册和元数据交换成本。注册并不分配模型的逻辑KV，也不会自动为每个请求计算head与页映射。</p>
 <p class="caption"><strong>代码 8　</strong>官方示例导出基址、行大小和描述符列表</p>
-<figure class="code"><figcaption><span><strong>Python    </strong><a href="https://github.com/ai-dynamo/nixl/blob/d7ddd0aab6928e73e8d1879a296f3dc3a4ba1f4c/examples/python/expanded_two_peers.py#L81-L98">nixl / expanded_two_peers.py    L81–98</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code><span class="cl" data-line="81"># Extract layout information to send to the initiator so it can generate descriptors locally.</span>
-<span class="cl" data-line="82">base_addr = tensor.data_ptr()</span>
-<span class="cl" data-line="83">tensors = int(tensor.shape[<span class="fn">0</span>])  # 16</span>
-<span class="cl" data-line="84">tensor_size = int(tensor.shape[<span class="fn">1</span>] * tensor.element_size())  # bytes per tensor</span>
-<span class="cl" data-line="85">dev_id = tensor.get_device()</span>
-<span class="cl" data-line="86"><span class="kw">if</span> dev_id == -<span class="fn">1</span>:</span>
-<span class="cl" data-line="87">    dev_id = <span class="fn">0</span></span>
-<span class="cl" data-line="88">mem_str = <span class="str">"cuda"</span> <span class="kw">if</span> str(tensor.device).startswith(<span class="str">"cuda"</span>) <span class="kw">else</span> <span class="str">"cpu"</span></span>
+<figure class="code" data-language="python"><figcaption><span><strong>Python    </strong><a href="https://github.com/ai-dynamo/nixl/blob/d7ddd0aab6928e73e8d1879a296f3dc3a4ba1f4c/examples/python/expanded_two_peers.py#L81-L98">nixl / expanded_two_peers.py    L81–98</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code class="language-python"><span class="cl" data-line="81"><span class="tok-comment"># Extract layout information to send to the initiator so it can generate descriptors locally.</span></span>
+<span class="cl" data-line="82">base_addr <span class="tok-operator">=</span> tensor<span class="tok-operator">.</span><span class="tok-function">data_ptr</span>()</span>
+<span class="cl" data-line="83">tensors <span class="tok-operator">=</span> <span class="tok-function">int</span>(tensor<span class="tok-operator">.</span>shape[<span class="tok-number">0</span>])  <span class="tok-comment"># 16</span></span>
+<span class="cl" data-line="84">tensor_size <span class="tok-operator">=</span> <span class="tok-function">int</span>(tensor<span class="tok-operator">.</span>shape[<span class="tok-number">1</span>] <span class="tok-operator">*</span> tensor<span class="tok-operator">.</span><span class="tok-function">element_size</span>())  <span class="tok-comment"># bytes per tensor</span></span>
+<span class="cl" data-line="85">dev_id <span class="tok-operator">=</span> tensor<span class="tok-operator">.</span><span class="tok-function">get_device</span>()</span>
+<span class="cl" data-line="86"><span class="tok-keyword">if</span> dev_id <span class="tok-operator">==</span> <span class="tok-operator">-</span><span class="tok-number">1</span>:</span>
+<span class="cl" data-line="87">    dev_id <span class="tok-operator">=</span> <span class="tok-number">0</span></span>
+<span class="cl" data-line="88">mem_str <span class="tok-operator">=</span> <span class="tok-string">"cuda"</span> <span class="tok-keyword">if</span> <span class="tok-function">str</span>(tensor<span class="tok-operator">.</span>device)<span class="tok-operator">.</span><span class="tok-function">startswith</span>(<span class="tok-string">"cuda"</span>) <span class="tok-keyword">else</span> <span class="tok-string">"cpu"</span></span>
 <span class="cl" data-line="89"></span>
-<span class="cl" data-line="90"># Send descriptor list + layout to the initiator after its metadata is received.</span>
-<span class="cl" data-line="91"><span class="kw">try</span>:</span>
-<span class="cl" data-line="92">    # Build transfer descriptors by unraveling the first dimension into a list of tensors</span>
-<span class="cl" data-line="93">    target_tensors = [tensor[i, :] <span class="kw">for</span> i <span class="kw">in</span> range(tensor.shape[<span class="fn">0</span>])]</span>
-<span class="cl" data-line="94">    target_descs = agent.get_xfer_descs(target_tensors)</span>
-<span class="cl" data-line="95">    <span class="kw">if</span> <span class="kw">not</span> target_descs:</span>
-<span class="cl" data-line="96">        logger.error(<span class="str">"Failed to build target transfer descriptors."</span>)</span>
-<span class="cl" data-line="97">        sys.exit(<span class="fn">1</span>)</span>
-<span class="cl" data-line="98">    target_desc_str = agent.get_serialized_descs(target_descs)</span></code></pre></figure>
+<span class="cl" data-line="90"><span class="tok-comment"># Send descriptor list + layout to the initiator after its metadata is received.</span></span>
+<span class="cl" data-line="91"><span class="tok-keyword">try</span>:</span>
+<span class="cl" data-line="92">    <span class="tok-comment"># Build transfer descriptors by unraveling the first dimension into a list of tensors</span></span>
+<span class="cl" data-line="93">    target_tensors <span class="tok-operator">=</span> [tensor[i, :] <span class="tok-keyword">for</span> i <span class="tok-keyword">in</span> <span class="tok-function">range</span>(tensor<span class="tok-operator">.</span>shape[<span class="tok-number">0</span>])]</span>
+<span class="cl" data-line="94">    target_descs <span class="tok-operator">=</span> agent<span class="tok-operator">.</span><span class="tok-function">get_xfer_descs</span>(target_tensors)</span>
+<span class="cl" data-line="95">    <span class="tok-keyword">if</span> <span class="tok-keyword">not</span> target_descs:</span>
+<span class="cl" data-line="96">        logger<span class="tok-operator">.</span><span class="tok-function">error</span>(<span class="tok-string">"Failed to build target transfer descriptors."</span>)</span>
+<span class="cl" data-line="97">        sys<span class="tok-operator">.</span><span class="tok-function">exit</span>(<span class="tok-number">1</span>)</span>
+<span class="cl" data-line="98">    target_desc_str <span class="tok-operator">=</span> agent<span class="tok-operator">.</span><span class="tok-function">get_serialized_descs</span>(target_descs)</span></code></pre></figure>
 <p class="prose">示例<a class="term" href="#Def1445bb44d04ce3">张量</a>为<span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><mo>[</mo><mn>16,32</mn><mo>]</mo></math></span> <a class="term" href="#Def1428c554f6c5e8">FP32</a>，因此每行128 B、总区域2048 B。<code class="inline-id">target_tensors</code>按第一维展开成16个描述符，底层仍位于同一注册tensor。源码示例用于解释地址关系，本课没有执行它。</p>
 <p class="prose">假设本地页<a class="term" href="#Def14f8ae7371d186">槽位</a><span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><mo>[</mo><mn>4,1</mn><mo>,</mo><mn>9</mn><mo>]</mo></math></span>要从远端逻辑顺序对应的物理槽位<span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><mo>[</mo><mn>7,2</mn><mo>,</mo><mn>8</mn><mo>]</mo></math></span>恢复。按顺序配对这两列描述符，就得到三次正确搬运；只排序其中一列会把第一个逻辑块的内容写进另一个块。描述符列表记录地址区间，逻辑<a class="term" href="#Def14397a73c4e319">token</a>顺序由上层映射保留。</p>
 <p class="caption"><strong>代码 9　</strong>预处理描述符列表后，每次传输只选择两侧的索引</p>
-<figure class="code"><figcaption><span><strong>Python    </strong><a href="https://github.com/ai-dynamo/nixl/blob/d7ddd0aab6928e73e8d1879a296f3dc3a4ba1f4c/src/api/python/_api.py#L614-L625">nixl / _api.py    L614–625</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code><span class="cl" data-line="614">handle = self.agent.makeXferReq(</span>
+<figure class="code" data-language="python"><figcaption><span><strong>Python    </strong><a href="https://github.com/ai-dynamo/nixl/blob/d7ddd0aab6928e73e8d1879a296f3dc3a4ba1f4c/src/api/python/_api.py#L614-L625">nixl / _api.py    L614–625</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code class="language-python"><span class="cl" data-line="614">handle <span class="tok-operator">=</span> <span class="tok-type">self</span><span class="tok-operator">.</span>agent<span class="tok-operator">.</span><span class="tok-function">makeXferReq</span>(</span>
 <span class="cl" data-line="615">    op,</span>
-<span class="cl" data-line="616">    local_xfer_side._handle,</span>
+<span class="cl" data-line="616">    local_xfer_side<span class="tok-operator">.</span>_handle,</span>
 <span class="cl" data-line="617">    local_indices,</span>
-<span class="cl" data-line="618">    remote_xfer_side._handle,</span>
+<span class="cl" data-line="618">    remote_xfer_side<span class="tok-operator">.</span>_handle,</span>
 <span class="cl" data-line="619">    remote_indices,</span>
 <span class="cl" data-line="620">    notif_msg,</span>
 <span class="cl" data-line="621">    handle_list,</span>
 <span class="cl" data-line="622">    skip_desc_merge,</span>
 <span class="cl" data-line="623">)</span>
 <span class="cl" data-line="624"></span>
-<span class="cl" data-line="625"><span class="kw">return</span> nixl_xfer_handle(self, handle)</span></code></pre></figure>
+<span class="cl" data-line="625"><span class="tok-keyword">return</span> <span class="tok-function">nixl_xfer_handle</span>(<span class="tok-type">self</span>, handle)</span></code></pre></figure>
 <p class="prose">READ/WRITE先转换成内部operation；<code class="inline-id">local_indices</code>与<code class="inline-id">remote_indices</code>选择各自列表中的区域。<code class="inline-id">notif_msg</code>随本次操作绑定。返回句柄只代表请求已构造，还要调用transfer发起工作。</p>
 <p class="caption"><strong>代码 10　</strong>提交可能立即完成，也可能仍在处理中或失败</p>
-<figure class="code"><figcaption><span><strong>Python    </strong><a href="https://github.com/ai-dynamo/nixl/blob/d7ddd0aab6928e73e8d1879a296f3dc3a4ba1f4c/src/api/python/_api.py#L666-L686">nixl / _api.py    L666–686</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code><span class="cl" data-line="666"><span class="kw">def</span> transfer(self, handle: nixl_xfer_handle, notif_msg: bytes = <span class="str">b""</span>) -&gt; str:</span>
-<span class="cl" data-line="667">    <span class="str">"""Initiate a data transfer operation.</span></span>
-<span class="cl" data-line="668"><span class="str">    After calling this, the transfer state can be checked asynchronously till completion.</span></span>
-<span class="cl" data-line="669"><span class="str">    In case of small transfers that are completed as part of the call itself, return value</span></span>
-<span class="cl" data-line="670"><span class="str">    will be "DONE", otherwise "PROC" or "ERR".</span></span>
+<figure class="code" data-language="python"><figcaption><span><strong>Python    </strong><a href="https://github.com/ai-dynamo/nixl/blob/d7ddd0aab6928e73e8d1879a296f3dc3a4ba1f4c/src/api/python/_api.py#L666-L686">nixl / _api.py    L666–686</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code class="language-python"><span class="cl" data-line="666"><span class="tok-keyword">def</span> <span class="tok-function">transfer</span>(<span class="tok-type">self</span>, handle: nixl_xfer_handle, notif_msg: <span class="tok-type">bytes</span> <span class="tok-operator">=</span> <span class="tok-string">b""</span>) <span class="tok-operator">-&gt;</span> <span class="tok-type">str</span>:</span>
+<span class="cl" data-line="667">    <span class="tok-string">"""Initiate a data transfer operation.</span></span>
+<span class="cl" data-line="668"><span class="tok-string">    After calling this, the transfer state can be checked asynchronously till completion.</span></span>
+<span class="cl" data-line="669"><span class="tok-string">    In case of small transfers that are completed as part of the call itself, return value</span></span>
+<span class="cl" data-line="670"><span class="tok-string">    will be "DONE", otherwise "PROC" or "ERR".</span></span>
 <span class="cl" data-line="671"></span>
-<span class="cl" data-line="672"><span class="str">    Args:</span></span>
-<span class="cl" data-line="673"><span class="str">        handle: Handle to the transfer operation, from make_prepped_xfer, or initialize_xfer.</span></span>
-<span class="cl" data-line="674"><span class="str">        notif_msg: Optional notification message can be specified or updated per transfer call.</span></span>
-<span class="cl" data-line="675"><span class="str">            notif_msg should be bytes, as that is what will be returned to the target, but will work with str too.</span></span>
+<span class="cl" data-line="672"><span class="tok-string">    Args:</span></span>
+<span class="cl" data-line="673"><span class="tok-string">        handle: Handle to the transfer operation, from make_prepped_xfer, or initialize_xfer.</span></span>
+<span class="cl" data-line="674"><span class="tok-string">        notif_msg: Optional notification message can be specified or updated per transfer call.</span></span>
+<span class="cl" data-line="675"><span class="tok-string">            notif_msg should be bytes, as that is what will be returned to the target, but will work with str too.</span></span>
 <span class="cl" data-line="676"></span>
-<span class="cl" data-line="677"><span class="str">    Returns:</span></span>
-<span class="cl" data-line="678"><span class="str">        Status of the transfer operation ("DONE", "PROC", or "ERR").</span></span>
-<span class="cl" data-line="679"><span class="str">    """</span></span>
-<span class="cl" data-line="680">    status = self.agent.postXferReq(handle._handle, notif_msg)</span>
-<span class="cl" data-line="681">    <span class="kw">if</span> status == nixlBind.NIXL_SUCCESS:</span>
-<span class="cl" data-line="682">        <span class="kw">return</span> <span class="str">"DONE"</span></span>
-<span class="cl" data-line="683">    <span class="kw">elif</span> status == nixlBind.NIXL_IN_PROG:</span>
-<span class="cl" data-line="684">        <span class="kw">return</span> <span class="str">"PROC"</span></span>
-<span class="cl" data-line="685">    <span class="kw">else</span>:</span>
-<span class="cl" data-line="686">        <span class="kw">return</span> <span class="str">"ERR"</span></span></code></pre></figure>
+<span class="cl" data-line="677"><span class="tok-string">    Returns:</span></span>
+<span class="cl" data-line="678"><span class="tok-string">        Status of the transfer operation ("DONE", "PROC", or "ERR").</span></span>
+<span class="cl" data-line="679"><span class="tok-string">    """</span></span>
+<span class="cl" data-line="680">    status <span class="tok-operator">=</span> <span class="tok-type">self</span><span class="tok-operator">.</span>agent<span class="tok-operator">.</span><span class="tok-function">postXferReq</span>(handle<span class="tok-operator">.</span>_handle, notif_msg)</span>
+<span class="cl" data-line="681">    <span class="tok-keyword">if</span> status <span class="tok-operator">==</span> nixlBind<span class="tok-operator">.</span>NIXL_SUCCESS:</span>
+<span class="cl" data-line="682">        <span class="tok-keyword">return</span> <span class="tok-string">"DONE"</span></span>
+<span class="cl" data-line="683">    <span class="tok-keyword">elif</span> status <span class="tok-operator">==</span> nixlBind<span class="tok-operator">.</span>NIXL_IN_PROG:</span>
+<span class="cl" data-line="684">        <span class="tok-keyword">return</span> <span class="tok-string">"PROC"</span></span>
+<span class="cl" data-line="685">    <span class="tok-keyword">else</span>:</span>
+<span class="cl" data-line="686">        <span class="tok-keyword">return</span> <span class="tok-string">"ERR"</span></span></code></pre></figure>
 <p class="prose">postXferReq之后明确返回DONE、PROC或ERR；PROC需要继续查询。<code class="inline-id">initialize_xfer</code>也只是<a class="term" href="#Def14e9d792b319cc">组合</a>准备接口，其名字不表示数据已完成传输。长期重复区域可以使用<code class="inline-id">prep_xfer_dlist</code>与<code class="inline-id">make_prepped_xfer</code>，减少重复准备。</p>
 <p class="prose">READ中发起端读取远端源区间并写入自己的目标；WRITE中发起端把本地源写入远端目标。操作发起者与数据生产者可以不同，不能只用“发送端/接收端”推断<a class="term" href="#Def14763beedf4d8a">API</a>字段含义。远端通知用于告诉持有者传输已完成或读者已退出，仍需验证通知属于哪个请求、哪次尝试和哪批注册。</p>
 <p class="prose">同一注册区起始地址为 A，以 64 <a class="term" href="#Def14748b595647bb">KiB</a> 为页时，第 3 号页中偏移 128 字节的区间从 <span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><mi>A</mi><mo>+</mo><mn>3</mn><mo>×</mo><mn>65</mn><mo>,</mo><mn>536</mn><mo>+</mo><mn>128</mn></math></span> 开始，页号从 0 计。描述符还应携带区间长度、注册区身份和访问方向。另一个 worker 的本地地址即便数值也等于 A，仍由它自己的注册句柄解释。改变池基址后，缓存的远端描述符需要重新解析。</p>
@@ -226,39 +226,39 @@
 <h2><strong>7　Mooncake 的批传输完成条件</strong></h2>
 <p class="prose">Mooncake Transfer Engine用段（segment）标识可访问的<a class="term" href="#Def14a3ed8d00f746">地址空间</a>。打开segment取得<strong>句柄</strong>，注册本地内存并获得必要远端元数据后，调用者构造TransferRequest列表，再为这批请求分配batch ID。实际路径由配置、可用transport、内存位置与<a class="term" href="#Def14d9c80c5b0f4a">拓扑</a>决定，项目名称本身无法保证某一次传输必走<a class="term" href="#Def147b8c7203fac3">GPUDirect RDMA</a>。</p>
 <p class="caption"><strong>代码 11　</strong>每个请求明确写出操作、长度、本地地址、远端segment和偏移</p>
-<figure class="code"><figcaption><span><strong>C++    </strong><a href="https://github.com/kvcache-ai/Mooncake/blob/1903dc7a60b6136d15b21be17fdc1ee51b884d49/mooncake-transfer-engine/example/transfer_engine_bench.cpp#L809-L823">Mooncake / transfer_engine_bench.cpp    L809–823</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code><span class="cl" data-line="809">auto batch_id = engine-&gt;allocateBatchID(FLAGS_batch_size);</span>
+<figure class="code" data-language="cpp"><figcaption><span><strong>C++    </strong><a href="https://github.com/kvcache-ai/Mooncake/blob/1903dc7a60b6136d15b21be17fdc1ee51b884d49/mooncake-transfer-engine/example/transfer_engine_bench.cpp#L809-L823">Mooncake / transfer_engine_bench.cpp    L809–823</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code class="language-cpp"><span class="cl" data-line="809"><span class="tok-keyword">auto</span> batch_id <span class="tok-operator">=</span> engine<span class="tok-operator">-&gt;</span><span class="tok-function">allocateBatchID</span>(FLAGS_batch_size);</span>
 <span class="cl" data-line="810">Status s;</span>
-<span class="cl" data-line="811">std::vector&lt;TransferRequest&gt; requests;</span>
-<span class="cl" data-line="812"><span class="kw">for</span> (<span class="kw">int</span> i = <span class="fn">0</span>; i &lt; FLAGS_batch_size; ++i) {</span>
+<span class="cl" data-line="811">std<span class="tok-operator">::</span>vector<span class="tok-operator">&lt;</span>TransferRequest<span class="tok-operator">&gt;</span> requests;</span>
+<span class="cl" data-line="812"><span class="tok-keyword">for</span> (<span class="tok-type">int</span> i <span class="tok-operator">=</span> <span class="tok-number">0</span>; i <span class="tok-operator">&lt;</span> FLAGS_batch_size; <span class="tok-operator">++</span>i) {</span>
 <span class="cl" data-line="813">    TransferRequest entry;</span>
-<span class="cl" data-line="814">    entry.opcode = opcode;</span>
-<span class="cl" data-line="815">    entry.length = FLAGS_block_size;</span>
-<span class="cl" data-line="816">    entry.source = (uint8_t*)(addr) +</span>
-<span class="cl" data-line="817">                   FLAGS_block_size * (i * FLAGS_threads + thread_id);</span>
-<span class="cl" data-line="818">    entry.target_id = segment_id;</span>
-<span class="cl" data-line="819">    entry.target_offset =</span>
-<span class="cl" data-line="820">        remote_base +</span>
-<span class="cl" data-line="821">        FLAGS_block_size * (i * FLAGS_threads + thread_id);</span>
-<span class="cl" data-line="822">    entry.nic_hint = nic_hint_id;</span>
-<span class="cl" data-line="823">    requests.emplace_back(entry);</span></code></pre></figure>
+<span class="cl" data-line="814">    entry.opcode <span class="tok-operator">=</span> opcode;</span>
+<span class="cl" data-line="815">    entry.length <span class="tok-operator">=</span> FLAGS_block_size;</span>
+<span class="cl" data-line="816">    entry.source <span class="tok-operator">=</span> (<span class="tok-type">uint8_t</span><span class="tok-operator">*</span>)(addr) <span class="tok-operator">+</span></span>
+<span class="cl" data-line="817">                   FLAGS_block_size <span class="tok-operator">*</span> (i <span class="tok-operator">*</span> FLAGS_threads <span class="tok-operator">+</span> thread_id);</span>
+<span class="cl" data-line="818">    entry.target_id <span class="tok-operator">=</span> segment_id;</span>
+<span class="cl" data-line="819">    entry.target_offset <span class="tok-operator">=</span></span>
+<span class="cl" data-line="820">        remote_base <span class="tok-operator">+</span></span>
+<span class="cl" data-line="821">        FLAGS_block_size <span class="tok-operator">*</span> (i <span class="tok-operator">*</span> FLAGS_threads <span class="tok-operator">+</span> thread_id);</span>
+<span class="cl" data-line="822">    entry.nic_hint <span class="tok-operator">=</span> nic_hint_id;</span>
+<span class="cl" data-line="823">    requests.<span class="tok-function">emplace_back</span>(entry);</span></code></pre></figure>
 <p class="prose">字段source保存本地buffer地址，<code class="inline-id">target_id</code>定位远端segment，此例<code class="inline-id">target_offset</code>由<code class="inline-id">remote_base</code>加块偏移组成；opcode决定READ或WRITE方向。READ时本地buffer承接远端数据，不能仅凭source这个字段名判断数据流向。</p>
 <p class="prose">示例按<code class="inline-id">block_size</code>与<code class="inline-id">thread_id</code>切出不同区间，避免多个线程无意写入同一范围。<code class="inline-id">nic_hint</code>是路径提示，实际带宽仍受<a class="term" href="#Def1466fdd6135d68">NIC</a>、<a class="term" href="#Def1458e976d32a43">PCIe</a>、内存和其他<a class="term" href="#Def1473223db16fe4">在途</a>工作影响。</p>
 <p class="caption"><strong>代码 12　</strong>提交成功后，示例逐任务检查COMPLETED或FAILED</p>
-<figure class="code"><figcaption><span><strong>C++    </strong><a href="https://github.com/kvcache-ai/Mooncake/blob/1903dc7a60b6136d15b21be17fdc1ee51b884d49/mooncake-transfer-engine/example/transfer_engine_bench.cpp#L826-L842">Mooncake / transfer_engine_bench.cpp    L826–842</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code><span class="cl" data-line="826">s = engine-&gt;submitTransfer(batch_id, requests);</span>
-<span class="cl" data-line="827"><span class="kw">if</span> (!s.ok()) LOG(ERROR) &lt;&lt; s.ToString();</span>
-<span class="cl" data-line="828">LOG_ASSERT(s.ok());</span>
-<span class="cl" data-line="829"><span class="kw">for</span> (<span class="kw">int</span> task_id = <span class="fn">0</span>; task_id &lt; FLAGS_batch_size; ++task_id) {</span>
-<span class="cl" data-line="830">    bool completed = false;</span>
+<figure class="code" data-language="cpp"><figcaption><span><strong>C++    </strong><a href="https://github.com/kvcache-ai/Mooncake/blob/1903dc7a60b6136d15b21be17fdc1ee51b884d49/mooncake-transfer-engine/example/transfer_engine_bench.cpp#L826-L842">Mooncake / transfer_engine_bench.cpp    L826–842</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code class="language-cpp"><span class="cl" data-line="826">s <span class="tok-operator">=</span> engine<span class="tok-operator">-&gt;</span><span class="tok-function">submitTransfer</span>(batch_id, requests);</span>
+<span class="cl" data-line="827"><span class="tok-keyword">if</span> (<span class="tok-operator">!</span>s.<span class="tok-function">ok</span>()) <span class="tok-function">LOG</span>(ERROR) <span class="tok-operator">&lt;&lt;</span> s.<span class="tok-function">ToString</span>();</span>
+<span class="cl" data-line="828"><span class="tok-function">LOG_ASSERT</span>(s.<span class="tok-function">ok</span>());</span>
+<span class="cl" data-line="829"><span class="tok-keyword">for</span> (<span class="tok-type">int</span> task_id <span class="tok-operator">=</span> <span class="tok-number">0</span>; task_id <span class="tok-operator">&lt;</span> FLAGS_batch_size; <span class="tok-operator">++</span>task_id) {</span>
+<span class="cl" data-line="830">    <span class="tok-type">bool</span> completed <span class="tok-operator">=</span> <span class="tok-type">false</span>;</span>
 <span class="cl" data-line="831">    TransferStatus status;</span>
-<span class="cl" data-line="832">    while (!completed) {</span>
-<span class="cl" data-line="833">        Status s = engine-&gt;getTransferStatus(batch_id, task_id, status);</span>
-<span class="cl" data-line="834">        LOG_ASSERT(s.ok());</span>
-<span class="cl" data-line="835">        <span class="kw">if</span> (status.s == TransferStatusEnum::COMPLETED)</span>
-<span class="cl" data-line="836">            completed = true;</span>
-<span class="cl" data-line="837">        <span class="kw">else</span> <span class="kw">if</span> (status.s == TransferStatusEnum::FAILED) {</span>
-<span class="cl" data-line="838">            LOG(INFO) &lt;&lt; <span class="str">"FAILED"</span>;</span>
-<span class="cl" data-line="839">            completed = true;</span>
-<span class="cl" data-line="840">            exit(EXIT_FAILURE);</span>
+<span class="cl" data-line="832">    <span class="tok-keyword">while</span> (<span class="tok-operator">!</span>completed) {</span>
+<span class="cl" data-line="833">        Status s <span class="tok-operator">=</span> engine<span class="tok-operator">-&gt;</span><span class="tok-function">getTransferStatus</span>(batch_id, task_id, status);</span>
+<span class="cl" data-line="834">        <span class="tok-function">LOG_ASSERT</span>(s.<span class="tok-function">ok</span>());</span>
+<span class="cl" data-line="835">        <span class="tok-keyword">if</span> (status.s <span class="tok-operator">==</span> TransferStatusEnum<span class="tok-operator">::</span>COMPLETED)</span>
+<span class="cl" data-line="836">            completed <span class="tok-operator">=</span> <span class="tok-type">true</span>;</span>
+<span class="cl" data-line="837">        <span class="tok-keyword">else</span> <span class="tok-keyword">if</span> (status.s <span class="tok-operator">==</span> TransferStatusEnum<span class="tok-operator">::</span>FAILED) {</span>
+<span class="cl" data-line="838">            <span class="tok-function">LOG</span>(INFO) <span class="tok-operator">&lt;&lt;</span> <span class="tok-string">"FAILED"</span>;</span>
+<span class="cl" data-line="839">            completed <span class="tok-operator">=</span> <span class="tok-type">true</span>;</span>
+<span class="cl" data-line="840">            <span class="tok-function">exit</span>(EXIT_FAILURE);</span>
 <span class="cl" data-line="841">        }</span>
 <span class="cl" data-line="842">    }</span></code></pre></figure>
 <p class="prose">submitTransfer返回成功只表示提交被接受。后面的getTransferStatus才观察任务状态；benchmark将失败当作运行失败退出。生产服务需要将错误传回请求恢复路径，并保持相关缓冲的生命周期。</p>
@@ -268,47 +268,47 @@
 <div class="exercise question" id="Q14_01" role="group" aria-labelledby="title-Q14_01"><div class="qtitle" id="title-Q14_01"><span class="exercise-no">普通题 01</span><strong>源页释放条件</strong></div><p><strong>情境　</strong>P 端生成页 S 的第 7 代 <a class="term" href="#Def14221e82c84d42">KV</a> 后，登记将数据从 P 拉到 D 的请求。后端仍报告处理中，传输设备可能稍后才从 S 读取部分字节。P 的计算流已经结束；另一个请求正等待 S 作为可写缓冲。</p><p id="prompt-Q14_01"><strong>问题　</strong>列出“P 已写完 S”“后端受理传输”“后端不再访问 S”各自允许哪一步。P 要在哪一个保证后才可以改写 S？D 是否能从同一个事实推断自己的消费流立即可读？解释过早覆写可能怎样混合两次请求。</p><div class="response"><div class="response-head"><label for="draft-Q14_01">解题笔记</label><span class="draft-status" role="status"></span></div><textarea id="draft-Q14_01" data-exercise="Q14_01" rows="3" aria-describedby="prompt-Q14_01"></textarea></div><details class="solution" id="A14_01"><summary>答案</summary><div class="solution-body"><p><strong>结论　</strong>P 写完 S，才满足后端从 S 读取的前提，受理仅表示进入传输流程。源页必须保留到第 7 代最后一次传输读取结束；D 端仍需自己的目标可见性和消费流依赖。</p><p><strong>推导　</strong>传输可拆成多个片段，如果前半已读、后半未读，P 过早改写会让 D 收到一半旧 KV、一半新数据，地址和总长度仍都合法。<br>按所用后端的完成语义等待或轮询可证明源安全<a class="term" href="#Def14f465e0254961">复用</a>的事件，再释放本次访问引用；若长生命周期注册仍供其他请求使用，无需因释放单页而注销整个池。</p><div class="practice-links"><a class="return-question" href="#Q14_01">回看题干 ↑</a><a class="" href="#Q14_02">下一题 · 失败后能否复用目的页</a>　　<a class="" href="#Route14">本课练习顺序</a></div></div></details></div><a class="back" href="#idx-l14-s007">↑ 返回知识点目录</a></section><section class="topic" id="l14-s008">
 <h2><strong>8　传输超时、取消与缓冲释放</strong></h2>
 <p class="caption"><strong>代码 13　</strong>waitFor超时不会取消传输，析构会等待物理完成</p>
-<figure class="code"><figcaption><span><strong>C/C++    </strong><a href="https://github.com/kvcache-ai/Mooncake/blob/1903dc7a60b6136d15b21be17fdc1ee51b884d49/mooncake-transfer-engine/include/transfer_engine.h#L211-L224">Mooncake / transfer_engine.h    L211–224</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code><span class="cl" data-line="211">// Destruction waits for physical completion before releasing state.</span>
-<span class="cl" data-line="212">~ScatterTransferOperation();</span>
+<figure class="code" data-language="cpp"><figcaption><span><strong>C++    </strong><a href="https://github.com/kvcache-ai/Mooncake/blob/1903dc7a60b6136d15b21be17fdc1ee51b884d49/mooncake-transfer-engine/include/transfer_engine.h#L211-L224">Mooncake / transfer_engine.h    L211–224</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code class="language-cpp"><span class="cl" data-line="211"><span class="tok-comment">// Destruction waits for physical completion before releasing state.</span></span>
+<span class="cl" data-line="212"><span class="tok-operator">~</span><span class="tok-function">ScatterTransferOperation</span>();</span>
 <span class="cl" data-line="213"></span>
-<span class="cl" data-line="214">ScatterTransferOperation(<span class="kw">const</span> ScatterTransferOperation&amp;) = delete;</span>
-<span class="cl" data-line="215">ScatterTransferOperation&amp; operator=(<span class="kw">const</span> ScatterTransferOperation&amp;) =</span>
-<span class="cl" data-line="216">    delete;</span>
+<span class="cl" data-line="214"><span class="tok-function">ScatterTransferOperation</span>(<span class="tok-keyword">const</span> ScatterTransferOperation<span class="tok-operator">&amp;</span>) <span class="tok-operator">=</span> <span class="tok-keyword">delete</span>;</span>
+<span class="cl" data-line="215">ScatterTransferOperation<span class="tok-operator">&amp;</span> <span class="tok-keyword">operator</span><span class="tok-operator">=</span>(<span class="tok-keyword">const</span> ScatterTransferOperation<span class="tok-operator">&amp;</span>) <span class="tok-operator">=</span></span>
+<span class="cl" data-line="216">    <span class="tok-keyword">delete</span>;</span>
 <span class="cl" data-line="217"></span>
-<span class="cl" data-line="218">// Single-consumer operation: do not wait concurrently or from a</span>
-<span class="cl" data-line="219">// fragment completion callback.</span>
-<span class="cl" data-line="220">Status wait();</span>
+<span class="cl" data-line="218"><span class="tok-comment">// Single-consumer operation: do not wait concurrently or from a</span></span>
+<span class="cl" data-line="219"><span class="tok-comment">// fragment completion callback.</span></span>
+<span class="cl" data-line="220">Status <span class="tok-function">wait</span>();</span>
 <span class="cl" data-line="221"></span>
-<span class="cl" data-line="222">// A wait timeout does not cancel the transfer. Keep this operation and</span>
-<span class="cl" data-line="223">// its CPU/GPU buffers alive until a later wait reaches completion.</span>
-<span class="cl" data-line="224">Status waitFor(std::chrono::nanoseconds timeout);</span></code></pre></figure>
+<span class="cl" data-line="222"><span class="tok-comment">// A wait timeout does not cancel the transfer. Keep this operation and</span></span>
+<span class="cl" data-line="223"><span class="tok-comment">// its CPU/GPU buffers alive until a later wait reaches completion.</span></span>
+<span class="cl" data-line="224">Status <span class="tok-function">waitFor</span>(std<span class="tok-operator">::</span>chrono<span class="tok-operator">::</span>nanoseconds timeout);</span></code></pre></figure>
 <p class="prose">wait/waitFor规定单<a class="term" href="#Def14381527ac5680">消费者</a>，禁止在<a class="term" href="#Def14755d3e0aacea">fragment</a>完成回调中等待自身。即使等待<strong>超时</strong>，操作对象和 CPU、<a class="term" href="#Def148552a9d24381">GPU</a> 缓冲都必须继续存活，直到后续等待取得完成。把operation放在临时作用域中，还可能在析构时意外阻塞控制线程。</p>
 <p class="caption"><strong>代码 14　</strong>释放活跃句柄时尝试取消，无法取消就保留句柄并报错</p>
-<figure class="code"><figcaption><span><strong>Python    </strong><a href="https://github.com/ai-dynamo/nixl/blob/d7ddd0aab6928e73e8d1879a296f3dc3a4ba1f4c/src/api/python/_api.py#L758-L766">nixl / _api.py    L758–766</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code><span class="cl" data-line="758"><span class="kw">def</span> release_xfer_handle(self, handle: nixl_xfer_handle):</span>
-<span class="cl" data-line="759">    <span class="str">"""Releases a transfer handle, which internally frees the memory used for the handle.</span></span>
-<span class="cl" data-line="760"><span class="str">    If the transfer is active, NIXL will attempt to cancel it.</span></span>
-<span class="cl" data-line="761"><span class="str">    If it cannot be canceled, an error will be returned and the handle will not be freed.</span></span>
+<figure class="code" data-language="python"><figcaption><span><strong>Python    </strong><a href="https://github.com/ai-dynamo/nixl/blob/d7ddd0aab6928e73e8d1879a296f3dc3a4ba1f4c/src/api/python/_api.py#L758-L766">nixl / _api.py    L758–766</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code class="language-python"><span class="cl" data-line="758"><span class="tok-keyword">def</span> <span class="tok-function">release_xfer_handle</span>(<span class="tok-type">self</span>, handle: nixl_xfer_handle):</span>
+<span class="cl" data-line="759">    <span class="tok-string">"""Releases a transfer handle, which internally frees the memory used for the handle.</span></span>
+<span class="cl" data-line="760"><span class="tok-string">    If the transfer is active, NIXL will attempt to cancel it.</span></span>
+<span class="cl" data-line="761"><span class="tok-string">    If it cannot be canceled, an error will be returned and the handle will not be freed.</span></span>
 <span class="cl" data-line="762"></span>
-<span class="cl" data-line="763"><span class="str">    Args:</span></span>
-<span class="cl" data-line="764"><span class="str">        handle: Handle to the transfer operation from initialize_xfer or make_xfer.</span></span>
-<span class="cl" data-line="765"><span class="str">    """</span></span>
-<span class="cl" data-line="766">    handle.release()</span></code></pre></figure>
+<span class="cl" data-line="763"><span class="tok-string">    Args:</span></span>
+<span class="cl" data-line="764"><span class="tok-string">        handle: Handle to the transfer operation from initialize_xfer or make_xfer.</span></span>
+<span class="cl" data-line="765"><span class="tok-string">    """</span></span>
+<span class="cl" data-line="766">    handle<span class="tok-operator">.</span><span class="tok-function">release</span>()</span></code></pre></figure>
 <p class="prose">release可能失败。调用者需要处理取消失败，继续持有句柄和被访问缓冲；捕获异常后直接丢弃全部引用会破坏这个契约。</p>
 <p class="caption"><strong>代码 15　</strong>vLLM在释放失败时明确保留handle和blocks</p>
-<figure class="code"><figcaption><span><strong>Python    </strong><a href="https://github.com/vllm-project/vllm/blob/93eeae695f5178eddff728fe50eb18e30c90c33a/vllm/distributed/kv_transfer/kv_connector/v1/nixl/base_worker.py#L3529-L3542">vllm / base_worker.py    L3529–3542</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code><span class="cl" data-line="3529"><span class="kw">def</span> _try_release_xfer_handle(self, req_id: str, handle: int) -&gt; bool:</span>
-<span class="cl" data-line="3530">    <span class="str">"""Release a handle, returning False if the caller must retain it."""</span></span>
-<span class="cl" data-line="3531">    <span class="kw">try</span>:</span>
-<span class="cl" data-line="3532">        self.nixl_wrapper.release_xfer_handle(handle)</span>
-<span class="cl" data-line="3533">    <span class="kw">except</span> Exception <span class="kw">as</span> e:</span>
-<span class="cl" data-line="3534">        # A status error does not guarantee that the backend stopped DMA.</span>
-<span class="cl" data-line="3535">        self._log_failure(</span>
-<span class="cl" data-line="3536">            failure_type=<span class="str">"transfer_release_failed"</span>,</span>
-<span class="cl" data-line="3537">            msg=<span class="str">"Retaining handle and blocks until release succeeds"</span>,</span>
-<span class="cl" data-line="3538">            req_id=req_id,</span>
-<span class="cl" data-line="3539">            error=e,</span>
+<figure class="code" data-language="python"><figcaption><span><strong>Python    </strong><a href="https://github.com/vllm-project/vllm/blob/93eeae695f5178eddff728fe50eb18e30c90c33a/vllm/distributed/kv_transfer/kv_connector/v1/nixl/base_worker.py#L3529-L3542">vllm / base_worker.py    L3529–3542</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code class="language-python"><span class="cl" data-line="3529"><span class="tok-keyword">def</span> <span class="tok-function">_try_release_xfer_handle</span>(<span class="tok-type">self</span>, req_id: <span class="tok-type">str</span>, handle: <span class="tok-type">int</span>) <span class="tok-operator">-&gt;</span> <span class="tok-type">bool</span>:</span>
+<span class="cl" data-line="3530">    <span class="tok-string">"""Release a handle, returning False if the caller must retain it."""</span></span>
+<span class="cl" data-line="3531">    <span class="tok-keyword">try</span>:</span>
+<span class="cl" data-line="3532">        <span class="tok-type">self</span><span class="tok-operator">.</span>nixl_wrapper<span class="tok-operator">.</span><span class="tok-function">release_xfer_handle</span>(handle)</span>
+<span class="cl" data-line="3533">    <span class="tok-keyword">except</span> Exception <span class="tok-keyword">as</span> e:</span>
+<span class="cl" data-line="3534">        <span class="tok-comment"># A status error does not guarantee that the backend stopped DMA.</span></span>
+<span class="cl" data-line="3535">        <span class="tok-type">self</span><span class="tok-operator">.</span><span class="tok-function">_log_failure</span>(</span>
+<span class="cl" data-line="3536">            failure_type<span class="tok-operator">=</span><span class="tok-string">"transfer_release_failed"</span>,</span>
+<span class="cl" data-line="3537">            msg<span class="tok-operator">=</span><span class="tok-string">"Retaining handle and blocks until release succeeds"</span>,</span>
+<span class="cl" data-line="3538">            req_id<span class="tok-operator">=</span>req_id,</span>
+<span class="cl" data-line="3539">            error<span class="tok-operator">=</span>e,</span>
 <span class="cl" data-line="3540">        )</span>
-<span class="cl" data-line="3541">        <span class="kw">return</span> <span class="kw">False</span></span>
-<span class="cl" data-line="3542">    <span class="kw">return</span> <span class="kw">True</span></span></code></pre></figure>
+<span class="cl" data-line="3541">        <span class="tok-keyword">return</span> <span class="tok-keyword">False</span></span>
+<span class="cl" data-line="3542">    <span class="tok-keyword">return</span> <span class="tok-keyword">True</span></span></code></pre></figure>
 <p class="prose">注释直接说明status error无法证明后端已经停止<a class="term" href="#Def146122fa013c3f">DMA</a>。返回False告诉上层保留<a class="term" href="#Def1473223db16fe4">在途</a>记录；<code class="inline-id">_pop_done_transfers</code>还区分“观察到失败”和“所有句柄对应的传输均已结束”。</p>
 <p class="prose">设传输T1在0毫秒提交，50毫秒业务超时，服务决定重算T2。如果T1仍可能在80毫秒向原目标<a class="term" href="#Def14b39504bb5cc8">页</a>写入，T2在60毫秒<a class="term" href="#Def14f465e0254961">复用</a>同页就会被旧数据覆盖。增加request generation可以让上层拒收T1的旧完成通知，却无法阻止已发出的物理写；目标页必须隔离到旧的读写操作全部结束，或使用能够确认完成的取消机制。</p>
 <p class="prose">Mooncake当前freeBatchID另有细节：<code class="inline-id">engine.h</code>第272—274行规定OK与BatchCleanupDeferred都会使batch ID失效，deferred清理时在途transport仍可能持有缓冲。不能释放ID后继续拿它轮询，也不能仅凭ID失效就释放数据buffer。benchmark是在所有任务已完成后清理，因此其deferred注释特指回调还在退出；其他调用路径必须保留各自的缓冲所有权。</p>
@@ -322,33 +322,33 @@
 <figure class="study-figure"><a href="../assets/figures/concept-kv-reshard.png?v=5395fa888427" target="_blank" rel="noopener" aria-label="传输时怎样合并相邻的 KV 头片，打开大图"><img loading="lazy" src="../assets/figures/concept-kv-reshard.png?v=5395fa888427" alt="源片 0、1 合入目标片 0，源片 2、3 合入目标片 1。示例假定头均匀连续切分且无复制。" width="1740" height="552"></a><figcaption>用四份变两份演示相邻头的连续分片。每个目标端接收两片后按全局 KV 头号拼接，实际 TP8 到 TP4 可逐对应用同一对应关系。</figcaption></figure>
 <p class="prose">TP8 的 KV 搬到 TP4 时，先定义一行的<a class="term" href="#Def1456df79d56170">逻辑坐标</a>（层、<a class="term" href="#Def14397a73c4e319">token</a>、KV 头、头内通道），再写两侧各自的存储偏移。举例说有 16 个 KV 头，源 rank 各存连续 2 头，目的 rank 各存连续 4 头，则目的 rank 2 需要头 8 至 11，来源是源 rank 4 和 5。若源页有 16 个槽但最后一页只用了 3 个，应为每一层和每个有效 token 分别拼头；把两块物理页整段拼在一起，容易得到“先 16 个 token 的前两头，再 16 个 token 的后两头”，与按 token 存四头的目标<a class="term" href="#Def14bbaa2ba9297f">布局</a>不同。</p>
 <p class="caption"><strong>代码 16　</strong>P的TP度较大时，D选择多个源rank，并对重复KV head去重</p>
-<figure class="code"><figcaption><span><strong>Python    </strong><a href="https://github.com/vllm-project/vllm/blob/93eeae695f5178eddff728fe50eb18e30c90c33a/vllm/distributed/kv_transfer/kv_connector/v1/nixl/tp_mapping.py#L118-L128">vllm / tp_mapping.py    L118–128</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code><span class="cl" data-line="118"><span class="kw">else</span>:</span>
-<span class="cl" data-line="119">    # P (remote TP) &gt; D (local TP): one local rank</span>
-<span class="cl" data-line="120">    # reads from multiple remote ranks.</span>
-<span class="cl" data-line="121">    # GQA dedup: when K &lt; remote_tp_size, several remote ranks</span>
-<span class="cl" data-line="122">    # hold the same KV head.  np.unique keeps only the first</span>
-<span class="cl" data-line="123">    # rank per unique head so we don't issue redundant reads.</span>
-<span class="cl" data-line="124">    abs_tp = remote_tp_size // tp_size</span>
-<span class="cl" data-line="125">    start = tp_rank * abs_tp</span>
-<span class="cl" data-line="126">    heads = np.arange(start, start + abs_tp) * total_num_kv_heads // remote_tp_size</span>
-<span class="cl" data-line="127">    _, unique_idx = np.unique(heads, return_index=<span class="kw">True</span>)</span>
-<span class="cl" data-line="128">    attn_ranks = (start + np.sort(unique_idx)).tolist()</span></code></pre></figure>
+<figure class="code" data-language="python"><figcaption><span><strong>Python    </strong><a href="https://github.com/vllm-project/vllm/blob/93eeae695f5178eddff728fe50eb18e30c90c33a/vllm/distributed/kv_transfer/kv_connector/v1/nixl/tp_mapping.py#L118-L128">vllm / tp_mapping.py    L118–128</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code class="language-python"><span class="cl" data-line="118"><span class="tok-keyword">else</span>:</span>
+<span class="cl" data-line="119">    <span class="tok-comment"># P (remote TP) &gt; D (local TP): one local rank</span></span>
+<span class="cl" data-line="120">    <span class="tok-comment"># reads from multiple remote ranks.</span></span>
+<span class="cl" data-line="121">    <span class="tok-comment"># GQA dedup: when K &lt; remote_tp_size, several remote ranks</span></span>
+<span class="cl" data-line="122">    <span class="tok-comment"># hold the same KV head.  np.unique keeps only the first</span></span>
+<span class="cl" data-line="123">    <span class="tok-comment"># rank per unique head so we don't issue redundant reads.</span></span>
+<span class="cl" data-line="124">    abs_tp <span class="tok-operator">=</span> remote_tp_size <span class="tok-operator">//</span> tp_size</span>
+<span class="cl" data-line="125">    start <span class="tok-operator">=</span> tp_rank <span class="tok-operator">*</span> abs_tp</span>
+<span class="cl" data-line="126">    heads <span class="tok-operator">=</span> np<span class="tok-operator">.</span><span class="tok-function">arange</span>(start, start <span class="tok-operator">+</span> abs_tp) <span class="tok-operator">*</span> total_num_kv_heads <span class="tok-operator">//</span> remote_tp_size</span>
+<span class="cl" data-line="127">    _, unique_idx <span class="tok-operator">=</span> np<span class="tok-operator">.</span><span class="tok-function">unique</span>(heads, return_index<span class="tok-operator">=</span><span class="tok-keyword">True</span>)</span>
+<span class="cl" data-line="128">    attn_ranks <span class="tok-operator">=</span> (start <span class="tok-operator">+</span> np<span class="tok-operator">.</span><span class="tok-function">sort</span>(unique_idx))<span class="tok-operator">.</span><span class="tok-function">tolist</span>()</span></code></pre></figure>
 <p class="prose"><code class="inline-id">abs_tp</code>给出每个D rank覆盖的P rank区间。heads将这些rank映射到真实KV head，<code class="inline-id">np.unique</code>只保留相同head的一个源，避免在同一目标<a class="term" href="#Def143770e3485f96">分片</a>内做重复读取。</p>
 <p class="prose">当<span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><msub><mrow><mi>H</mi></mrow><mrow><mi mathvariant="normal">K</mi><mi mathvariant="normal">V</mi></mrow></msub><mo>=</mo><mn>2</mn></math></span>、P侧TP8时，源rank0—3可能复制head0，rank4—7复制head1。D侧TP4也需要复制：D0和D1持有head0，D2和D3持有head1。该映射可为四个目标rank分别选择P0、P2、P4、P6；同一D rank无需把相同head的两份源副本都读一遍，但不同D rank所需的目标副本仍然存在。</p>
 <p class="prose">沿本课32层、32K、<span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><mi>d</mi><mo>=</mo><mn>128</mn></math></span>、<a class="term" href="#Def14fcbbd9b7732e">BF16</a>配置，<span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><msub><mrow><mi>H</mi></mrow><mrow><mi mathvariant="normal">K</mi><mi mathvariant="normal">V</mi></mrow></msub><mo>=</mo><mn>2</mn></math></span>的唯一逻辑KV为1 <a class="term" href="#Def14d027fdf77d2c">GiB</a>。若P的8个rank各存一个head，物理总量为4 GiB；D的4个rank各存一个head，目标总量为2 GiB。合理去重后，交接<a class="term" href="#Def142382ed32b1da">有效载荷</a>可以按目标所需2 GiB核算，不能简单乘源rank数，也不能只按1 GiB唯一逻辑状态就假设所有目标副本已具备。</p>
 <p class="caption"><strong>代码 17　</strong>D的TP度更大时，需要定位远端页中属于本地的head片段</p>
-<figure class="code"><figcaption><span><strong>Python    </strong><a href="https://github.com/vllm-project/vllm/blob/93eeae695f5178eddff728fe50eb18e30c90c33a/vllm/distributed/kv_transfer/kv_connector/v1/nixl/tp_mapping.py#L70-L81">vllm / tp_mapping.py    L70–81</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code><span class="cl" data-line="70"><span class="kw">def</span> compute_head_offset(</span>
-<span class="cl" data-line="71">    tp_rank: int, tp_size: int, remote_tp_size: int, total_num_kv_heads: int</span>
-<span class="cl" data-line="72">) -&gt; int:</span>
-<span class="cl" data-line="73">    <span class="str">"""Return the offset in local head slices within the remote KV block."""</span></span>
-<span class="cl" data-line="74">    <span class="kw">if</span> tp_size &lt;= remote_tp_size:</span>
-<span class="cl" data-line="75">        <span class="kw">return</span> <span class="fn">0</span></span>
-<span class="cl" data-line="76">    <span class="kw">if</span> tp_size &gt; total_num_kv_heads:</span>
-<span class="cl" data-line="77">        remote_rank = tp_rank * remote_tp_size // tp_size</span>
-<span class="cl" data-line="78">        local_head = tp_rank * total_num_kv_heads // tp_size</span>
-<span class="cl" data-line="79">        remote_head = remote_rank * total_num_kv_heads // remote_tp_size</span>
-<span class="cl" data-line="80">        <span class="kw">return</span> local_head - remote_head</span>
-<span class="cl" data-line="81">    <span class="kw">return</span> tp_rank % (tp_size // remote_tp_size)</span></code></pre></figure>
+<figure class="code" data-language="python"><figcaption><span><strong>Python    </strong><a href="https://github.com/vllm-project/vllm/blob/93eeae695f5178eddff728fe50eb18e30c90c33a/vllm/distributed/kv_transfer/kv_connector/v1/nixl/tp_mapping.py#L70-L81">vllm / tp_mapping.py    L70–81</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code class="language-python"><span class="cl" data-line="70"><span class="tok-keyword">def</span> <span class="tok-function">compute_head_offset</span>(</span>
+<span class="cl" data-line="71">    tp_rank: <span class="tok-type">int</span>, tp_size: <span class="tok-type">int</span>, remote_tp_size: <span class="tok-type">int</span>, total_num_kv_heads: <span class="tok-type">int</span></span>
+<span class="cl" data-line="72">) <span class="tok-operator">-&gt;</span> <span class="tok-type">int</span>:</span>
+<span class="cl" data-line="73">    <span class="tok-string">"""Return the offset in local head slices within the remote KV block."""</span></span>
+<span class="cl" data-line="74">    <span class="tok-keyword">if</span> tp_size <span class="tok-operator">&lt;=</span> remote_tp_size:</span>
+<span class="cl" data-line="75">        <span class="tok-keyword">return</span> <span class="tok-number">0</span></span>
+<span class="cl" data-line="76">    <span class="tok-keyword">if</span> tp_size <span class="tok-operator">&gt;</span> total_num_kv_heads:</span>
+<span class="cl" data-line="77">        remote_rank <span class="tok-operator">=</span> tp_rank <span class="tok-operator">*</span> remote_tp_size <span class="tok-operator">//</span> tp_size</span>
+<span class="cl" data-line="78">        local_head <span class="tok-operator">=</span> tp_rank <span class="tok-operator">*</span> total_num_kv_heads <span class="tok-operator">//</span> tp_size</span>
+<span class="cl" data-line="79">        remote_head <span class="tok-operator">=</span> remote_rank <span class="tok-operator">*</span> total_num_kv_heads <span class="tok-operator">//</span> remote_tp_size</span>
+<span class="cl" data-line="80">        <span class="tok-keyword">return</span> local_head <span class="tok-operator">-</span> remote_head</span>
+<span class="cl" data-line="81">    <span class="tok-keyword">return</span> tp_rank <span class="tok-operator">%</span> (tp_size <span class="tok-operator">//</span> remote_tp_size)</span></code></pre></figure>
 <p class="prose">本地<a class="term" href="#Def1452298fab40d3">TP</a>与远端TP的关系不同，偏移规则也不同；当TP超过KV head数量时，代码显式考虑复制映射。这里的返回值是head切片偏移，仍要结合具体region字节布局形成地址。</p>
 <p class="prose"><a class="term" href="#Def14810106df1b85">MLA</a>通常按潜变量复制或采用其他分片策略，当前mapping代码对MLA和<a class="term" href="#Def14f5508a954ab3">DCP</a>另设分支；线性状态又有SSM source ranks。不能把普通GQA的head拼接规则直接应用到混合模型。传输计划应按cache group或region记录来源，必要时同一请求同时运行不同映射。</p>
 <figure class="diagram"><a href="../assets/figures/3d49b096e48d214a09.png?v=6ebfbb90c105" target="_blank" rel="noopener" aria-label="打开原图"><img loading="lazy" src="../assets/figures/3d49b096e48d214a09.png?v=6ebfbb90c105" alt="课程示意图" width="1800" height="1030"></a></figure>
@@ -379,53 +379,53 @@
 <p class="prose"><a class="term" href="#Def14221e82c84d42">KV</a>分层存储把<a class="term" href="#Def148552a9d24381">GPU</a>服务中的状态扩展到主机内存、磁盘或远端介质。当前LMCache源码使用L1 manager与<a class="term" href="#Def1449c44fcbbd54">L2</a> adapter组织缓存；具体L1介质由配置决定，不能把内部L1这个名字直接等同于GPU <a class="term" href="#Def149150ae85d1b5">HBM</a>或硬件一级缓存。本节阅读其对象生命周期，与前面的vLLM<a class="term" href="#Def14b39504bb5cc8">页</a>生命周期相互对照。</p>
 <p class="prose">分层缓存的“目录可查”和“数据可用”必须分开。分配目的页后可以记录一条正在加载的占位项，避免第二个请求重复拉同一前缀。此时后来者只能等待，不能把未写完的页交给注意力。待所有必要的层与<a class="term" href="#Def143770e3485f96">分片</a>都完成写入且可见，目录再从 loading 改为 ready。加载失败要唤醒等待者并撤销占用，页只有在旧写者停止后才能回收。以请求标识、缓存键和页代次串起三个状态，才能查清偶发读旧值的来源。</p>
 <p class="caption"><strong>代码 18　</strong>写入预留可以部分成功，临时对象有独立保留策略</p>
-<figure class="code"><figcaption><span><strong>Python    </strong><a href="https://github.com/LMCache/LMCache/blob/58c11e386d804854608e132aa94712608272ab04/lmcache/v1/distributed/storage_manager.py#L287-L306">LMCache / storage_manager.py    L287–306</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code><span class="cl" data-line="287"><span class="kw">def</span> reserve_write(</span>
-<span class="cl" data-line="288">    self,</span>
-<span class="cl" data-line="289">    keys: list[ObjectKey],</span>
+<figure class="code" data-language="python"><figcaption><span><strong>Python    </strong><a href="https://github.com/LMCache/LMCache/blob/58c11e386d804854608e132aa94712608272ab04/lmcache/v1/distributed/storage_manager.py#L287-L306">LMCache / storage_manager.py    L287–306</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code class="language-python"><span class="cl" data-line="287"><span class="tok-keyword">def</span> <span class="tok-function">reserve_write</span>(</span>
+<span class="cl" data-line="288">    <span class="tok-type">self</span>,</span>
+<span class="cl" data-line="289">    keys: <span class="tok-type">list</span>[ObjectKey],</span>
 <span class="cl" data-line="290">    layout_desc: MemoryLayoutDesc,</span>
-<span class="cl" data-line="291">    is_temporary: bool = <span class="kw">False</span>,</span>
-<span class="cl" data-line="292">) -&gt; dict[ObjectKey, MemoryObj]:</span>
-<span class="cl" data-line="293">    <span class="str">"""</span></span>
-<span class="cl" data-line="294"><span class="str">    Reserve the object for writing into the storage manager.</span></span>
+<span class="cl" data-line="291">    is_temporary: <span class="tok-type">bool</span> <span class="tok-operator">=</span> <span class="tok-keyword">False</span>,</span>
+<span class="cl" data-line="292">) <span class="tok-operator">-&gt;</span> <span class="tok-type">dict</span>[ObjectKey, MemoryObj]:</span>
+<span class="cl" data-line="293">    <span class="tok-string">"""</span></span>
+<span class="cl" data-line="294"><span class="tok-string">    Reserve the object for writing into the storage manager.</span></span>
 <span class="cl" data-line="295"></span>
-<span class="cl" data-line="296"><span class="str">    Args:</span></span>
-<span class="cl" data-line="297"><span class="str">        keys (list[ObjectKey]): List of object keys to reserve for writing.</span></span>
-<span class="cl" data-line="298"><span class="str">        layout_desc (MemoryLayoutDesc): Description of the memory layout</span></span>
-<span class="cl" data-line="299"><span class="str">            for the objects to be reserved.</span></span>
-<span class="cl" data-line="300"><span class="str">        is_temporary: Store the objects as temporary: L1 deletes each one</span></span>
-<span class="cl" data-line="301"><span class="str">            when its last read lock is released, and never offloads it</span></span>
-<span class="cl" data-line="302"><span class="str">            to L2.</span></span>
-<span class="cl" data-line="303"><span class="str">    Returns:</span></span>
-<span class="cl" data-line="304"><span class="str">        dict[ObjectKey, MemoryObj]: A dictionary mapping object keys to their</span></span>
-<span class="cl" data-line="305"><span class="str">            reserved memory objects. Note that not all requested keys could be</span></span>
-<span class="cl" data-line="306"><span class="str">            reserved (e.g., out of memory or write conflict)</span></span></code></pre></figure>
+<span class="cl" data-line="296"><span class="tok-string">    Args:</span></span>
+<span class="cl" data-line="297"><span class="tok-string">        keys (list[ObjectKey]): List of object keys to reserve for writing.</span></span>
+<span class="cl" data-line="298"><span class="tok-string">        layout_desc (MemoryLayoutDesc): Description of the memory layout</span></span>
+<span class="cl" data-line="299"><span class="tok-string">            for the objects to be reserved.</span></span>
+<span class="cl" data-line="300"><span class="tok-string">        is_temporary: Store the objects as temporary: L1 deletes each one</span></span>
+<span class="cl" data-line="301"><span class="tok-string">            when its last read lock is released, and never offloads it</span></span>
+<span class="cl" data-line="302"><span class="tok-string">            to L2.</span></span>
+<span class="cl" data-line="303"><span class="tok-string">    Returns:</span></span>
+<span class="cl" data-line="304"><span class="tok-string">        dict[ObjectKey, MemoryObj]: A dictionary mapping object keys to their</span></span>
+<span class="cl" data-line="305"><span class="tok-string">            reserved memory objects. Note that not all requested keys could be</span></span>
+<span class="cl" data-line="306"><span class="tok-string">            reserved (e.g., out of memory or write conflict)</span></span></code></pre></figure>
 <p class="prose">返回的字典只列出成功预留了内存的对象，<a class="term" href="#Def14d1a0f0889536">OOM</a>或写冲突可使部分<a class="term" href="#Def14a607f9a7ae09">key</a>失败。<code class="inline-id">is_temporary</code>对象在最后一个<a class="term" href="#Def1400e870fdcd0b">读锁</a>释放后删除，并且不向L2 offload；临时中转数据与长期<a class="term" href="#Def14f465e0254961">复用</a>缓存可以采用不同策略。</p>
 <p class="caption"><strong>代码 19　</strong>写入完成后才将对象变成读者可见，重复副本可以丢弃</p>
-<figure class="code"><figcaption><span><strong>Python    </strong><a href="https://github.com/LMCache/LMCache/blob/58c11e386d804854608e132aa94712608272ab04/lmcache/v1/distributed/storage_manager.py#L351-L375">LMCache / storage_manager.py    L351–375</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code><span class="cl" data-line="351"><span class="kw">def</span> finish_write(</span>
-<span class="cl" data-line="352">    self,</span>
-<span class="cl" data-line="353">    keys: list[ObjectKey],</span>
-<span class="cl" data-line="354">    l1_owners: dict[ObjectKey, int],</span>
-<span class="cl" data-line="355">) -&gt; <span class="kw">None</span>:</span>
-<span class="cl" data-line="356">    <span class="str">"""</span></span>
-<span class="cl" data-line="357"><span class="str">    Finish writing the objects into the storage manager.</span></span>
+<figure class="code" data-language="python"><figcaption><span><strong>Python    </strong><a href="https://github.com/LMCache/LMCache/blob/58c11e386d804854608e132aa94712608272ab04/lmcache/v1/distributed/storage_manager.py#L351-L375">LMCache / storage_manager.py    L351–375</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code class="language-python"><span class="cl" data-line="351"><span class="tok-keyword">def</span> <span class="tok-function">finish_write</span>(</span>
+<span class="cl" data-line="352">    <span class="tok-type">self</span>,</span>
+<span class="cl" data-line="353">    keys: <span class="tok-type">list</span>[ObjectKey],</span>
+<span class="cl" data-line="354">    l1_owners: <span class="tok-type">dict</span>[ObjectKey, <span class="tok-type">int</span>],</span>
+<span class="cl" data-line="355">) <span class="tok-operator">-&gt;</span> <span class="tok-keyword">None</span>:</span>
+<span class="cl" data-line="356">    <span class="tok-string">"""</span></span>
+<span class="cl" data-line="357"><span class="tok-string">    Finish writing the objects into the storage manager.</span></span>
 <span class="cl" data-line="358"></span>
-<span class="cl" data-line="359"><span class="str">    Admits the objects reserved by :meth:`reserve_write`: each becomes</span></span>
-<span class="cl" data-line="360"><span class="str">    visible to readers unless the key is already resident, in which case</span></span>
-<span class="cl" data-line="361"><span class="str">    the reserved copy is dropped.</span></span>
+<span class="cl" data-line="359"><span class="tok-string">    Admits the objects reserved by :meth:`reserve_write`: each becomes</span></span>
+<span class="cl" data-line="360"><span class="tok-string">    visible to readers unless the key is already resident, in which case</span></span>
+<span class="cl" data-line="361"><span class="tok-string">    the reserved copy is dropped.</span></span>
 <span class="cl" data-line="362"></span>
-<span class="cl" data-line="363"><span class="str">    Args:</span></span>
-<span class="cl" data-line="364"><span class="str">        keys (list[ObjectKey]): List of object keys that have been written.</span></span>
-<span class="cl" data-line="365"><span class="str">        l1_owners: The L1 manager each key was reserved in, built from the</span></span>
-<span class="cl" data-line="366"><span class="str">            reserved objects with :func:`l1_owners_of`.</span></span>
+<span class="cl" data-line="363"><span class="tok-string">    Args:</span></span>
+<span class="cl" data-line="364"><span class="tok-string">        keys (list[ObjectKey]): List of object keys that have been written.</span></span>
+<span class="cl" data-line="365"><span class="tok-string">        l1_owners: The L1 manager each key was reserved in, built from the</span></span>
+<span class="cl" data-line="366"><span class="tok-string">            reserved objects with :func:`l1_owners_of`.</span></span>
 <span class="cl" data-line="367"></span>
-<span class="cl" data-line="368"><span class="str">    Raises:</span></span>
-<span class="cl" data-line="369"><span class="str">        ValueError: ``l1_owners`` omits a key or names an unregistered L1</span></span>
-<span class="cl" data-line="370"><span class="str">            manager.</span></span>
-<span class="cl" data-line="371"><span class="str">    """</span></span>
-<span class="cl" data-line="372">    finish_result: dict[ObjectKey, L1Error] = {}</span>
-<span class="cl" data-line="373">    <span class="kw">for</span> owner, group <span class="kw">in</span> self._group_by_owner(keys, l1_owners).items():</span>
-<span class="cl" data-line="374">        finish_result.update(</span>
-<span class="cl" data-line="375">            self._l1_managers_by_id[owner].finish_write(group, tag=_L1_WRITE_TAG)</span></code></pre></figure>
+<span class="cl" data-line="368"><span class="tok-string">    Raises:</span></span>
+<span class="cl" data-line="369"><span class="tok-string">        ValueError: ``l1_owners`` omits a key or names an unregistered L1</span></span>
+<span class="cl" data-line="370"><span class="tok-string">            manager.</span></span>
+<span class="cl" data-line="371"><span class="tok-string">    """</span></span>
+<span class="cl" data-line="372">    finish_result: <span class="tok-type">dict</span>[ObjectKey, L1Error] <span class="tok-operator">=</span> {}</span>
+<span class="cl" data-line="373">    <span class="tok-keyword">for</span> owner, group <span class="tok-keyword">in</span> <span class="tok-type">self</span><span class="tok-operator">.</span><span class="tok-function">_group_by_owner</span>(keys, l1_owners)<span class="tok-operator">.</span><span class="tok-function">items</span>():</span>
+<span class="cl" data-line="374">        finish_result<span class="tok-operator">.</span><span class="tok-function">update</span>(</span>
+<span class="cl" data-line="375">            <span class="tok-type">self</span><span class="tok-operator">.</span>_l1_managers_by_id[owner]<span class="tok-operator">.</span><span class="tok-function">finish_write</span>(group, tag<span class="tok-operator">=</span>_L1_WRITE_TAG)</span></code></pre></figure>
 <p class="prose"><code class="inline-id">reserve_write</code>只是取得写入位置；<code class="inline-id">finish_write</code>负责<a class="term" href="#Def14d17303ad5e2b"><strong>发布</strong></a>已写好的对象。如果key已存在，预留副本可以被丢弃。<code class="inline-id">l1_owners</code>记录每个key在哪个manager里，不能在跨manager回调时猜测所属池。</p>
 <p class="prose">假设对象K跨两段传输，第一段完成后第二段失败。若第一段到达就把K发布为命中，读者会消费半个对象；正确路径应保持写入未完成状态，再选择补齐、丢弃或重试。缓存命中统计也应依据可读对象，而非已经预留的地址或某个片段完成通知。</p>
 <p class="prose">实际<a class="term" href="#Def146122fa013c3f">DMA</a>结束必须发生在<code class="inline-id">finish_write</code>允许发布之前；<code class="inline-id">finish_write</code>作为管理接口无法替调用者等待所有外部异步写入。读者同样要持有读锁，直到从该对象复制或消费的所有访问结束。释放Python层上下文与GPU复制完成可能发生在不同时间，需要在集成层建立相应事件顺序。</p>
@@ -435,46 +435,46 @@
 <h2><strong>13　预取完成与缓存读锁</strong></h2>
 <p class="prose">LMCache的<code class="inline-id">submit_prefetch_task</code>向L1发起异步<a class="term" href="#Def14001983d4e839">预取</a>，允许的<span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><mfrac><mrow><mi>L</mi><mn>1</mn></mrow><mrow><mi>L</mi><mn>2</mn></mrow></mfrac></math></span>介质与<a class="term" href="#Def14a607f9a7ae09">key</a>分组由PrefetchTaskSpec表达。它返回PrefetchHandle以供查询，不能把返回handle当作所有对象已经到达。底层对象可能在L1已命中，也可能需要从<a class="term" href="#Def1449c44fcbbd54">L2</a>加载，最终结果需要逐对象或逐分组解释。</p>
 <p class="caption"><strong>代码 20　</strong>结果完成后只返回一次；返回None的含义需要结合调用状态</p>
-<figure class="code"><figcaption><span><strong>Python    </strong><a href="https://github.com/LMCache/LMCache/blob/58c11e386d804854608e132aa94712608272ab04/lmcache/v1/distributed/storage_manager.py#L578-L599">LMCache / storage_manager.py    L578–599</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code><span class="cl" data-line="578"><span class="kw">def</span> query_prefetch_status(self, handle: PrefetchHandle) -&gt; PrefetchResult | <span class="kw">None</span>:</span>
-<span class="cl" data-line="579">    <span class="str">"""</span></span>
-<span class="cl" data-line="580"><span class="str">    Query the status of the prefetch task.</span></span>
+<figure class="code" data-language="python"><figcaption><span><strong>Python    </strong><a href="https://github.com/LMCache/LMCache/blob/58c11e386d804854608e132aa94712608272ab04/lmcache/v1/distributed/storage_manager.py#L578-L599">LMCache / storage_manager.py    L578–599</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code class="language-python"><span class="cl" data-line="578"><span class="tok-keyword">def</span> <span class="tok-function">query_prefetch_status</span>(<span class="tok-type">self</span>, handle: PrefetchHandle) <span class="tok-operator">-&gt;</span> PrefetchResult <span class="tok-operator">|</span> <span class="tok-keyword">None</span>:</span>
+<span class="cl" data-line="579">    <span class="tok-string">"""</span></span>
+<span class="cl" data-line="580"><span class="tok-string">    Query the status of the prefetch task.</span></span>
 <span class="cl" data-line="581"></span>
-<span class="cl" data-line="582"><span class="str">    Args:</span></span>
-<span class="cl" data-line="583"><span class="str">        handle (PrefetchHandle): The handle of the prefetch task.</span></span>
+<span class="cl" data-line="582"><span class="tok-string">    Args:</span></span>
+<span class="cl" data-line="583"><span class="tok-string">        handle (PrefetchHandle): The handle of the prefetch task.</span></span>
 <span class="cl" data-line="584"></span>
-<span class="cl" data-line="585"><span class="str">    Returns:</span></span>
-<span class="cl" data-line="586"><span class="str">        The task's result once it has finished, None while it is still</span></span>
-<span class="cl" data-line="587"><span class="str">        in progress.</span></span>
+<span class="cl" data-line="585"><span class="tok-string">    Returns:</span></span>
+<span class="cl" data-line="586"><span class="tok-string">        The task's result once it has finished, None while it is still</span></span>
+<span class="cl" data-line="587"><span class="tok-string">        in progress.</span></span>
 <span class="cl" data-line="588"></span>
-<span class="cl" data-line="589"><span class="str">    Note:</span></span>
-<span class="cl" data-line="590"><span class="str">        Each result is returned once; later calls for the same handle</span></span>
-<span class="cl" data-line="591"><span class="str">        return None.</span></span>
-<span class="cl" data-line="592"><span class="str">    """</span></span>
-<span class="cl" data-line="593">    <span class="kw">if</span> handle.prefetch_request_id == -<span class="fn">1</span>:</span>
-<span class="cl" data-line="594">        <span class="kw">return</span> PrefetchResult(hit_cells=[], l1_hit_cells=[], l2_hit_cells=[])</span>
-<span class="cl" data-line="595">    result = self._prefetch_controller.query_prefetch_result(</span>
-<span class="cl" data-line="596">        handle.prefetch_request_id</span>
+<span class="cl" data-line="589"><span class="tok-string">    Note:</span></span>
+<span class="cl" data-line="590"><span class="tok-string">        Each result is returned once; later calls for the same handle</span></span>
+<span class="cl" data-line="591"><span class="tok-string">        return None.</span></span>
+<span class="cl" data-line="592"><span class="tok-string">    """</span></span>
+<span class="cl" data-line="593">    <span class="tok-keyword">if</span> handle<span class="tok-operator">.</span>prefetch_request_id <span class="tok-operator">==</span> <span class="tok-operator">-</span><span class="tok-number">1</span>:</span>
+<span class="cl" data-line="594">        <span class="tok-keyword">return</span> <span class="tok-function">PrefetchResult</span>(hit_cells<span class="tok-operator">=</span>[], l1_hit_cells<span class="tok-operator">=</span>[], l2_hit_cells<span class="tok-operator">=</span>[])</span>
+<span class="cl" data-line="595">    result <span class="tok-operator">=</span> <span class="tok-type">self</span><span class="tok-operator">.</span>_prefetch_controller<span class="tok-operator">.</span><span class="tok-function">query_prefetch_result</span>(</span>
+<span class="cl" data-line="596">        handle<span class="tok-operator">.</span>prefetch_request_id</span>
 <span class="cl" data-line="597">    )</span>
-<span class="cl" data-line="598">    <span class="kw">if</span> result <span class="kw">is</span> <span class="kw">None</span>:</span>
-<span class="cl" data-line="599">        <span class="kw">return</span> <span class="kw">None</span></span></code></pre></figure>
+<span class="cl" data-line="598">    <span class="tok-keyword">if</span> result <span class="tok-keyword">is</span> <span class="tok-keyword">None</span>:</span>
+<span class="cl" data-line="599">        <span class="tok-keyword">return</span> <span class="tok-keyword">None</span></span></code></pre></figure>
 <p class="prose">正常进行中返回None；同一handle的结果被消费后，后续查询也返回None。因此调用者应保存首次取得的结果，不能把已经消费后的None误判为任务重新进入进行中。</p>
 <p class="prose"><code class="inline-id">wait_prefetch_status</code>会一直等到有结果可查询，或达到超时时限，然后仍通过<a class="term" href="#Def143b7755ef3059">query</a>取得具体结果。结果可取只表示这次预取已经形成报告，并不等于每个请求key都命中。当前代码记录retained keys、L1 hits与L2 hits，指标需要保留这些分母和来源。</p>
 <p class="caption"><strong>代码 21　</strong>消费完成后释放对应对象的读锁数量</p>
-<figure class="code"><figcaption><span><strong>Python    </strong><a href="https://github.com/LMCache/LMCache/blob/58c11e386d804854608e132aa94712608272ab04/lmcache/v1/distributed/storage_manager.py#L512-L526">LMCache / storage_manager.py    L512–526</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code><span class="cl" data-line="512"><span class="kw">def</span> finish_read_prefetched(</span>
-<span class="cl" data-line="513">    self,</span>
-<span class="cl" data-line="514">    keys: list[ObjectKey],</span>
-<span class="cl" data-line="515">    read_locks: int = <span class="fn">1</span>,</span>
-<span class="cl" data-line="516">    l1_owners: dict[ObjectKey, int] | <span class="kw">None</span> = <span class="kw">None</span>,</span>
-<span class="cl" data-line="517">) -&gt; <span class="kw">None</span>:</span>
-<span class="cl" data-line="518">    <span class="str">"""Finish reading prefetched objects.</span></span>
+<figure class="code" data-language="python"><figcaption><span><strong>Python    </strong><a href="https://github.com/LMCache/LMCache/blob/58c11e386d804854608e132aa94712608272ab04/lmcache/v1/distributed/storage_manager.py#L512-L526">LMCache / storage_manager.py    L512–526</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code class="language-python"><span class="cl" data-line="512"><span class="tok-keyword">def</span> <span class="tok-function">finish_read_prefetched</span>(</span>
+<span class="cl" data-line="513">    <span class="tok-type">self</span>,</span>
+<span class="cl" data-line="514">    keys: <span class="tok-type">list</span>[ObjectKey],</span>
+<span class="cl" data-line="515">    read_locks: <span class="tok-type">int</span> <span class="tok-operator">=</span> <span class="tok-number">1</span>,</span>
+<span class="cl" data-line="516">    l1_owners: <span class="tok-type">dict</span>[ObjectKey, <span class="tok-type">int</span>] <span class="tok-operator">|</span> <span class="tok-keyword">None</span> <span class="tok-operator">=</span> <span class="tok-keyword">None</span>,</span>
+<span class="cl" data-line="517">) <span class="tok-operator">-&gt;</span> <span class="tok-keyword">None</span>:</span>
+<span class="cl" data-line="518">    <span class="tok-string">"""Finish reading prefetched objects.</span></span>
 <span class="cl" data-line="519"></span>
-<span class="cl" data-line="520"><span class="str">    Args:</span></span>
-<span class="cl" data-line="521"><span class="str">        keys: Object keys that have been read.</span></span>
-<span class="cl" data-line="522"><span class="str">        read_locks: Read locks to release per key (the whole</span></span>
-<span class="cl" data-line="523"><span class="str">            reservation when releasing a lookup's locks).</span></span>
-<span class="cl" data-line="524"><span class="str">    """</span></span>
-<span class="cl" data-line="525">    finish_result = self._finish_read_objects(keys, read_locks, l1_owners)</span>
-<span class="cl" data-line="526">    successful_keys = [k <span class="kw">for</span> k, e <span class="kw">in</span> finish_result.items() <span class="kw">if</span> e == L1Error.SUCCESS]</span></code></pre></figure>
+<span class="cl" data-line="520"><span class="tok-string">    Args:</span></span>
+<span class="cl" data-line="521"><span class="tok-string">        keys: Object keys that have been read.</span></span>
+<span class="cl" data-line="522"><span class="tok-string">        read_locks: Read locks to release per key (the whole</span></span>
+<span class="cl" data-line="523"><span class="tok-string">            reservation when releasing a lookup's locks).</span></span>
+<span class="cl" data-line="524"><span class="tok-string">    """</span></span>
+<span class="cl" data-line="525">    finish_result <span class="tok-operator">=</span> <span class="tok-type">self</span><span class="tok-operator">.</span><span class="tok-function">_finish_read_objects</span>(keys, read_locks, l1_owners)</span>
+<span class="cl" data-line="526">    successful_keys <span class="tok-operator">=</span> [k <span class="tok-keyword">for</span> k, e <span class="tok-keyword">in</span> finish_result<span class="tok-operator">.</span><span class="tok-function">items</span>() <span class="tok-keyword">if</span> e <span class="tok-operator">==</span> L1Error<span class="tok-operator">.</span>SUCCESS]</span></code></pre></figure>
 <p class="prose"><code class="inline-id">read_locks</code>可表示同一lookup持有的多个读引用，<code class="inline-id">l1_owners</code>定位所属manager。释放数量与原先预留不匹配，可能造成对象长期不可淘汰或过早<a class="term" href="#Def14f465e0254961">复用</a>。</p>
 <p class="prose">假设普通因果缓存分成四个连续块，结果只命中第0、1、3块。第0、1块可以形成可恢复前缀，第3块无法让模型直接跳过缺失的第2块；即使第3块的字节存在，也要根据模型及缓存协议判断后续使用方式。<a class="term" href="#Def14e73cf4a6c83c">SWA</a>、跨层压缩和<a class="term" href="#Def14f7808cc1be12">状态快照</a>采用各自的有效范围规则，不能把任意hit bitmap都压成一个“总命中<a class="term" href="#Def14397a73c4e319">token</a>数”。</p>
 <p class="prose">预取也有容量与带宽成本。如果一次把大量可能用不到的对象搬进L1，会挤掉热点缓存并占用源端<a class="term" href="#Def1400e870fdcd0b"><strong>读锁</strong></a>。合理的ahead距离取决于何时能消费、预取成功概率、目标容量和<span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><mfrac><mrow><mi>I</mi></mrow><mrow><mi>O</mi></mrow></mfrac></math></span>队列；请求取消后仍要退还读锁及临时对象，不能只从前端队列删掉request ID。</p>
@@ -494,31 +494,31 @@
 <h2><strong>15　Dynamo 的缓存感知路由</strong></h2>
 <p class="prose"><a class="term" href="#Def14b3b0ba6257f3">缓存感知路由</a>既要记录各工作进程已缓存哪些前缀，也要估计各进程当前的<strong>负载</strong>。只追求最长命中，可能把所有热门系统提示都挤到一个worker；只追求最空闲，可能不断重算长历史。Dynamo当前源码提供可<a class="term" href="#Def14e9d792b319cc">组合</a>scorer与picker，本节选取scheduler中的reference评分实现做具体算例，实际启用策略还取决于部署配置。</p>
 <p class="caption"><strong>代码 22　</strong>设备、主机、磁盘和共享缓存按不同权重形成信用</p>
-<figure class="code"><figcaption><span><strong>Rust    </strong><a href="https://github.com/ai-dynamo/dynamo/blob/b43cd4a9dee83bce568dc5f157f333685e0f3439/lib/router/scheduler/src/selector/reference.rs#L243-L250">dynamo / reference.rs    L243–250</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code><span class="cl" data-line="243">let effective_overlap_score_credit = weights.overlap_score_credit * overlap_credit_decay;</span>
-<span class="cl" data-line="244">let overlap_credit_blocks = effective_overlap_score_credit * device_overlap_blocks</span>
-<span class="cl" data-line="245">    + kv_router_config.host_cache_hit_weight * cache.host_overlap_blocks</span>
-<span class="cl" data-line="246">    + kv_router_config.disk_cache_hit_weight * cache.disk_overlap_blocks</span>
-<span class="cl" data-line="247">    + shared_overlap_blocks;</span>
-<span class="cl" data-line="248">let decode_cost_blocks = load.decode_cost_blocks;</span>
-<span class="cl" data-line="249">let active_request_cost_blocks =</span>
-<span class="cl" data-line="250">    kv_router_config.decode_active_request_weight * load.active_requests as f64;</span></code></pre></figure>
+<figure class="code" data-language="rust"><figcaption><span><strong>Rust    </strong><a href="https://github.com/ai-dynamo/dynamo/blob/b43cd4a9dee83bce568dc5f157f333685e0f3439/lib/router/scheduler/src/selector/reference.rs#L243-L250">dynamo / reference.rs    L243–250</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code class="language-rust"><span class="cl" data-line="243"><span class="tok-keyword">let</span> effective_overlap_score_credit <span class="tok-operator">=</span> weights.overlap_score_credit <span class="tok-operator">*</span> overlap_credit_decay;</span>
+<span class="cl" data-line="244"><span class="tok-keyword">let</span> overlap_credit_blocks <span class="tok-operator">=</span> effective_overlap_score_credit <span class="tok-operator">*</span> device_overlap_blocks</span>
+<span class="cl" data-line="245">    <span class="tok-operator">+</span> kv_router_config.host_cache_hit_weight <span class="tok-operator">*</span> cache.host_overlap_blocks</span>
+<span class="cl" data-line="246">    <span class="tok-operator">+</span> kv_router_config.disk_cache_hit_weight <span class="tok-operator">*</span> cache.disk_overlap_blocks</span>
+<span class="cl" data-line="247">    <span class="tok-operator">+</span> shared_overlap_blocks;</span>
+<span class="cl" data-line="248"><span class="tok-keyword">let</span> decode_cost_blocks <span class="tok-operator">=</span> load.decode_cost_blocks;</span>
+<span class="cl" data-line="249"><span class="tok-keyword">let</span> active_request_cost_blocks <span class="tok-operator">=</span></span>
+<span class="cl" data-line="250">    kv_router_config.decode_active_request_weight <span class="tok-operator">*</span> load.active_requests <span class="tok-keyword">as</span> <span class="tok-type">f64</span>;</span></code></pre></figure>
 <p class="prose"><code class="inline-id">effective_overlap_score_credit</code>包含设备命中信用衰减；host和disk使用各自权重，shared只计指定本地前缀以外的匹配。各输入的区间含义来自上游cache snapshot，不能把多个<a class="term" href="#Def146b4ca1a43b48">重叠</a>来源的命中<a class="term" href="#Def14397a73c4e319">token</a>未经处理直接相加。</p>
 <p class="caption"><strong>代码 23　</strong>扣除缓存信用后的prefill负载，与decode及活跃请求成本相加</p>
-<figure class="code"><figcaption><span><strong>Rust    </strong><a href="https://github.com/ai-dynamo/dynamo/blob/b43cd4a9dee83bce568dc5f157f333685e0f3439/lib/router/scheduler/src/selector/reference.rs#L283-L297">dynamo / reference.rs    L283–297</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code><span class="cl" data-line="283">let raw_prefill_tokens = if context.tracks_prefill_tokens() {</span>
-<span class="cl" data-line="284">    if load.available {</span>
-<span class="cl" data-line="285">        let cached_tokens = cache.estimated_cached_tokens;</span>
-<span class="cl" data-line="286">        let uncached_tokens = context.isl_tokens().saturating_sub(cached_tokens);</span>
-<span class="cl" data-line="287">        (load.active_prefill_tokens + uncached_tokens).saturating_add(cached_tokens)</span>
-<span class="cl" data-line="288">    } else {</span>
-<span class="cl" data-line="289">        context.isl_tokens()</span>
+<figure class="code" data-language="rust"><figcaption><span><strong>Rust    </strong><a href="https://github.com/ai-dynamo/dynamo/blob/b43cd4a9dee83bce568dc5f157f333685e0f3439/lib/router/scheduler/src/selector/reference.rs#L283-L297">dynamo / reference.rs    L283–297</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code class="language-rust"><span class="cl" data-line="283"><span class="tok-keyword">let</span> raw_prefill_tokens <span class="tok-operator">=</span> <span class="tok-keyword">if</span> context.<span class="tok-function">tracks_prefill_tokens</span>() {</span>
+<span class="cl" data-line="284">    <span class="tok-keyword">if</span> load.available {</span>
+<span class="cl" data-line="285">        <span class="tok-keyword">let</span> cached_tokens <span class="tok-operator">=</span> cache.estimated_cached_tokens;</span>
+<span class="cl" data-line="286">        <span class="tok-keyword">let</span> uncached_tokens <span class="tok-operator">=</span> context.<span class="tok-function">isl_tokens</span>().<span class="tok-function">saturating_sub</span>(cached_tokens);</span>
+<span class="cl" data-line="287">        (load.active_prefill_tokens <span class="tok-operator">+</span> uncached_tokens).<span class="tok-function">saturating_add</span>(cached_tokens)</span>
+<span class="cl" data-line="288">    } <span class="tok-keyword">else</span> {</span>
+<span class="cl" data-line="289">        context.<span class="tok-function">isl_tokens</span>()</span>
 <span class="cl" data-line="290">    }</span>
-<span class="cl" data-line="291">} else {</span>
-<span class="cl" data-line="292">    0</span>
+<span class="cl" data-line="291">} <span class="tok-keyword">else</span> {</span>
+<span class="cl" data-line="292">    <span class="tok-number">0</span></span>
 <span class="cl" data-line="293">};</span>
-<span class="cl" data-line="294">let raw_prefill_blocks = raw_prefill_tokens as f64 / context.block_size() as f64;</span>
-<span class="cl" data-line="295">let adjusted_prefill_blocks = (raw_prefill_blocks - overlap_credit_blocks).max(0.0);</span>
-<span class="cl" data-line="296">let prefill_cost_blocks = weights.prefill_load_scale * adjusted_prefill_blocks;</span>
-<span class="cl" data-line="297">let logit = prefill_cost_blocks + decode_cost_blocks + active_request_cost_blocks;</span></code></pre></figure>
+<span class="cl" data-line="294"><span class="tok-keyword">let</span> raw_prefill_blocks <span class="tok-operator">=</span> raw_prefill_tokens <span class="tok-keyword">as</span> <span class="tok-type">f64</span> <span class="tok-operator">/</span> context.<span class="tok-function">block_size</span>() <span class="tok-keyword">as</span> <span class="tok-type">f64</span>;</span>
+<span class="cl" data-line="295"><span class="tok-keyword">let</span> adjusted_prefill_blocks <span class="tok-operator">=</span> (raw_prefill_blocks <span class="tok-operator">-</span> overlap_credit_blocks).<span class="tok-function">max</span>(<span class="tok-number">0.0</span>);</span>
+<span class="cl" data-line="296"><span class="tok-keyword">let</span> prefill_cost_blocks <span class="tok-operator">=</span> weights.prefill_load_scale <span class="tok-operator">*</span> adjusted_prefill_blocks;</span>
+<span class="cl" data-line="297"><span class="tok-keyword">let</span> logit <span class="tok-operator">=</span> prefill_cost_blocks <span class="tok-operator">+</span> decode_cost_blocks <span class="tok-operator">+</span> active_request_cost_blocks;</span></code></pre></figure>
 <p class="prose"><code class="inline-id">raw_prefill_tokens</code>同时包含现有<a class="term" href="#Def140247674f810d">prefill</a>负载和本请求输入；在这段可用负载分支中，uncached与cached最终合回完整输入，再通过<code class="inline-id">overlap_credit</code>扣减。这个score按块归一化，不能直接当作预测毫秒值。</p>
 <p class="eq"><span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><mtext>J</mtext><mtext> = </mtext><mtext>λ</mtext><mtext>max</mtext><mtext>(</mtext><mtext>R</mtext><mtext>-</mtext><mtext>K</mtext><mtext>,</mtext><mtext>0</mtext><mtext>)</mtext><mtext> + </mtext><mtext>D</mtext><mtext> + </mtext><mtext>w</mtext><mtext>N</mtext></math></span></p>
 <p class="prose">在这条分支中，R为原始prefill块负载，K为加权缓存信用，λ是<code class="inline-id">prefill_load_scale</code>，D为预计<a class="term" href="#Def14f28fe0b0f9e5">decode</a>块成本，wN为活跃请求项。教学配置取<span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><mi mathvariant="normal">b</mi><mi mathvariant="normal">l</mi><mi mathvariant="normal">o</mi><mi mathvariant="normal">c</mi><mi mathvariant="normal">k</mi><mo>=</mo><mn>16</mn></math></span>、输入1024个token、<span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><mi>λ</mi><mo>=</mo><mn>1</mn></math></span>、<span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><mi>w</mi><mo>=</mo><mn>0</mn></math></span>。W1正在prefill2048个token，本请求全部64块在设备命中；W2无prefill积压，仅设备命中16块，decode成本分别为20和10。</p>
@@ -532,16 +532,16 @@
 <h2><strong>16　缓存事件与 worker 确认</strong></h2>
 <p class="prose">路由器通常维护缓存索引的副本，worker通过创建、<strong>驱逐</strong>或重置事件更新它。事件传输存在延迟，worker也可能在路由选定后驱逐对象。Dynamo inputs.rs第505—508行明确指出snapshot在回调期间稳定，但可能落后于引擎状态；稳定快照只保证本次评分所见一致，无法保证远端对象永远存在。</p>
 <p class="caption"><strong>代码 24　</strong>事件游标区分首次、连续、缺口与旧事件</p>
-<figure class="code"><figcaption><span><strong>Rust    </strong><a href="https://github.com/ai-dynamo/dynamo/blob/b43cd4a9dee83bce568dc5f157f333685e0f3439/lib/kv-events/src/cursor.rs#L30-L43">dynamo / cursor.rs    L30–43</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code><span class="cl" data-line="30">pub fn observe(self, got: u64) -&gt; CursorObservation {</span>
-<span class="cl" data-line="31">    match self {</span>
-<span class="cl" data-line="32">        CursorState::Initial =&gt; CursorObservation::Initial { got },</span>
-<span class="cl" data-line="33">        CursorState::Live(last) if got &lt;= last =&gt; CursorObservation::Stale {</span>
+<figure class="code" data-language="rust"><figcaption><span><strong>Rust    </strong><a href="https://github.com/ai-dynamo/dynamo/blob/b43cd4a9dee83bce568dc5f157f333685e0f3439/lib/kv-events/src/cursor.rs#L30-L43">dynamo / cursor.rs    L30–43</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code class="language-rust"><span class="cl" data-line="30"><span class="tok-keyword">pub</span> <span class="tok-keyword">fn</span> <span class="tok-function">observe</span>(<span class="tok-type">self</span>, got: <span class="tok-type">u64</span>) -&gt; <span class="tok-type">CursorObservation</span> {</span>
+<span class="cl" data-line="31">    <span class="tok-keyword">match</span> <span class="tok-type">self</span> {</span>
+<span class="cl" data-line="32">        CursorState::Initial <span class="tok-operator">=&gt;</span> CursorObservation::Initial { got },</span>
+<span class="cl" data-line="33">        CursorState::<span class="tok-function">Live</span>(last) <span class="tok-keyword">if</span> got <span class="tok-operator">&lt;=</span> last <span class="tok-operator">=&gt;</span> CursorObservation::Stale {</span>
 <span class="cl" data-line="34">            got,</span>
-<span class="cl" data-line="35">            last_applied: Some(last),</span>
+<span class="cl" data-line="35">            last_applied: <span class="tok-function">Some</span>(last),</span>
 <span class="cl" data-line="36">        },</span>
-<span class="cl" data-line="37">        CursorState::Live(last) if got == last + 1 =&gt; CursorObservation::Contiguous { got },</span>
-<span class="cl" data-line="38">        CursorState::Live(last) =&gt; CursorObservation::Gap {</span>
-<span class="cl" data-line="39">            expected: last + 1,</span>
+<span class="cl" data-line="37">        CursorState::<span class="tok-function">Live</span>(last) <span class="tok-keyword">if</span> got <span class="tok-operator">==</span> last <span class="tok-operator">+</span> <span class="tok-number">1</span> <span class="tok-operator">=&gt;</span> CursorObservation::Contiguous { got },</span>
+<span class="cl" data-line="38">        CursorState::<span class="tok-function">Live</span>(last) <span class="tok-operator">=&gt;</span> CursorObservation::Gap {</span>
+<span class="cl" data-line="39">            expected: <span class="tok-type">last</span> <span class="tok-operator">+</span> <span class="tok-number">1</span>,</span>
 <span class="cl" data-line="40">            got,</span>
 <span class="cl" data-line="41">        },</span>
 <span class="cl" data-line="42">    }</span>
@@ -554,27 +554,27 @@
 <a class="back" href="#idx-l14-s016">↑ 返回知识点目录</a></section><section class="topic" id="l14-s017">
 <h2><strong>17　故障恢复中的在途读写</strong></h2>
 <p class="caption"><strong>代码 25　</strong>完成句柄可释放，进行中句柄保留，失败时还须确认在途访问已结束</p>
-<figure class="code"><figcaption><span><strong>Python    </strong><a href="https://github.com/vllm-project/vllm/blob/93eeae695f5178eddff728fe50eb18e30c90c33a/vllm/distributed/kv_transfer/kv_connector/v1/nixl/base_worker.py#L3492-L3512">vllm / base_worker.py    L3492–3512</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code><span class="cl" data-line="3492"><span class="kw">for</span> req_id, handles <span class="kw">in</span> list(transfers.items()):</span>
-<span class="cl" data-line="3493">    in_progress = []</span>
-<span class="cl" data-line="3494">    <span class="kw">for</span> handle <span class="kw">in</span> handles:</span>
-<span class="cl" data-line="3495">        <span class="kw">try</span>:</span>
-<span class="cl" data-line="3496">            xfer_state = self.nixl_wrapper.check_xfer_state(handle)</span>
-<span class="cl" data-line="3497">            <span class="kw">if</span> xfer_state == <span class="str">"DONE"</span>:</span>
-<span class="cl" data-line="3498">                res = self.nixl_wrapper.get_xfer_telemetry(handle)</span>
-<span class="cl" data-line="3499">                self.xfer_stats.record_transfer(res)</span>
-<span class="cl" data-line="3500">                self.nixl_wrapper.release_xfer_handle(handle)</span>
-<span class="cl" data-line="3501">            <span class="kw">elif</span> xfer_state == <span class="str">"PROC"</span>:</span>
-<span class="cl" data-line="3502">                in_progress.append(handle)</span>
-<span class="cl" data-line="3503">            <span class="kw">else</span>:</span>
-<span class="cl" data-line="3504">                self._log_failure(</span>
-<span class="cl" data-line="3505">                    failure_type=<span class="str">"transfer_failed"</span>,</span>
-<span class="cl" data-line="3506">                    req_id=req_id,</span>
-<span class="cl" data-line="3507">                    xfer_state=xfer_state,</span>
+<figure class="code" data-language="python"><figcaption><span><strong>Python    </strong><a href="https://github.com/vllm-project/vllm/blob/93eeae695f5178eddff728fe50eb18e30c90c33a/vllm/distributed/kv_transfer/kv_connector/v1/nixl/base_worker.py#L3492-L3512">vllm / base_worker.py    L3492–3512</a></span><button type="button" data-copy="">复制代码</button></figcaption><pre><code class="language-python"><span class="cl" data-line="3492"><span class="tok-keyword">for</span> req_id, handles <span class="tok-keyword">in</span> <span class="tok-function">list</span>(transfers<span class="tok-operator">.</span><span class="tok-function">items</span>()):</span>
+<span class="cl" data-line="3493">    in_progress <span class="tok-operator">=</span> []</span>
+<span class="cl" data-line="3494">    <span class="tok-keyword">for</span> handle <span class="tok-keyword">in</span> handles:</span>
+<span class="cl" data-line="3495">        <span class="tok-keyword">try</span>:</span>
+<span class="cl" data-line="3496">            xfer_state <span class="tok-operator">=</span> <span class="tok-type">self</span><span class="tok-operator">.</span>nixl_wrapper<span class="tok-operator">.</span><span class="tok-function">check_xfer_state</span>(handle)</span>
+<span class="cl" data-line="3497">            <span class="tok-keyword">if</span> xfer_state <span class="tok-operator">==</span> <span class="tok-string">"DONE"</span>:</span>
+<span class="cl" data-line="3498">                res <span class="tok-operator">=</span> <span class="tok-type">self</span><span class="tok-operator">.</span>nixl_wrapper<span class="tok-operator">.</span><span class="tok-function">get_xfer_telemetry</span>(handle)</span>
+<span class="cl" data-line="3499">                <span class="tok-type">self</span><span class="tok-operator">.</span>xfer_stats<span class="tok-operator">.</span><span class="tok-function">record_transfer</span>(res)</span>
+<span class="cl" data-line="3500">                <span class="tok-type">self</span><span class="tok-operator">.</span>nixl_wrapper<span class="tok-operator">.</span><span class="tok-function">release_xfer_handle</span>(handle)</span>
+<span class="cl" data-line="3501">            <span class="tok-keyword">elif</span> xfer_state <span class="tok-operator">==</span> <span class="tok-string">"PROC"</span>:</span>
+<span class="cl" data-line="3502">                in_progress<span class="tok-operator">.</span><span class="tok-function">append</span>(handle)</span>
+<span class="cl" data-line="3503">            <span class="tok-keyword">else</span>:</span>
+<span class="cl" data-line="3504">                <span class="tok-type">self</span><span class="tok-operator">.</span><span class="tok-function">_log_failure</span>(</span>
+<span class="cl" data-line="3505">                    failure_type<span class="tok-operator">=</span><span class="tok-string">"transfer_failed"</span>,</span>
+<span class="cl" data-line="3506">                    req_id<span class="tok-operator">=</span>req_id,</span>
+<span class="cl" data-line="3507">                    xfer_state<span class="tok-operator">=</span>xfer_state,</span>
 <span class="cl" data-line="3508">                )</span>
-<span class="cl" data-line="3509">                <span class="kw">if</span> <span class="kw">not</span> self._handle_failed_transfer(</span>
+<span class="cl" data-line="3509">                <span class="tok-keyword">if</span> <span class="tok-keyword">not</span> <span class="tok-type">self</span><span class="tok-operator">.</span><span class="tok-function">_handle_failed_transfer</span>(</span>
 <span class="cl" data-line="3510">                    req_id, handle, failed_req_ids</span>
 <span class="cl" data-line="3511">                ):</span>
-<span class="cl" data-line="3512">                    in_progress.append(handle)</span></code></pre></figure>
+<span class="cl" data-line="3512">                    in_progress<span class="tok-operator">.</span><span class="tok-function">append</span>(handle)</span></code></pre></figure>
 <p class="prose">同一请求可以有多个transfer handle；其中一个失败，其他<strong>句柄</strong>仍可能在读写。failed请求集合与done请求集合含义不同，不能用某个<a class="term" href="#Def143770e3485f96">分片</a>错误代替全部操作已终止。</p>
 <p class="prose">四个故障点及恢复时必须保留的条件</p>
 <div class="tablewrap"><table><thead><tr><th><strong>事件</strong></th><th><strong>业务处理</strong></th><th><strong>存储与状态处理</strong></th></tr></thead><tbody><tr><td>源worker失联</td><td>停止等待无期限的新结果，选择替代副本或重算</td><td>目标未完整恢复的范围不能<a class="term" href="#Def14d17303ad5e2b">发布</a>；旧写是否仍可能到达要单独确认</td></tr><tr><td>目标请求取消</td><td>停止后续输出和新计算</td><td>通知源端结束保留；<a class="term" href="#Def1473223db16fe4">在途</a> <a class="term" href="#Def146122fa013c3f">DMA</a> 完成、<a class="term" href="#Def1400e870fdcd0b">读锁</a>释放后再回收<a class="term" href="#Def14b39504bb5cc8">页</a></td></tr><tr><td>旧通知晚到或重试重名</td><td>按请求尝试与注册代数验证通知</td><td>旧消息无法释放新尝试的页；隔离仍可能被旧DMA写入的范围</td></tr><tr><td><a class="term" href="#Def14f28fe0b0f9e5">decode</a>实例重启</td><td>恢复历史并重新建立生成状态</td><td>恢复模型特有状态、<a class="term" href="#Def14397a73c4e319">token</a>进度、采样/grammar状态及必要<a class="term" href="#Def14bba03723d890">重放</a>边界</td></tr></tbody></table></div>
