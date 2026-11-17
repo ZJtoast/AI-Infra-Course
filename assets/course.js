@@ -323,3 +323,35 @@ document.addEventListener("click", async e => {
   document.addEventListener("scroll",queue,true);
   window.visualViewport?.addEventListener("resize",queue);
 })();
+
+document.querySelectorAll('.state-deck').forEach(deck=>{
+  const pages=Array.from(deck.children).filter(el=>el.tagName==='DETAILS');
+  if(!pages.length)return;
+  const tabs=document.createElement('div');
+  tabs.className='state-tabs'; tabs.setAttribute('role','tablist');
+  tabs.setAttribute('aria-label',deck.querySelector('h4').textContent);
+  const buttons=pages.map((page,i)=>{
+    const button=document.createElement('button');
+    button.type='button';button.id=page.id+'-tab';
+    button.setAttribute('role','tab');button.setAttribute('aria-controls',page.id);
+    button.textContent=page.querySelector('summary').textContent;
+    button.addEventListener('click',()=>pick(i,false));
+    button.addEventListener('keydown',event=>{
+      const n=pages.length;
+      const next={ArrowLeft:(i+n-1)%n,ArrowRight:(i+1)%n,Home:0,End:n-1}[event.key];
+      if(next!==undefined){event.preventDefault();pick(next,true);}
+    });
+    tabs.append(button);return button;
+  });
+  function pick(index,focus){
+    pages.forEach((page,i)=>{
+      page.open=i===index;
+      page.hidden=i!==index;
+      buttons[i].tabIndex=i===index?0:-1;
+      buttons[i].setAttribute('aria-selected',String(i===index));
+    });
+    if(focus)buttons[index].focus();
+  }
+  for(const page of pages){page.removeAttribute('name');page.setAttribute('role','tabpanel');page.setAttribute('aria-labelledby',page.id+'-tab');}
+  deck.insertBefore(tabs,pages[0]);deck.dataset.tabs='';pick(0,false);
+});
