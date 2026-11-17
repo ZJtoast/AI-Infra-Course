@@ -355,3 +355,96 @@ document.querySelectorAll('.state-deck').forEach(deck=>{
   for(const page of pages){page.removeAttribute('name');page.setAttribute('role','tabpanel');page.setAttribute('aria-labelledby',page.id+'-tab');}
   deck.insertBefore(tabs,pages[0]);deck.dataset.tabs='';pick(0,false);
 });
+
+/* Two query rows by two keys per tile. Keep the display and the recurrence on the same operands. */
+(() => {
+ const Q=[[1,0],[0,1],[1,1],[-1,1]], K=[[0,0],[1,0],[0,1],[1,1]], V=[[2,0],[0,4],[2,2],[4,-2]];
+ const S=Q.map(q=>K.map(k=>(q[0]*k[0]+q[1]*k[1])/Math.sqrt(2)));
+ const fmt=n=>n===-Infinity?'−∞':Number(n.toFixed(2)).toString().replace('-','−');
+ const div=(cls,txt)=>{const el=document.createElement('div');el.className=cls;if(txt!==undefined)el.textContent=txt;return el;};
+ function rowStep(row,block,causal,old){
+   const keys=[2*block,2*block+1];
+   const scores=keys.map(j=>causal&&j>row?-Infinity:S[row][j]);
+   const m=Math.max(old.m,...scores);
+   const alpha=old.z?Math.exp(old.m-m):0;
+   const weights=scores.map(s=>s===-Infinity?0:Math.exp(s-m));
+   const local=[0,1].map(d=>weights.reduce((u,w,t)=>u+w*V[keys[t]][d],0));
+   return {m,alpha,weights,local,z:alpha*old.z+weights[0]+weights[1],u:local.map((v,d)=>v+alpha*old.u[d])};
+ }
+ function matrix(title,values,rows,cols,style){
+   const figure=div('mx-matrix');figure.append(div('mx-label',title));
+   const table=document.createElement('table');table.setAttribute('aria-label',title);
+   const header=table.createTHead().insertRow();
+   header.append(document.createElement('td'));
+   function head(parent,name,scope){const th=document.createElement('th');th.scope=scope;th.textContent=name;parent.append(th);}
+   cols.forEach(c=>head(header,c,'col'));const body=table.createTBody();
+   values.forEach((vals,r)=>{const tr=body.insertRow();head(tr,rows[r],'row');vals.forEach((v,c)=>{
+     const cell=tr.insertCell();cell.className=style?.(r,c)||'';cell.textContent=typeof v==='number'?fmt(v):v;
+   });});figure.append(table);return figure;
+ }
+ for(const lab of document.querySelectorAll('[data-matrix-lab]')){
+   const pick=lab.querySelectorAll('button[data-tile]'),mask=lab.querySelector('input'),slot=lab.querySelector('.mx-output');
+   let qr=1,kb=1,selected=null;
+   function render(){
+     const ii=[qr*2,qr*2+1],jj=[kb*2,kb*2+1],causal=mask.checked;
+     const init=()=>({m:-Infinity,z:0,u:[0,0]});
+     const old=ii.map(i=>kb?rowStep(i,0,causal,init()):init());
+     const cur=ii.map((i,r)=>rowStep(i,kb,causal,old[r]));
+     for(const b of pick){const on=b.dataset.tile===String(2*qr+kb);b.setAttribute('aria-pressed',String(on));}
+     const coord=x=>x.map(String),all=[0,1,2,3],d=['d₀','d₁'],out=['v₀','v₁'];
+     const inside=(r,c)=>ii.includes(r)&&jj.includes(c);
+     const section=(title,...children)=>{const e=div('mx-section');e.append(div('mx-subtitle',title));
+         const operands=div('mx-operands');operands.append(...children);e.append(operands);return e;};
+     const symbol=s=>div('mx-symbol',s);
+     const sview=S.map((row,r)=>row.map((v,c)=>causal&&c>r?'屏蔽':(!inside(r,c)&&!(ii.includes(r)&&c<2*kb)?'·':v)));
+     const inputs=section('从全矩阵取出这两行 Q 和两行 K',
+       matrix('Q · query × 通道',Q,coord(all),d,(r,c)=>ii.includes(r)?'mx-q':''),
+       symbol('×'),matrix('Kᵀ · 通道 × key',[K.map(k=>k[0]),K.map(k=>k[1])],d,coord(all),(r,c)=>jj.includes(c)?'mx-k':''),
+       symbol('→'),matrix('S · 缩放点积',sview,coord(all),coord(all),(r,c)=>causal&&c>r?'mx-mask':inside(r,c)?'mx-now':ii.includes(r)&&c<2*kb?'mx-old':''));
+     const mats=inputs.querySelectorAll('table');
+     for(let r=0;r<4;r++)for(let c=0;c<4;c++){
+       const cell=mats[2].tBodies[0].rows[r].cells[c+1],b=document.createElement('button');
+       const value=cell.textContent;b.type='button';b.className='mx-point';b.textContent=value;b.dataset.coordinate=r+','+c;
+       b.setAttribute('aria-label','追踪 query '+r+' 与 key '+c);
+       const on=selected&&selected[0]===r&&selected[1]===c;b.setAttribute('aria-pressed',String(Boolean(on)));
+       b.addEventListener('click',()=>{
+         qr=Math.floor(r/2);kb=Math.floor(c/2);selected=[r,c];render();
+         slot.querySelector('[data-coordinate="'+r+','+c+'"]').focus({preventScroll:true});
+       });cell.replaceChildren(b);
+     }
+     let trace;
+     if(selected){
+       const [r,c]=selected;
+       for(let h=0;h<2;h++){
+         mats[0].tBodies[0].rows[r].cells[h+1].classList.add('mx-outline');
+         mats[1].tBodies[0].rows[h].cells[c+1].classList.add('mx-outline');
+       }
+       trace=div('mx-trace',causal&&c>r?
+        '追踪格 ('+r+', '+c+')：key 在这条 query 的未来，本格被屏蔽，V 的第 '+c+' 行对这个输出没有贡献。':
+        '追踪格 ('+r+', '+c+')：固定 Q 的第 '+r+' 行和 Kᵀ 的第 '+c+' 列。分数为 ('+Q[r][0]+' × '+K[c][0]+' + '+Q[r][1]+' × '+K[c][1]+') / √2 = '+fmt(S[r][c])+'。此格的权重随后乘 V 的第 '+c+' 行。');
+     }else trace=div('mx-trace','点选 S 中任意一格，可追踪它对应的 Q 行、Kᵀ 列和 V 行。');
+     const pv=section('权重沿 key 列，和 V 的相同行号相乘',
+       matrix('E · 当前基准下的指数权重',cur.map(v=>v.weights),coord(ii),coord(jj),(r,c)=>causal&&jj[c]>ii[r]?'mx-mask':'mx-now'),
+       symbol('×'),matrix('V · 本块的两行',jj.map(j=>V[j]),coord(jj),out,()=> 'mx-k'),
+       symbol('='),matrix('E V · 本块分子贡献',cur.map(v=>v.local),coord(ii),out,()=> 'mx-q'));
+     if(selected){
+       const [r,c]=selected,t=pv.querySelectorAll('table');
+       t[0].tBodies[0].rows[r%2].cells[1+c%2].classList.add('mx-outline');
+       for(let d=0;d<2;d++)t[1].tBodies[0].rows[c%2].cells[1+d].classList.add('mx-outline');
+     }
+     const state=section('换到同一基准后，累加这两行',
+       matrix('旧状态',old.map(o=>[o.m,o.z,...o.u]),coord(ii),['m','z','U₀','U₁'],()=> 'mx-old'),
+       symbol('→'),matrix('旧项倍率',cur.map(o=>[o.alpha]),coord(ii),['α'],()=> 'mx-now'),
+       symbol('→'),matrix('合并后',cur.map(o=>[o.m,o.z,...o.u]),coord(ii),['m','z','U₀','U₁'],()=> 'mx-q'));
+     const last=section(kb?'该行块已遍历全部 key，写回 O':'只处理了第一列块，目前为部分输出',
+       matrix(kb?'最终输出 O':'当前 U / z',cur.map(s=>s.u.map(v=>s.z?v/s.z:'未定义')),coord(ii),out,()=> 'mx-q'));
+     const note=div('mx-explain',cur.every(s=>s.weights.every(v=>v===0))?'这个分数块全部落在因果边界外，E 为零，已有分母和分子原样传到下一步。':
+       '取每行新最大值 m 后，旧分母与旧分子同乘 α。加上 E 的行和得到新分母，加上矩阵积 E V 得到新分子。');
+     slot.replaceChildren(inputs,trace,pv,state,note,last);
+     lab.querySelector('.mx-live').textContent='正在查看 query '+ii.join('、')+'，key '+jj.join('、')+(causal?'，因果掩码已开启':'，全部位置可见');
+   }
+   pick.forEach(b=>b.addEventListener('click',()=>{const tile=Number(b.dataset.tile);qr=Math.floor(tile/2);kb=tile%2;selected=null;render();}));
+   mask.addEventListener('change',render);render();
+   lab.querySelector('.mx-controls').hidden=false;
+ }
+})();
