@@ -4639,7 +4639,19 @@ for each KV tile j:
             basis, mass ← b, old + sum(w)
         persist the updated row states
 ```
-]]></listing>
+]]><annotations>
+<line n="1">初始化每行的指数基准、分母和输出</line>
+<line n="2">外层遍历历史 KV 块</line>
+<line n="3">将当前 K、V 搬入片上存储</line>
+<line n="4">让可见的各个 query 行块依次复用它</line>
+<line n="5">只对允许访问的坐标计算缩放点积</line>
+<line n="6">跳过没有有效分数的行</line>
+<line n="7">用新旧最大值确定共同基准，并计算块内指数</line>
+<line n="8">把旧分母换算到新基准</line>
+<line n="9">用两部分分子的和除以新分母</line>
+<line n="10">保存新的基准和分母供下一块使用</line>
+<line n="11">把本轮的行基准、分母和输出保存下来，下一个 KV 块从这里继续累积。</line>
+</annotations></listing>
 <p class="prose">伪代码<a class="line-ref" href="#l04-s901-code-8" aria-expanded="false" data-file="教学伪代码" data-comment="//" data-rows="[[1,&quot;basis[i], mass[i], out[i] ← −∞, 0, 0&quot;,&quot;初始化每行的指数基准、分母和输出&quot;],[2,&quot;for each KV tile j:&quot;,&quot;外层遍历历史 KV 块&quot;],[3,&quot;    stage K[j], V[j] on chip&quot;,&quot;将当前 K、V 搬入片上存储&quot;],[4,&quot;    for each visible query tile i:&quot;,&quot;让可见的各个 query 行块依次复用它&quot;],[5,&quot;        s ← masked scaled dot(Q[i], K[j])&quot;,&quot;只对允许访问的坐标计算缩放点积&quot;]]">第 1–5 行</a>决定谁<a class="term" href="#Def04f465e0254961">复用</a>谁。外层的 j 选历史位置，内层的 i 选 query 行。把<a class="example-ref" href="#ex-l04-s901-1" aria-expanded="false" data-example="三个分数为 0、0、ln 2，值为 2、4、9。前两条的权重相同，局部输出是 3。全行权重之比为 1∶1∶2，加权输出为 (2+4+18)/4=6。">开头的三条记录</a>分成前二、后一两块，先搬入前两条。<a class="line-ref" href="#l04-s901-code-8" aria-expanded="false" data-file="教学伪代码" data-comment="//" data-rows="[[6,&quot;        for each row with at least one valid score:&quot;,&quot;跳过没有有效分数的行&quot;],[7,&quot;            b ← max(basis, max_valid(s)); w ← exp(s_valid − b)&quot;,&quot;用新旧最大值确定共同基准，并计算块内指数&quot;],[8,&quot;            old ← exp(basis − b) × mass&quot;,&quot;把旧分母换算到新基准&quot;],[9,&quot;            out ← (old × out + w @ V_valid) / (old + sum(w))&quot;,&quot;用两部分分子的和除以新分母&quot;],[10,&quot;            basis, mass ← b, old + sum(w)&quot;,&quot;保存新的基准和分母供下一块使用&quot;]]">第 6–10 行</a>对一行求最大值 0，得到权重 <span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><mn>1,1</mn></math></span>。首轮尚无历史位置，旧分母为零，故 <span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><mi>z</mi><mo>=</mo><mn>2</mn></math></span>、<span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><mi>o</mi><mo>=</mo><mo>(</mo><mn>2</mn><mo>+</mo><mn>4</mn><mo>)</mo><mo>/</mo><mn>2</mn><mo>=</mo><mn>3</mn></math></span>。存下 <span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><mo>(</mo><mi>m</mi><mo>,</mo><mi>z</mi><mo>,</mo><mi>o</mi><mo>)</mo><mo>=</mo><mo>(</mo><mn>0,2</mn><mo>,</mo><mn>3</mn><mo>)</mo></math></span> 后，这两个分数就可以丢弃。</p>
 <p class="prose">第二块把参考分数抬到 <span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><mi mathvariant="normal">l</mi><mi mathvariant="normal">n</mi><mn>2</mn></math></span>。此时“权重 1”代表原来的两倍，所以旧分母要乘 <span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><msup><mrow><mi>e</mi></mrow><mrow><mn>0</mn><mo>−</mo><mi mathvariant="normal">l</mi><mi mathvariant="normal">n</mi><mn>2</mn></mrow></msup><mo>=</mo><mn>1</mn><mo>/</mo><mn>2</mn></math></span>，从 2 变成 1。旧输出 3 是平均值，用新单位表示的旧分子为 <span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><mn>1</mn><mo>×</mo><mn>3</mn><mo>=</mo><mn>3</mn></math></span>。新位置贡献分母 1、分子 9，合起来 <span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><mi>z</mi><mo>=</mo><mn>2</mn></math></span>、<span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><mi>o</mi><mo>=</mo><mo>(</mo><mn>3</mn><mo>+</mo><mn>9</mn><mo>)</mo><mo>/</mo><mn>2</mn><mo>=</mo><mn>6</mn></math></span>。这正是代码中 old × out 的来历。若把两个块的局部输出 3 和 9 平均，本例恰巧也得 6；第三个分数若改成 <span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><mi mathvariant="normal">l</mi><mi mathvariant="normal">n</mi><mn>4</mn></math></span>，正确结果变为 <span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><mo>(</mo><mn>2</mn><mo>+</mo><mn>4</mn><mo>+</mo><mn>36</mn><mo>)</mo><mo>/</mo><mn>6</mn><mo>=</mo><mn>7</mn></math></span>，等权平均仍是 6。</p>
 <p class="prose">第一版前向按 KV 块区分首轮与末轮</p>
@@ -4753,7 +4765,19 @@ parallel for (batch, head, query_tile):
         b ← b_next
     write O = U / z and LSE = b + log(z) for nonempty rows
 ```
-]]></listing>
+]]><annotations>
+<line n="1">按请求、头和 query 行块分配并行工作</line>
+<line n="2">载入本工作块负责的 query 行</line>
+<line n="3">逐行初始化基准、分母和输出分子</line>
+<line n="4">遍历这些行可见的历史块</line>
+<line n="5">若当前块对该行全部不可见，就保留旧基准、分母和输出分子，直接处理下一块。</line>
+<line n="6">对当前块计算带掩码的缩放点积</line>
+<line n="7">选取新行基准并计算旧项的重缩放倍率</line>
+<line n="8">计算各有效分数的指数权重</line>
+<line n="9">对齐基准后合并旧分子分母与本块贡献</line>
+<line n="10">记录当前基准，继续扫描后续块</line>
+<line n="11">非空行只在末尾归一化，同时保存对数归一化常数</line>
+</annotations></listing>
 <p class="prose"><a class="line-ref" href="#l04-s902-code-5" aria-expanded="false" data-file="教学伪代码" data-comment="//" data-rows="[[1,&quot;parallel for (batch, head, query_tile):&quot;,&quot;按请求、头和 query 行块分配并行工作&quot;],[2,&quot;    q ← load owned query rows&quot;,&quot;载入本工作块负责的 query 行&quot;],[3,&quot;    b, z, U ← −∞, 0, zeros(rows, value_width)&quot;,&quot;逐行初始化基准、分母和输出分子&quot;],[4,&quot;    for each KV tile visible to these rows:&quot;,&quot;遍历这些行可见的历史块&quot;]]">第 1–4 行</a>先划好归属，再载入当前 CTA 的 Q。<a class="line-ref" href="#l04-s902-code-5" aria-expanded="false" data-file="教学伪代码" data-comment="//" data-rows="[[6,&quot;        s ← masked scaled dot(q, K_tile)&quot;,&quot;对当前块计算带掩码的缩放点积&quot;],[7,&quot;        b_next ← row_max(b, s); a ← exp(b − b_next)&quot;,&quot;选取新行基准并计算旧项的重缩放倍率&quot;],[8,&quot;        w ← exp_valid(s − b_next)&quot;,&quot;计算各有效分数的指数权重&quot;],[9,&quot;        U, z ← a × U + w @ V_tile, a × z + row_sum(w)&quot;,&quot;对齐基准后合并旧分子分母与本块贡献&quot;],[10,&quot;        b ← b_next&quot;,&quot;记录当前基准，继续扫描后续块&quot;]]">第 6–10 行</a>可对两行逐一验算。第一块后两行的分子都是 <span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><mi>U</mi><mo>=</mo><mn>6</mn></math></span>，分母都是 <span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><mi>z</mi><mo>=</mo><mn>2</mn></math></span>。第二块到来，第一行旧量减半，故新分子 <span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><mn>6</mn><mo>/</mo><mn>2</mn><mo>+</mo><mn>9</mn><mo>=</mo><mn>12</mn></math></span>、新分母 <span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><mn>2</mn><mo>/</mo><mn>2</mn><mo>+</mo><mn>1</mn><mo>=</mo><mn>2</mn></math></span>。第二行仍以 0 为基准，第三项权重为 <span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><mrow><mrow><mn>1</mn></mrow><mo>/</mo><mrow><mn>2</mn></mrow></mrow></math></span>，新分子 <span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><mn>6</mn><mo>+</mo><mn>9</mn><mo>/</mo><mn>2</mn><mo>=</mo><mn>10.5</mn></math></span>、分母 <span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><mn>2</mn><mo>+</mo><mn>1</mn><mo>/</mo><mn>2</mn><mo>=</mo><mn>2.5</mn></math></span>。到<a class="line-ref" href="#l04-s902-code-5" aria-expanded="false" data-file="教学伪代码" data-comment="//" data-rows="[[11,&quot;    write O = U / z and LSE = b + log(z) for nonempty rows&quot;,&quot;非空行只在末尾归一化，同时保存对数归一化常数&quot;]]">第 11 行</a>各除一次，恰好得到 6 和 4.2。</p>
 <p class="prose">若把规模放大到两个头，每头 768 行 query、1024 条 <a class="term" href="#Def04a607f9a7ae09">key</a>，行块和列块宽都取 128，每头可分 6 个独立 CTA，每个顺着 8 个 KV 块计算。两个头总计 <span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><mn>2</mn><mo>×</mo><mn>6</mn><mo>×</mo><mn>8</mn><mo>=</mo><mn>96</mn></math></span> 块分数。这多出了沿 query 方向可同时调度的工作；同一份 K 到底从 <a class="term" href="#Def049150ae85d1b5">HBM</a> 读取几次，还与各 CTA 的到达次序及 <a class="term" href="#Def0449c44fcbbd54">L2</a> 命中有关。</p>
 <p class="prose">先<a class="term" href="#Def049e4989330de2">掩码</a>，再更新 <a class="term" href="#Def042c44907a4775">softmax</a> 状态</p>
@@ -4870,7 +4894,17 @@ for each visible tile pair (i, j):
     accumulate dK[j], dQ[i] using dS and the forward scale
 reduce partial gradients belonging to the same logical coordinates
 ```
-]]></listing>
+]]><annotations>
+<line n="1">用保存的输出与上游梯度做逐行点积</line>
+<line n="2">依次取出存在可见位置的 query 块 i 和历史块 j，只重算它们对应的前向分数。</line>
+<line n="3">按前向掩码重新计算一块分数</line>
+<line n="4">用保存的对数归一化常数重建本块概率</line>
+<line n="5">将上游输出梯度乘 V 的转置，求概率梯度</line>
+<line n="6">逐行减去公共校正项，再乘概率得到分数梯度</line>
+<line n="7">用概率转置和输出梯度累加 V 的梯度</line>
+<line n="8">把分数梯度与前向缩放因子传回 K 和 Q</line>
+<line n="9">合并属于同一坐标的各块部分梯度</line>
+</annotations></listing>
 <p class="prose"><a class="line-ref" href="#l04-s903-code-7" aria-expanded="false" data-file="教学伪代码" data-comment="//" data-rows="[[1,&quot;D ← row_dot(dO, O) using the saved output&quot;,&quot;用保存的输出与上游梯度做逐行点积&quot;]]">第 1 行</a>先算 <span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><mi>D</mi></math></span>，此处 <span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><mn>2</mn><mo>×</mo><mn>6</mn><mo>=</mo><mn>12</mn></math></span>。<a class="line-ref" href="#l04-s903-code-7" aria-expanded="false" data-file="教学伪代码" data-comment="//" data-rows="[[3,&quot;    S ← scaled_dot(Q[i], K[j]) with the forward mask&quot;,&quot;按前向掩码重新计算一块分数&quot;],[4,&quot;    P ← exp(S − saved_LSE[i])&quot;,&quot;用保存的对数归一化常数重建本块概率&quot;],[5,&quot;    G ← dO[i] @ transpose(V[j])&quot;,&quot;将上游输出梯度乘 V 的转置，求概率梯度&quot;],[6,&quot;    dS ← P × (G − broadcast_rows(D[i]))&quot;,&quot;逐行减去公共校正项，再乘概率得到分数梯度&quot;]]">第 3–6 行</a>逐块重建概率并算出 <span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><mo>∂</mo><mi>L</mi><mo>/</mo><mo>∂</mo><msub><mrow><mi>s</mi></mrow><mrow><mi>j</mi></mrow></msub><mo>=</mo><msub><mrow><mi>p</mi></mrow><mrow><mi>j</mi></mrow></msub><mo>(</mo><mi>g</mi><msub><mrow><mi>v</mi></mrow><mrow><mi>j</mi></mrow></msub><mo>−</mo><mi>D</mi><mo>)</mo></math></span>。三项分别为 <span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><mo>−</mo><mn>2</mn><mo>,</mo><mo>−</mo><mn>1,3</mn></math></span>。前两项是负数，因为增加这两个位置的概率，会从 value 为 9 的位置移走一部分质量；第三项恰为正。给所有分数同加一个常数并不改变输出，三个导数相加为零，可作为一次独立检查。</p>
 <p class="prose"><a class="line-ref" href="#l04-s903-code-7" aria-expanded="false" data-file="教学伪代码" data-comment="//" data-rows="[[7,&quot;    accumulate dV[j] from transpose(P) @ dO[i]&quot;,&quot;用概率转置和输出梯度累加 V 的梯度&quot;],[8,&quot;    accumulate dK[j], dQ[i] using dS and the forward scale&quot;,&quot;把分数梯度与前向缩放因子传回 K 和 Q&quot;],[9,&quot;reduce partial gradients belonging to the same logical coordinates&quot;,&quot;合并属于同一坐标的各块部分梯度&quot;]]">第 7–9 行</a>把分数梯度传给 Q、K。在矩阵形式下，令 <span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><mi>t</mi><mo>=</mo><mn>1</mn><mo>/</mo><msqrt><mi>d</mi></msqrt></math></span>，有 <span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><mi>d</mi><mi>Q</mi><mo>=</mo><mi>t</mi><mi>d</mi><mi>S</mi><mi>K</mi></math></span>、<span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><mi>d</mi><mi>K</mi><mo>=</mo><mi>t</mi><mi>d</mi><msup><mrow><mi>S</mi></mrow><mrow><mi>𝖳</mi></mrow></msup><mi>Q</mi></math></span>、<span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><mi>d</mi><mi>V</mi><mo>=</mo><msup><mrow><mi>P</mi></mrow><mrow><mi>𝖳</mi></mrow></msup><mi>d</mi><mi>O</mi></math></span>。同一 query 行的 <span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><mi>d</mi><mi>Q</mi></math></span> 接受每个 <a class="term" href="#Def04221e82c84d42">KV</a> 块的加数，同一 key 行的 <span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><mi>d</mi><mi>K</mi></math></span>、<span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><mi>d</mi><mi>V</mi></math></span> 接受每个 query 块的加数。以本例 <span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><mi>q</mi><mo>=</mo><mn>1</mn></math></span>、<span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><mi>d</mi><mo>=</mo><mn>1</mn></math></span> 为例，第三个 key 给 query 梯度贡献 <span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><mn>3</mn><mi mathvariant="normal">l</mi><mi mathvariant="normal">n</mi><mn>2</mn></math></span>。若不同 <a class="term" href="#Def04c1196d0e6a29">CTA</a> 各算一段，最后应把这些贡献相加，<strong>直接覆盖会丢失其他块的梯度</strong>。</p>
 <p class="prose">反向内核从概率和逐行校正项形成 <span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><mi>d</mi><mi>S</mi></math></span></p>
@@ -4969,7 +5003,18 @@ for each later KV tile j in traversal order:
     release each storage slot after its final device reader
 drain the last PV; normalize and write the owned rows
 ```
-]]></listing>
+]]><annotations>
+<line n="1">生产者先等消费者释放目标槽，防止新数据覆盖尚在使用的 K 或 V。</line>
+<line n="2">向该槽发起 TMA 搬运，以本轮的屏障阶段标记到达；消费者等到数据就绪才可读取。</line>
+<line n="3">消费者等待首块 K，计算第 0 块的分数及权重，为第一次 PV 准备输入。</line>
+<line n="4">按内核的遍历顺序处理剩余的 KV 块，j 表示本轮要计算分数的块。</line>
+<line n="5">本块 K 到达后，发出 Q 与 K 的矩阵乘法，生成第 j 块的分数。</line>
+<line n="6">上一块 V 到达后，用已备好的上一块权重发出 PV；它可以与本块 QK 重叠。</line>
+<line n="7">等本块 QK 完成，再求有效分数的指数权重和旧输出需要乘的行缩放因子。</line>
+<line n="8">先等上一块 PV 把贡献加进累加器，再统一缩放，避免漏掉仍在途的部分和。</line>
+<line n="9">确认最后一个读取该槽的设备操作已经完成，才将槽位交还给生产者。</line>
+<line n="10">循环结束后等最后一次 PV 完成，逐行除以最终分母，写回本块负责的输出。</line>
+</annotations></listing>
 <p class="prose">先读伪代码的开头和末尾。第一次没有可同时处理的“上一块”，所以先等第一块 K，生成第一批权重。进入<a class="term" href="#Def04a1a871769569">稳态</a>后，当前 K 与上一块 V 来自不同缓冲槽；它们的代次号也不同。遍历结束时<strong>最后一块的权重仍欠一次 PV</strong>，要在 drain 阶段补上，再除以全行的分母。若少执行这一步，把最后块的 V 改成很大而其他输入都固定，结果将对这次修改毫无反应。</p>
 <p class="prose">再看<a class="term" href="#Def0439bf4075bd29">量化</a>与流水这两个独立选择。<a class="term" href="#Def04c3e89a78ee46">FP8</a> 只保存低精度码值时，原点积需按两侧恢复乘数换回实数单位。若码值点积是 24，Q、K 的恢复乘数各为 <span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><mn>1</mn><mo>/</mo><mn>2,1</mn><mo>/</mo><mn>4</mn></math></span>，则实数点积近似为 3，随后才按头维缩放、取指数。论文还研究让 Q、K 都右乘同一个正交矩阵 <span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><mi>H</mi></math></span> 来分散离群值，因为 <span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><mo>(</mo><mi>Q</mi><mi>H</mi><mo>)</mo><mo>(</mo><mi>K</mi><mi>H</mi><msup><mrow><mo>)</mo></mrow><mrow><mi>𝖳</mi></mrow></msup><mo>=</mo><mi>Q</mi><msup><mrow><mi>K</mi></mrow><mrow><mi>𝖳</mi></mrow></msup></math></span>。等式仅约束量化前的实数；例取 <span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><mi>q</mi><mo>=</mo><mo>(</mo><mn>2,0</mn><mo>)</mo><mo>,</mo><mi>k</mi><mo>=</mo><mo>(</mo><mn>3,1</mn><mo>)</mo></math></span>，二维正交 Hadamard 变换后为 <span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><mo>(</mo><msqrt><mn>2</mn></msqrt><mo>,</mo><msqrt><mn>2</mn></msqrt><mo>)</mo></math></span> 和 <span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><mo>(</mo><mn>2</mn><msqrt><mn>2</mn></msqrt><mo>,</mo><msqrt><mn>2</mn></msqrt><mo>)</mo></math></span>，点积仍是 6。若再按步长 1 最近舍入，则变成 <span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><mo>(</mo><mn>1,1</mn><mo>)</mo><mo>·</mo><mo>(</mo><mn>3,1</mn><mo>)</mo><mo>=</mo><mn>4</mn></math></span>。</p>
 <p class="prose">Hopper 消费者错开两轮矩阵乘</p>
@@ -5077,7 +5122,15 @@ softmax and correction: publish readiness for the next PV
 MMA warp: consume P and V, retaining output in the designated store
 epilogue: wait for the last contribution, normalize and write output
 ```
-]]></listing>
+]]><annotations>
+<line n="1">负责加载的 warp 将当前 K、V 搬入选定的共享内存槽，供后续矩阵乘使用。</line>
+<line n="2">MMA warp 计算 QK 分数块，写好 S 后通知 softmax 线程。</line>
+<line n="3">负责 softmax 的 warp 等待 S 就绪，逐行求最大值与指数和，生成供 PV 使用的权重片段。</line>
+<line n="4">若行最大值改变，修正线程将旧输出分子换算到新的指数基准。</line>
+<line n="5">权重已写好且旧输出已修正后，向 MMA warp 发出可执行 PV 的信号。</line>
+<line n="6">MMA warp 将 P 乘以 V，把本块贡献加到指定位置的输出累加器。</line>
+<line n="7">写回线程等最后一块的贡献到齐，再逐行归一化并写出结果。</line>
+</annotations></listing>
 <p class="prose">按伪以这个两列小块为例。load <a class="term" href="#Def046aebaceb6afe">warp</a> 先装好 K、V；<a class="term" href="#Def040821aa8210da">MMA</a> warp 生成分数并通知 S-ready。softmax warp 写权重片段，correction warp 处理旧输出，<strong>两边都报本代就绪</strong>后，MMA warp 才能发 PV。若旧分子是 6、旧基准是 0，新块抬到 <span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><mi mathvariant="normal">l</mi><mi mathvariant="normal">n</mi><mn>2</mn></math></span>，校正必须先把旧分子换成 3。假设新块的加权和为 8，正确合并是 <span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><mn>3</mn><mo>+</mo><mn>8</mn><mo>=</mo><mn>11</mn></math></span>。先把新块加入旧 6 再整体减半，会错成 7。</p>
 <p class="prose">软件指数解决另一个问题。当指数单元供给不足时，可让一部分元素走一般算术指令。对 <span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><msup><mrow><mn>2</mn></mrow><mrow><mi>x</mi></mrow></msup></math></span>，把 <span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><mi>x</mi></math></span> 拆为整数 <span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><mi>n</mi></math></span> 和小数 <span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><mi>f</mi></math></span>，则 <span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><msup><mrow><mn>2</mn></mrow><mrow><mi>x</mi></mrow></msup><mo>=</mo><msup><mrow><mn>2</mn></mrow><mrow><mi>n</mi></mrow></msup><msup><mrow><mn>2</mn></mrow><mrow><mi>f</mi></mrow></msup></math></span>。例如 <span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><mi>x</mi><mo>=</mo><mo>−</mo><mn>1.25</mn></math></span> 可取 <span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><mi>n</mi><mo>=</mo><mo>−</mo><mn>2</mn><mo>,</mo><mi>f</mi><mo>=</mo><mn>0.75</mn></math></span>；在短区间上用多项式近似 <span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><msup><mrow><mn>2</mn></mrow><mrow><mi>f</mi></mrow></msup></math></span>，再乘 <span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><msup><mrow><mn>2</mn></mrow><mrow><mo>−</mo><mn>2</mn></mrow></msup></math></span>。两种做法各占用不同的指令资源。若近似指数带来可见误差或增加<a class="term" href="#Def040d6e4e28f51c">寄存器</a>压力，应同时观察输出误差、实际指令组成和时长。</p>
 <p class="prose">SM100 默认 warp 角色和 TMEM 容量</p>
@@ -5205,7 +5258,17 @@ else if candidate − current > threshold:
 weight ← 2^(score − current) on valid lanes
 accumulate weight and weight @ V; divide once at the end
 ```
-]]></listing>
+]]><annotations>
+<line n="1">取当前保留的以 2 为底的分数基准</line>
+<line n="2">在旧基准与新块的最大有效分数之间取较大者</line>
+<line n="3">若这是首个非空块就初始化行状态</line>
+<line n="4">比较候选基准与当前基准的差值，只有超过阈值才对旧状态重缩放。</line>
+<line n="5">用旧基准减新基准作为 2 的指数，得到把旧权重换到新单位的倍率。</line>
+<line n="6">旧分母与旧加权分子同乘这一倍率，保持两者对应同一批历史。</line>
+<line n="7">记录新的指数基准，后续块将与它比较；未越过阈值的分支继续用原基准。</line>
+<line n="8">只在可见位置计算以当前基准为参照的指数权重。</line>
+<line n="9">把本块权重加入分母、权重乘 V 加入分子，全部块完成后只做一次除法。</line>
+</annotations></listing>
 <p class="prose"><a class="line-ref" href="#l04-s906-code-4" aria-expanded="false" data-file="教学伪代码" data-comment="//" data-rows="[[1,&quot;current ← retained basis in base-2 score units&quot;,&quot;取当前保留的以 2 为底的分数基准&quot;],[2,&quot;candidate ← max(current, largest valid score in this tile)&quot;,&quot;在旧基准与新块的最大有效分数之间取较大者&quot;],[3,&quot;if tile is the first nonempty tile: initialize basis and row state&quot;,&quot;若这是首个非空块就初始化行状态&quot;]]">第 1–3 行</a>先取候选最大值，并单独初始化第一个非空块。设教学阈值为 2，只有候选比“<strong>实际采用的基准</strong>”大得严格超过 2 才切换。上一步的差为 1，所以记录的基准仍是 0。现在再来 <span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><mi>x</mi><mo>=</mo><mn>3</mn><mo>,</mo><mi>v</mi><mo>=</mo><mn>8</mn></math></span>：差为 3，旧分子和旧分母都要乘 <span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><msup><mrow><mn>2</mn></mrow><mrow><mo>−</mo><mn>3</mn></mrow></msup><mo>=</mo><mn>1</mn><mo>/</mo><mn>8</mn></math></span>。新分母 <span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><mn>3</mn><mo>/</mo><mn>8</mn><mo>+</mo><mn>1</mn><mo>=</mo><mn>11</mn><mo>/</mo><mn>8</mn></math></span>，新分子 <span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><mn>10</mn><mo>/</mo><mn>8</mn><mo>+</mo><mn>8</mn><mo>=</mo><mn>74</mn><mo>/</mo><mn>8</mn></math></span>，输出 <span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><mrow><mrow><mn>74</mn></mrow><mo>/</mo><mrow><mn>11</mn></mrow></mrow></math></span>。直接按原权重 <span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><mn>1,2</mn><mo>,</mo><mn>8</mn></math></span> 算，结果仍是 <span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><mo>(</mo><mn>2</mn><mo>+</mo><mn>8</mn><mo>+</mo><mn>64</mn><mo>)</mo><mo>/</mo><mn>11</mn></math></span>。</p>
 <p class="prose">有一种容易写错的优化：第二步跳过缩放，却把基准元数据改成 1。第三步比较时只见到 <span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><mn>3</mn><mo>−</mo><mn>1</mn><mo>=</mo><mn>2</mn></math></span>，刚好不切换；旧缓冲中的 3 和 10 却还按基准 0 计量。错误不在指数公式，而在<strong>元数据与所存的数</strong>使用了不同单位。整块全被掩时直接略过；如果一行根本没有有效输入，就走接口约定的空行逻辑。</p>
 <p class="prose">候选基准、阈值和保留的基准</p>
@@ -5331,7 +5394,17 @@ for each query tile and its visible KV tiles:
     add the block contribution using FP16 weights and V
 return normalized rows; restore score offsets if raw LSE is requested
 ```
-]]></listing>
+]]><annotations>
+<line n="1">每个通道分别沿 token 轴求 K 的均值</line>
+<line n="2">从各位置的 K 中减去同一均值</line>
+<line n="3">为 Q 和中心化后的 K 分别生成整数码与尺度</line>
+<line n="4">遍历 query 块和它可见的 KV 块</line>
+<line n="5">整数点积乘回两个操作数的尺度</line>
+<line n="6">补上打分缩放并应用逻辑掩码</line>
+<line n="7">更新每行的指数基准、分母和旧分子</line>
+<line n="8">用半精度权重与 V 累加本块贡献</line>
+<line n="9">归一化输出，需要原始 LSE 时补回分数偏移</line>
+</annotations></listing>
 <p class="prose"><a class="line-ref" href="#l04-s907-code-6" aria-expanded="false" data-file="教学伪代码" data-comment="//" data-rows="[[1,&quot;u ← mean over token positions of K, independently for each channel&quot;,&quot;每个通道分别沿 token 轴求 K 的均值&quot;],[2,&quot;Kc ← K − u&quot;,&quot;从各位置的 K 中减去同一均值&quot;],[3,&quot;encode Q tiles and Kc tiles with their own INT8 scales&quot;,&quot;为 Q 和中心化后的 K 分别生成整数码与尺度&quot;]]">第 1–3 行</a>先求共同均值，再为 Q、中心化后的 K 准备各自的 INT8 码和恢复尺度。一个 query 块与一个 key 块的整数点积值记作 <span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><mi>I</mi></math></span>，恢复尺度分别记作 <span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><msub><mrow><mi>a</mi></mrow><mrow><mi>Q</mi></mrow></msub><mo>,</mo><msub><mrow><mi>a</mi></mrow><mrow><mi>K</mi></mrow></msub></math></span>。若 <span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><mi>I</mi><mo>=</mo><mn>20</mn><mo>,</mo><msub><mrow><mi>a</mi></mrow><mrow><mi>Q</mi></mrow></msub><mo>=</mo><mn>0.5</mn><mo>,</mo><msub><mrow><mi>a</mi></mrow><mrow><mi>K</mi></mrow></msub><mo>=</mo><mn>0.25</mn></math></span>，对应的实数点积是 <span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><mn>20</mn><mo>×</mo><mn>0.5</mn><mo>×</mo><mn>0.25</mn><mo>=</mo><mn>2.5</mn></math></span>。另一个块即使整数点积 30，若尺度乘积仅为 0.05，它的实数点积为 1.5。跨块比较最大值以前，必须先将两块分数恢复到<strong>共同单位</strong>。</p>
 <p class="prose"><a class="line-ref" href="#l04-s907-code-6" aria-expanded="false" data-file="教学伪代码" data-comment="//" data-rows="[[4,&quot;for each query tile and its visible KV tiles:&quot;,&quot;遍历 query 块和它可见的 KV 块&quot;],[5,&quot;    scores ← integer_dot(code_Q, code_K) × q_scale × k_scale&quot;,&quot;整数点积乘回两个操作数的尺度&quot;],[6,&quot;    apply the remaining score scale and the logical mask&quot;,&quot;补上打分缩放并应用逻辑掩码&quot;],[7,&quot;    update softmax row basis, denominator and old numerator&quot;,&quot;更新每行的指数基准、分母和旧分子&quot;],[8,&quot;    add the block contribution using FP16 weights and V&quot;,&quot;用半精度权重与 V 累加本块贡献&quot;],[9,&quot;return normalized rows; restore score offsets if raw LSE is requested&quot;,&quot;归一化输出，需要原始 LSE 时补回分数偏移&quot;]]">第 4–9 行</a>使用之前熟悉的<a class="term" href="#Def04582d5dc451fc">在线 softmax</a>。矩阵乘 <a class="term" href="#Def04e7d34ee23b19">QK</a> 接受整数输入；行基准、指数和与比值仍需浮点计算；另一矩阵乘则将本块的相对权重转为 <a class="term" href="#Def0451ee3210470c">FP16</a> 与 V 相乘。调试时先用原始浮点 V，仅替换 QK，比较行内分数差；再固定同一份权重，仅替换 <a class="term" href="#Def04ac0ad573f52a">PV</a> 输入与累加路径，比较输出。这两个实验分别测得<strong>打分误差</strong>和<strong>加权求和误差</strong>。</p>
 <p class="prose"><a class="term" href="#Def048f9f79c6341a">SageAttention</a>-1 按序列轴平滑 K</p>
@@ -5422,7 +5495,18 @@ for each Q tile:
         update online row state and accumulate the low-precision PV
     normalize the output and apply any deferred V scales
 ```
-]]></listing>
+]]><annotations>
+<line n="1">每个通道沿序列求均值，再从各位置的 key 中减去它</line>
+<line n="2">逐块取出 Q，使这一组查询的均值和编码可以在扫描各历史块时复用。</line>
+<line n="3">求查询行组的平均向量 u，逐行减去它，得到待量化的残差。</line>
+<line n="4">按矩阵乘操作数的分组方式分别量化 Q 的残差和中心化后的 K，记录各组尺度。</line>
+<line n="5">固定当前查询块，逐个处理历史 KV 块。</line>
+<line n="6">对残差 Q 和中心化 K 的整数点积乘回对应尺度，恢复局部分数。</line>
+<line n="7">计算被减去的均值 u 对当前块各 key 的分数贡献，得到一行校正量。</line>
+<line n="8">将校正量广播至同组查询行，和局部分数相加后再乘注意力缩放因子。</line>
+<line n="9">按行更新最大值、分母和输出分子，并累加当前块低精度 PV 的贡献。</line>
+<line n="10">所有 KV 块处理完后归一化输出，并补乘此前延后处理的 V 尺度。</line>
+</annotations></listing>
 <p class="prose"><a class="line-ref" href="#l04-s908-code-7" aria-expanded="false" data-file="&#x6559;&#x5B66;&#x4F2A;&#x4EE3;&#x7801;" data-comment="//" data-rows="[[1, &quot;Kc &#x2190; K minus a shared channelwise mean&quot;, &quot;&#x6BCF;&#x4E2A;&#x901A;&#x9053;&#x6CBF;&#x5E8F;&#x5217;&#x6C42;&#x5747;&#x503C;&#xFF0C;&#x518D;&#x4ECE;&#x5404;&#x4F4D;&#x7F6E;&#x7684; key &#x4E2D;&#x51CF;&#x53BB;&#x5B83;&quot;]]">第 1 行</a>给中心化后的 key 记作 Kc。伪代码的 local 是 <span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><msup><mrow><mi>Q</mi></mrow><mrow><mo>′</mo></mrow></msup><msup><mrow><mi>K</mi></mrow><mrow><mo>′</mo><mi>𝖳</mi></mrow></msup></math></span> 在相应分组尺度下恢复的近似值，correction 是 <span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><msub><mrow><mi>μ</mi></mrow><mrow><mi>Q</mi></mrow></msub><msup><mrow><mi>K</mi></mrow><mrow><mo>′</mo><mi>𝖳</mi></mrow></msup></math></span>。两者相加，再按头宽缩放并求 <a class="term" href="#Def042c44907a4775">softmax</a>。对本例，可先完全禁用量化，只检查两个浮点分量的和是否逐元素回到上面的两行。再仅引入 INT4 码与尺度，新增的打分误差才归到量化。</p>
 <p class="prose">当<a class="term" href="#Def04d9810cec9bd1">归约轴</a>被进一步切成尺度不同的组时，每个输出位置要先把各组整数部分和乘以自己的一对恢复尺度，再相加。若实现中该位置的整个<a class="term" href="#Def048de0dcc95ca5">归约</a>范围共用一个尺度乘积，则可先求完整整数点积。无法据“每线程”四个字把任一条公式套到所有路径；论文的分组与所调用入口的真实<a class="term" href="#Def04bbaa2ba9297f">布局</a>需要分别核实。</p>
 <p class="prose">INT4 query 的分组索引、数值范围和存储类型</p>
@@ -5492,7 +5576,15 @@ before its range is exhausted, promote the partial output to FP32
 reset the local accumulator and continue with later products
 restore the scales and normalize once all contributing tiles are complete
 ```
-]]></listing>
+]]><annotations>
+<line n="1">根据所选矩阵乘路径确定 P、V 的码值范围</line>
+<line n="2">估计一次缓冲周期内同号部分和的上界</line>
+<line n="3">用选定尺度量化块权重和 V</line>
+<line n="4">使用指定局部累加器执行 FP8 乘积</line>
+<line n="5">在耗尽局部动态范围前将部分和转入 FP32</line>
+<line n="6">清空局部累加器，再处理后续乘积</line>
+<line n="7">所有有效块结束后恢复尺度并归一化</line>
+</annotations></listing>
 <p class="prose"><a class="line-ref" href="#l04-s909-code-3" aria-expanded="false" data-file="教学伪代码" data-comment="//" data-rows="[[1,&quot;choose the P and V code ranges for the intended MMA path&quot;,&quot;根据所选矩阵乘路径确定 P、V 的码值范围&quot;],[2,&quot;bound the same-sign partial sum over a buffering period&quot;,&quot;估计一次缓冲周期内同号部分和的上界&quot;],[3,&quot;quantize block weights and V using their chosen scales&quot;,&quot;用选定尺度量化块权重和 V&quot;]]">第 1–3 行</a>一起确定<a class="term" href="#Def0439bf4075bd29">量化</a>范围与何时换<a class="term" href="#Def04cd27f6923f50">累加器</a>。若希望连做三条且 <span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><mo>|</mo><msub><mrow><mi>P</mi></mrow><mrow><mi mathvariant="normal">c</mi><mi mathvariant="normal">o</mi><mi mathvariant="normal">d</mi><mi mathvariant="normal">e</mi></mrow></msub><mo>|</mo><mo>≤</mo><mn>224</mn></math></span>，V 码的上界需满足 <span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><mn>96</mn><mo>×</mo><mn>224</mn><mo>×</mo><mo>|</mo><msub><mrow><mi>V</mi></mrow><mrow><mi mathvariant="normal">c</mi><mi mathvariant="normal">o</mi><mi mathvariant="normal">d</mi><mi mathvariant="normal">e</mi></mrow></msub><mo>|</mo><mo>≤</mo><mn>65504</mn></math></span>，得到约 3.046。若取可表示的 3，三条总幅值的实数上界又回到 64,512。缩小码范围会改变 FP8 网格的使用方式，可能降低小值的有效精度；上述界只控制幅值，还不能保证逐次舍入后每一位都准确。</p>
 <p class="prose"><a class="line-ref" href="#l04-s909-code-3" aria-expanded="false" data-file="教学伪代码" data-comment="//" data-rows="[[4,&quot;issue the FP8 product with the selected partial accumulator&quot;,&quot;使用指定局部累加器执行 FP8 乘积&quot;],[5,&quot;before its range is exhausted, promote the partial output to FP32&quot;,&quot;在耗尽局部动态范围前将部分和转入 FP32&quot;],[6,&quot;reset the local accumulator and continue with later products&quot;,&quot;清空局部累加器，再处理后续乘积&quot;],[7,&quot;restore the scales and normalize once all contributing tiles are complete&quot;,&quot;所有有效块结束后恢复尺度并归一化&quot;]]">第 4–7 行</a>描述两种缓冲的交接。想象 96 项被分成三条 <a class="term" href="#Def040821aa8210da">MMA</a>，而协议要求最多积两条：前 64 项进局部 FP16，转入 FP32 后把局部清零，后 32 项另算再汇入。同一输出如果用了不同的恢复尺度，部分和必须在<strong>相同单位</strong>下合并；最后才按行分母归一。诊断溢出可以固定 <a class="term" href="#Def04e7d34ee23b19">QK</a> 和 V 的实际值，只换局部累加路径，用同号极端输入检查首处非有限值，再用真实输入测误差和运行时间。</p>
 <p class="prose">切换到 FP16 局部累加时的 V 量化范围</p>
@@ -5559,7 +5651,23 @@ for each query row and KV tile with at least one visible key:
         U ← U + gain × blockscaled_PV(codes, scales, packed_V, V_scales)
 write U / z for nonempty rows; handle empty rows per API and trim padding
 ```
-]]></listing>
+]]><annotations>
+<line n="1">沿序列中心化 K，并保留 Q 组均值所需的校正</line>
+<line n="2">沿通道按组将 Q、K 编成 FP4 并记录尺度</line>
+<line n="3">按 V 的归约轴准备尺度并整理布局</line>
+<line n="4">逐行初始化基准、分母与分子</line>
+<line n="5">遍历本行至少有一个可见位置的历史块</line>
+<line n="6">计算恢复尺度并补回均值项的有效分数</line>
+<line n="7">选取新的行基准</line>
+<line n="8">首个有效块清零旧项，其余块换算旧基准</line>
+<line n="9">对可见位置求指数，不可见位置置零</line>
+<line n="10">更新分母、重缩放旧分子并记录新基准</line>
+<line n="11">仅当本行在当前块里还有非零权重时才做权重量化，避免下一步出现零增益作除数。</line>
+<line n="12">将行内最大权重除以 448×6，得到先拉伸权重、稍后还原其幅值所用的行级增益。</line>
+<line n="13">权重先除以行级增益，再每 16 项一起量化，得到 FP4 码值及各组自己的尺度。</line>
+<line n="14">计算带块尺度的 PV，再乘回行级增益，才能把本块贡献加到原单位的输出分子。</line>
+<line n="15">非空行用分子除以分母；全遮挡行按接口约定处理，写回时裁去填充的位置。</line>
+</annotations></listing>
 <p class="prose">伪代码<a class="line-ref" href="#l04-s910-code-4" aria-expanded="false" data-file="教学伪代码" data-comment="//" data-rows="[[1,&quot;center K across tokens; keep the Q group mean and score correction&quot;,&quot;沿序列中心化 K，并保留 Q 组均值所需的校正&quot;],[2,&quot;pack Q and K into FP4 codes with block scales along head channels&quot;,&quot;沿通道按组将 Q、K 编成 FP4 并记录尺度&quot;],[3,&quot;prepare V with its reduction-axis scales and target operand layout&quot;,&quot;按 V 的归约轴准备尺度并整理布局&quot;],[4,&quot;initialize each row: b ← −∞, z ← 0, U ← 0&quot;,&quot;逐行初始化基准、分母与分子&quot;],[5,&quot;for each query row and KV tile with at least one visible key:&quot;,&quot;遍历本行至少有一个可见位置的历史块&quot;],[6,&quot;    S ← scaled(blockscaled_QK + query_mean_correction) on valid keys&quot;,&quot;计算恢复尺度并补回均值项的有效分数&quot;],[7,&quot;    b_new ← max(b, max_valid(S))&quot;,&quot;选取新的行基准&quot;],[8,&quot;    alpha ← 0 if this is the first nonempty tile, else exp(b − b_new)&quot;,&quot;首个有效块清零旧项，其余块换算旧基准&quot;],[9,&quot;    W ← exp(S − b_new) on valid keys, zero elsewhere&quot;,&quot;对可见位置求指数，不可见位置置零&quot;],[10,&quot;    z ← alpha × z + sum(W); U ← alpha × U; b ← b_new&quot;,&quot;更新分母、重缩放旧分子并记录新基准&quot;]]">第 1–10 行</a>先正确完成 K 平滑、Q 残差校正、<a class="term" href="#Def049e4989330de2">掩码</a>与行基准更新。只有本行在当前块确有可见 key，才进入权重<a class="term" href="#Def0439bf4075bd29">量化</a>。新基准若升高，先把旧分母和旧输出分子都乘 <span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><mi>α</mi><mo>=</mo><mi mathvariant="normal">e</mi><mi mathvariant="normal">x</mi><mi mathvariant="normal">p</mi><mo>(</mo><msub><mrow><mi>m</mi></mrow><mrow><mi mathvariant="normal">o</mi><mi mathvariant="normal">l</mi><mi mathvariant="normal">d</mi></mrow></msub><mo>−</mo><msub><mrow><mi>m</mi></mrow><mrow><mi mathvariant="normal">n</mi><mi mathvariant="normal">e</mi><mi mathvariant="normal">w</mi></mrow></msub><mo>)</mo></math></span>；第一个有效块令旧贡献为零。浮点分母累计原始相对权重的和，输出分子中的 PV 才使用低精度权重。</p>
 <p class="prose">按论文算法 1 的<strong>两级尺度</strong>继续算<a class="example-ref" href="#ex-l04-s910-3" aria-expanded="false" data-example="取组内最大的两项概率权重为 2⁻¹⁴ 和 2⁻¹⁵。若直接用最大值除以 6 得到 FP4 组尺度，结果约为 0.0000102，远小于 E4M3 的最小正次正规数 2⁻⁹，最近舍入会将它变成零。">刚才的小组</a>。行级恢复乘数 <span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><mi>g</mi><mo>=</mo><mn>1</mn><mo>/</mo><mo>(</mo><mn>448</mn><mo>×</mo><mn>6</mn><mo>)</mo><mo>=</mo><mn>1</mn><mo>/</mo><mn>2688</mn></math></span>，先把该行块的权重都除以 <span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><mi>g</mi></math></span>。小组最大值变为 <span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><mn>2688</mn><mo>/</mo><mn>16384</mn><mo>=</mo><mn>0.1640625</mn></math></span>，再除以 6 得组尺度 <span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><mn>0.02734375</mn></math></span>，可用 E4M3 精确表示。最大的两个权重分别编码为 6 和 3。取第二项反向检查，<span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><mn>3</mn><mo>×</mo><mn>0.02734375</mn><mo>/</mo><mn>2688</mn><mo>=</mo><msup><mrow><mn>2</mn></mrow><mrow><mo>−</mo><mn>15</mn></mrow></msup></math></span>。<strong>两个尺度缺一不可</strong>：若只乘组尺度，送给 PV 的贡献会放大 2688 倍。对于一般输入，第二级和码字都要舍入，本例的整齐数值只用于追清单位。</p>
 <p class="prose">Q 平滑校正和 FP4 主体、尺度的实际形状</p>

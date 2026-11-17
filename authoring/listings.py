@@ -140,9 +140,20 @@ def expand(listing):
         header, "button", {"type": "button", "data-copy": ""}
     ).text = "复制代码"
     block = ET.SubElement(ET.SubElement(figure, "pre"), "code")
-    for i, line in enumerate(code.split("\n"), first):
+    lines = code.split("\n")
+    notes = listing.findall("annotations/line")
+    if lang == "pseudocode":
+        expected = [i for i, line in enumerate(lines, first) if line.strip()]
+        if [int(note.get("n")) for note in notes] != expected or any(
+            not re.search(r"[\u3400-\u9fff]", note.text or "") for note in notes
+        ):
+            raise ValueError(f"Every pseudocode instruction needs a numbered Chinese explanation: {listing.get('title')}")
+    by_number = {int(note.get("n")): note.text for note in notes}
+    for i, line in enumerate(lines, first):
         row = ET.SubElement(block, "span", {"class": "cl", "data-line": str(i)})
         row.text = line
+        if i in by_number:
+            row.set("data-explanation", by_number[i])
         row.tail = "\n"
     block[-1].tail = None
     figure.tail = listing.tail

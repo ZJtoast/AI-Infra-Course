@@ -205,6 +205,9 @@ def highlight(figure):
                 row.text = fragment
             else:
                 last.tail = fragment
+        explanation = row.attrib.pop("data-explanation", None)
+        if explanation:
+            ET.SubElement(row, "span", {"class": "tok-comment"}).text = "  // " + explanation
 
 
 def css():
