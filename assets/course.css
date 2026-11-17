@@ -312,3 +312,7 @@ a.example-ref {color:#185ca4} a.line-ref {color:#a13232}
   .reading-number{margin:0}.reading-statement,.reading-note{white-space:pre-wrap;overflow-wrap:anywhere}
   .reading-note{grid-column:2;white-space:normal}
 }
+.code-controls{display:inline-flex;flex-wrap:wrap;justify-content:flex-end;gap:.4em}
+.code button[aria-pressed="true"]{background:#365a54;border-color:#a9e1d0}
+.code.show-reading-notes .cl[data-reading-note]::after{content:"  " attr(data-reading-note);color:#a2b9a0}
+@media print{.code.show-reading-notes .cl[data-reading-note]::after{color:#3c6143}}

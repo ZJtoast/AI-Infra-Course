@@ -236,6 +236,12 @@ function initReaderSidebar() {
 initReaderSidebar();
 
 document.addEventListener("click", async e => {
+  const toggle = e.target.closest("[data-toggle-notes]");
+  if (toggle) {
+    const enabled = toggle.closest(".code").classList.toggle("show-reading-notes");
+    toggle.setAttribute("aria-pressed", String(enabled));
+    return;
+  }
   const button = e.target.closest("[data-copy]");
   if (!button) return;
   const code = button.closest(".code").querySelector("code");
@@ -346,7 +352,7 @@ document.addEventListener("click", async e => {
     panel.className = 'reading-detail';
     panel.id = 'active-reading-detail';
     const codeRef = link.classList.contains('line-ref');
-    const label = codeRef ? link.dataset.file + ' · ' + link.textContent : link.textContent;
+    const label = codeRef ? [link.dataset.languageLabel, link.dataset.file, link.textContent].filter(Boolean).join(' · ') : link.textContent;
     panel.setAttribute('aria-label', label);
     const bar = document.createElement('header');
     const title = document.createElement('strong');
@@ -361,8 +367,10 @@ document.addEventListener("click", async e => {
       const block = document.createElement('pre');
       const code = document.createElement('code');
       const rows = JSON.parse(link.dataset.rows);
+      const syntax = link.dataset.syntax ? JSON.parse(link.dataset.syntax) : rows.map(([, source]) => [[null, source]]);
+      if (link.dataset.language) code.className = 'language-' + link.dataset.language;
       const commonIndent = Math.min(...rows.filter(([, source]) => source.trim()).map(([, source]) => source.match(/^\s*/)[0].length));
-      for (const [number, source, note] of rows) {
+      for (const [index, [number, , note]] of rows.entries()) {
         const row = document.createElement('span');
         row.className = 'reading-line';
         const gutter = document.createElement('span');
@@ -373,7 +381,20 @@ document.addEventListener("click", async e => {
         annotation.textContent = '  ' + link.dataset.comment + ' ' + note;
         const statement = document.createElement('span');
         statement.className = 'reading-statement';
-        statement.textContent = source.slice(commonIndent);
+        let skip = commonIndent;
+        for (const [role, text] of syntax[index]) {
+          const fragment = text.slice(skip);
+          skip = Math.max(0, skip - text.length);
+          if (!fragment) continue;
+          if (role) {
+            const token = document.createElement('span');
+            token.className = 'tok-' + role;
+            token.textContent = fragment;
+            statement.append(token);
+          } else {
+            statement.append(document.createTextNode(fragment));
+          }
+        }
         row.append(gutter, statement, annotation);
         code.append(row);
       }

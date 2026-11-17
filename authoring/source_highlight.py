@@ -161,22 +161,8 @@ def style_for(language, token, value, source, offset):
     return default_style(token)
 
 
-def highlight(figure):
-    code = figure.find("pre/code")
-    language = figure.get("data-language") or language_of(
-        "".join(code.itertext()), figure.xpath("string(figcaption//a/@href)")
-    )
+def styled_lines(language, original):
     lexer = lexer_for(language)
-    caption = figure.find("figcaption/span")
-    label = caption.find("strong")
-    if label is None:
-        label = ET.Element("strong")
-        label.tail, caption.text = caption.text, None
-        caption.insert(0, label)
-    label.text = LABELS.get(language, getattr(lexer, "name", language)) + "    "
-    code.set("class", "language-" + language)
-    rows = code.findall('span[@class="cl"]')
-    original = ["".join(row.itertext()) for row in rows]
     source = "\n".join(original)
     styled = [[]]
     for offset, token, value in lexer.get_tokens_unprocessed(source):
@@ -192,6 +178,28 @@ def highlight(figure):
                     line.append((role, fragment))
     if ["".join(s for _, s in line) for line in styled] != original:
         raise ValueError(f"{language} lexer changed source text or line breaks")
+    return styled
+
+
+def language_label(language):
+    return LABELS.get(language) or lexer_for(language).name
+
+
+def highlight(figure):
+    code = figure.find("pre/code")
+    language = figure.get("data-language") or language_of(
+        "".join(code.itertext()), figure.xpath("string(figcaption//a/@href)")
+    )
+    caption = figure.find("figcaption/span")
+    label = caption.find("strong")
+    if label is None:
+        label = ET.Element("strong")
+        label.tail, caption.text = caption.text, None
+        caption.insert(0, label)
+    label.text = language_label(language) + "    "
+    code.set("class", "language-" + language)
+    rows = code.findall('span[@class="cl"]')
+    styled = styled_lines(language, ["".join(row.itertext()) for row in rows])
     for row, fragments in zip(rows, styled):
         for child in list(row):
             row.remove(child)
@@ -217,4 +225,7 @@ def css():
             for role, pair in COLORS.items()
         )
 
-    return rules(0) + "@media print{" + rules(1) + "}"
+    on_paper = "".join(
+        f".reading-statement .tok-{role}{{color:#{pair[1]}}}" for role, pair in COLORS.items()
+    )
+    return rules(0) + on_paper + "@media print{" + rules(1) + "}"

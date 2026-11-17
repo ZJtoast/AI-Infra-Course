@@ -23,8 +23,9 @@ from course import (
     write,
 )
 from lxml import html
+from listings import language_of
 from PIL import Image
-from source_highlight import css as syntax_css
+from source_highlight import css as syntax_css, language_label, styled_lines
 
 
 def markup(node):
@@ -33,6 +34,58 @@ def markup(node):
 
 def link(url, label, cls=""):
     return f'<a class="{cls}" href="{escape(url, quote=True)}">{escape(label)}</a>'
+
+
+def prepare_line_refs(chapter):
+    # Keep the lexer's context for slices that start inside a string or a comment.
+    excerpts = {}
+    languages = {}
+    source_rows = {}
+    for fig in chapter.xpath('.//figure[@class="code"]'):
+        url = fig.xpath("string(figcaption//a/@href)").partition("#")[0]
+        keys = [k for k in (url, "#" + fig.get("id") if fig.get("id") else "") if k]
+        for key in keys:
+            languages[key] = fig.get("data-language")
+        for row in fig.xpath('.//span[@class="cl"]'):
+            parts = [(None, row.text)] if row.text else []
+            for span in row:
+                if fig.get("data-language") == "pseudocode" and span.getnext() is None and (span.text or "").startswith("  // "):
+                    break
+                parts.append((span.get("class").removeprefix("tok-"), span.text or ""))
+                if span.tail:
+                    parts.append((None, span.tail))
+            original = "".join(value for _, value in parts)
+            for key in keys:
+                position = (key, int(row.get("data-line")), original)
+                excerpts[position] = parts
+                if fig.get("data-language") != "pseudocode":
+                    source_rows.setdefault(position, []).append(row)
+    for link in chapter.xpath('.//a[@class="line-ref"]'):
+        href = link.get("href")
+        key = href if href.startswith("#") else href.partition("#")[0]
+        rows = json.loads(link.get("data-rows"))
+        lines = [source for _, source, _ in rows]
+        language = languages.get(key) or language_of("\n".join(lines), href)
+        parts = [excerpts.get((key, number, source)) for number, source, _ in rows]
+        if any(line is None for line in parts):
+            fallback = styled_lines(language, lines)
+            parts = [original if original is not None else replacement for original, replacement in zip(parts, fallback)]
+        link.set("data-language", language)
+        link.set("data-language-label", language_label(language))
+        link.set("data-syntax", json.dumps(parts, ensure_ascii=False, separators=(",", ":")))
+        for number, source, explanation in rows:
+            for row in source_rows.get((key, number, source), []):
+                if source.strip() and "data-reading-note" not in row.attrib:
+                    row.set("data-reading-note", link.get("data-comment") + " " + explanation)
+
+    for fig in chapter.xpath('.//figure[@class="code"][.//*[@data-reading-note]]'):
+        caption = fig.find("figcaption")
+        controls = ET.SubElement(caption, "span", {"class": "code-controls"})
+        toggle = ET.SubElement(controls, "button", {
+            "type": "button", "data-toggle-notes": "", "aria-pressed": "false"
+        })
+        toggle.text = f"行注（{len(fig.xpath('.//*[@data-reading-note]'))} 行）"
+        controls.append(caption.find("button[@data-copy]"))
 
 
 def practice(q, names, route):
@@ -151,6 +204,7 @@ def build(chapters, out):
     chapnav = []
     groups = {}
     for i, ch in enumerate(chapters):
+        prepare_line_refs(ch)
         slug = ch.get("slug")
         title = ch.get("title")
         lead = text(ch.find("lead"))
