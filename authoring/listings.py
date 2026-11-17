@@ -126,6 +126,8 @@ def expand(listing):
     line_ref = re.match(r"L(\d+)", fragment)
     first = int(listing.get("start", line_ref[1] if line_ref else "1"))
     figure = ET.Element("figure", {"class": "code", "data-language": lang})
+    if listing.get("id"):
+        figure.set("id", listing.get("id"))
     header = ET.SubElement(figure, "figcaption")
     caption = ET.SubElement(header, "span")
     if source:

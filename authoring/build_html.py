@@ -62,6 +62,23 @@ def practice(q, names, route):
 
 def contents(ch, prefix):
     copy = deepcopy(ch)
+    # MathML Core uses explicit operators for fences, including ceiling and floor.
+    for fenced in copy.xpath('.//*[local-name()="mfenced"]'):
+        ns = "{http://www.w3.org/1998/Math/MathML}"
+        children = list(fenced)
+        opening = fenced.attrib.pop("open", "(")
+        closing = fenced.attrib.pop("close", ")")
+        separators = "".join(fenced.attrib.pop("separators", ",").split())
+        fenced.tag = ns + "mrow"
+        left = ET.Element(ns + "mo", fence="true")
+        left.text = opening
+        fenced.insert(0, left)
+        if separators:
+            for i, child in enumerate(children[1:]):
+                separator = ET.Element(ns + "mo", separator="true")
+                separator.text = separators[min(i, len(separators) - 1)]
+                child.addprevious(separator)
+        ET.SubElement(fenced, ns + "mo", fence="true").text = closing
     names = {q.get("id"): q.get("title") for q in ch.iter("exercise")}
     for e in copy.iter():
         for k in ("href", "src"):

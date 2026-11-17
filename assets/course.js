@@ -324,6 +324,141 @@ document.addEventListener("click", async e => {
   window.visualViewport?.addEventListener("resize",queue);
 })();
 
+// Keep the explanation and the passage it refers to in the same reading position.
+(() => {
+  let trigger, panel;
+  function dismiss(restoreFocus = false) {
+    if (!trigger) return;
+    panel.remove();
+    trigger.setAttribute('aria-expanded', 'false');
+    trigger.removeAttribute('aria-controls');
+    if (restoreFocus) trigger.focus({preventScroll: true});
+    trigger = panel = null;
+  }
+  document.addEventListener('click', event => {
+    const link = event.target.closest('a.line-ref, a.example-ref');
+    if (!link || event.button || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+    event.preventDefault();
+    if (link === trigger) { dismiss(true); return; }
+    dismiss();
+    trigger = link;
+    panel = document.createElement('aside');
+    panel.className = 'reading-detail';
+    panel.id = 'active-reading-detail';
+    const codeRef = link.classList.contains('line-ref');
+    const label = codeRef ? link.dataset.file + ' · ' + link.textContent : link.textContent;
+    panel.setAttribute('aria-label', label);
+    const bar = document.createElement('header');
+    const title = document.createElement('strong');
+    title.textContent = label;
+    const close = document.createElement('button');
+    close.type = 'button';
+    close.textContent = '收起';
+    close.addEventListener('click', () => dismiss(true));
+    bar.append(title, close);
+    panel.append(bar);
+    if (codeRef) {
+      const block = document.createElement('pre');
+      const code = document.createElement('code');
+      const rows = JSON.parse(link.dataset.rows);
+      const commonIndent = Math.min(...rows.filter(([, source]) => source.trim()).map(([, source]) => source.match(/^\s*/)[0].length));
+      for (const [number, source, note] of rows) {
+        const row = document.createElement('span');
+        row.className = 'reading-line';
+        const gutter = document.createElement('span');
+        gutter.className = 'reading-number';
+        gutter.textContent = number;
+        const annotation = document.createElement('span');
+        annotation.className = 'reading-note';
+        annotation.textContent = '  ' + link.dataset.comment + ' ' + note;
+        const statement = document.createElement('span');
+        statement.className = 'reading-statement';
+        statement.textContent = source.slice(commonIndent);
+        row.append(gutter, statement, annotation);
+        code.append(row);
+      }
+      block.append(code);
+      panel.append(block);
+    } else {
+      const example = document.createElement('p');
+      example.textContent = link.dataset.example;
+      panel.append(example);
+    }
+    link.closest('p').before(panel);
+    trigger.setAttribute('aria-expanded', 'true');
+    trigger.setAttribute('aria-controls', panel.id);
+    close.focus({preventScroll: true});
+    if (panel.getBoundingClientRect().top < 70 || panel.getBoundingClientRect().top > innerHeight - 100) {
+      panel.scrollIntoView({block: 'start'});
+    }
+  });
+  document.addEventListener('keydown', event => {
+    if (event.key === 'Escape' && trigger) { event.preventDefault(); dismiss(true); }
+  });
+})();
+
+// Coordinates below use the 900 × 390 drawing surface of the two teaching figures.
+for (const figure of document.querySelectorAll('figure[data-trace]')) {
+  const link = figure.querySelector('a');
+  const image = link.querySelector('img');
+  const surface = document.createElement('span');
+  surface.className = 'trace-surface';
+  image.replaceWith(surface);
+  surface.append(image);
+  const ns = 'http://www.w3.org/2000/svg';
+  const overlay = document.createElementNS(ns, 'svg');
+  overlay.setAttribute('viewBox', '0 0 900 390');
+  overlay.setAttribute('aria-hidden', 'true');
+  surface.append(overlay);
+  const controls = document.createElement('div');
+  controls.className = 'trace-controls';
+  const result = document.createElement('output');
+  function slider(label, max, initial) {
+    const field = document.createElement('label');
+    const input = document.createElement('input');
+    input.type = 'range';
+    input.min = '0';
+    input.max = max;
+    input.value = initial;
+    field.append(label, input);
+    controls.append(field);
+    return input;
+  }
+  function marker(tag, geometry) {
+    const shape = document.createElementNS(ns, tag);
+    for (const [attr, value] of Object.entries(geometry)) shape.setAttribute(attr, value);
+    overlay.append(shape);
+  }
+  let render;
+  if (figure.dataset.trace === 'rope-frequency-pairs') {
+    const position = slider('位置 p', 12, 3);
+    render = () => {
+      const p = Number(position.value);
+      overlay.replaceChildren();
+      for (const [i, rate] of [1, 0.01].entries()) {
+        marker('circle', {cx: 75 + 432*i + 337*p/12, cy: 223 - 59*Math.cos(p*rate), r: 7});
+      }
+      result.textContent = '位置 ' + p + '：两对通道的转角分别为 ' + p + ' 和 ' + (p/100).toFixed(2) +
+        ' 弧度，对应的余弦为 ' + Math.cos(p).toFixed(4) + ' 和 ' + Math.cos(p/100).toFixed(4) + '。';
+    };
+  } else if (figure.dataset.trace === 'ulysses-position-heads') {
+    const position = slider('位置 p', 7, 6);
+    const head = slider('头 H', 3, 0);
+    render = () => {
+      const p = Number(position.value), h = Number(head.value);
+      const src = Math.floor(p/4), dst = Math.floor(h/2);
+      overlay.replaceChildren();
+      for (let i = 0; i < 2; i++) marker('rect', {x: 90 + 437*i + 68*h, y: 163 + 19*p, width: 68, height: 19});
+      result.textContent = '位置 ' + p + '、头 ' + h + (src === dst ? ' 在交换前后都归 rank ' + src + '。' :
+        ' 从 rank ' + src + ' 发往 rank ' + dst + '。') + '同一对坐标在两幅图中均已圈出。';
+    };
+  } else continue;
+  controls.append(result);
+  link.after(controls);
+  controls.addEventListener('input', render);
+  render();
+}
+
 document.querySelectorAll('.state-deck').forEach(deck=>{
   const pages=Array.from(deck.children).filter(el=>el.tagName==='DETAILS');
   if(!pages.length)return;

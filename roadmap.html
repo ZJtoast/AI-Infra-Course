@@ -1,10 +1,12 @@
 <!doctype html>
-<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light"><title>AI 基础设施学习路线 · AI Infra Course</title><style>.response textarea{box-sizing:border-box;width:100%;max-width:100%}</style><link rel="stylesheet" href="assets/course.css?v=1d44bb5810ec"><script defer src="assets/index-data.js?v=09042a38dcfe"></script><script defer src="assets/course.js?v=b58933c84ead"></script><style>.code .tok-keyword{color:#CDB1FF}.code .tok-type{color:#82E0D1}.code .tok-function{color:#F6D78E}.code .tok-string{color:#F6B797}.code .tok-comment{color:#A2B9A0}.code .tok-number{color:#B6DEA3}.code .tok-variable{color:#9AD8FF}.code .tok-operator{color:#E5B2E9}.code .tok-added{color:#98DDA4}.code .tok-removed{color:#FF9F9F}@media print{.code .tok-keyword{color:#5E258F}.code .tok-type{color:#005C55}.code .tok-function{color:#714900}.code .tok-string{color:#85380D}.code .tok-comment{color:#3C6143}.code .tok-number{color:#345E26}.code .tok-variable{color:#154F7C}.code .tok-operator{color:#733B79}.code .tok-added{color:#1D6234}.code .tok-removed{color:#972F38}}</style></head><body class="articlepage" data-root=""><a href="#main" class="skip">跳至正文</a><header class="top"><div class="bar"><a class="brand" href="index.html"><span class="brandmark" aria-hidden="true"><i></i><i></i><i></i></span>AI Infra Course</a><button class="toc-toggle" type="button" data-toc-toggle aria-controls="reader-toc" aria-expanded="true" hidden>收起目录</button><nav aria-label="主导航"><a href="index.html">课程</a><a href="roadmap.html">学习路线</a><a href="handbook.html">合订本</a><a href="https://github.com/ZJtoast/AI-Infra-Course">GitHub ↗</a></nav></div></header><main id="main" class="reader"><div class="articlehero"><div class="eyebrow">课程指南</div><h1>AI 基础设施学习路线</h1><p>按知识依赖编排的 19 个阶段，附参考资料、编程练习和自测题。</p><div class="actions"><a class="btn" href="word/00-learning-roadmap.docx">下载 Word ↓</a></div></div><div class="layout"><aside id="reader-toc" aria-label="知识点目录"><details class="tocbox" open><summary>本页知识点 <small>89</small></summary><ol class="toc"><li class="lv2" id="idx-l00-s001"><a class="" href="#l00-s001">课程目标</a></li><li class="lv3" id="idx-l00-s002"><a class="" href="#l00-s002">计算、访存、通信与调度</a></li><li class="lv3" id="idx-l00-s003"><a class="" href="#l00-s003">硬件、模型与框架</a></li><li class="lv3" id="idx-l00-s004"><a class="" href="#l00-s004">课程顺序</a></li><li class="lv2" id="idx-l00-s005"><a class="" href="#l00-s005">阶段 1　Transformer 与计算成本</a></li><li class="lv3" id="idx-l00-s006"><a class="" href="#l00-s006">张量形状与计算量</a></li><li class="lv3" id="idx-l00-s007"><a class="" href="#l00-s007">参考资料</a></li><li class="lv3" id="idx-l00-s008"><a class="" href="#l00-s008">练习</a></li><li class="lv3" id="idx-l00-s009"><a class="" href="#l00-s009">自测</a></li><li class="lv2" id="idx-l00-s010"><a class="" href="#l00-s010">阶段 2　GPU 架构与存储层次</a></li><li class="lv3" id="idx-l00-s011"><a class="" href="#l00-s011">GPU 的执行与访存</a></li><li class="lv3" id="idx-l00-s012"><a class="" href="#l00-s012">架构文档</a></li><li class="lv3" id="idx-l00-s013"><a class="" href="#l00-s013">AMD GPU、TPU 与 Trainium</a></li><li class="lv3" id="idx-l00-s014"><a class="" href="#l00-s014">练习与自测</a></li><li class="lv2" id="idx-l00-s015"><a class="" href="#l00-s015">阶段 3　CUDA、Triton 与分块算子</a></li><li class="lv3" id="idx-l00-s016"><a class="" href="#l00-s016">编程练习顺序</a></li><li class="lv3" id="idx-l00-s017"><a class="" href="#l00-s017">源码与编程指南</a></li><li class="lv3" id="idx-l00-s018"><a class="" href="#l00-s018">练习</a></li><li class="lv2" id="idx-l00-s019"><a class="" href="#l00-s019">阶段 4　Attention 算子与编译</a></li><li class="lv3" id="idx-l00-s020"><a class="" href="#l00-s020">FlashAttention 的代际变化</a></li><li class="lv3" id="idx-l00-s021"><a class="" href="#l00-s021">编译器与后端</a></li><li class="lv3" id="idx-l00-s022"><a class="" href="#l00-s022">编译边界与融合条件</a></li><li class="lv2" id="idx-l00-s023"><a class="" href="#l00-s023">阶段 5　集合通信与 RDMA</a></li><li class="lv3" id="idx-l00-s024"><a class="" href="#l00-s024">集合通信原语</a></li><li class="lv3" id="idx-l00-s025"><a class="" href="#l00-s025">参考资料</a></li><li class="lv3" id="idx-l00-s026"><a class="" href="#l00-s026">练习</a></li><li class="lv2" id="idx-l00-s027"><a class="" href="#l00-s027">阶段 6　单机训练显存</a></li><li class="lv3" id="idx-l00-s028"><a class="" href="#l00-s028">参数、梯度、优化器状态与激活</a></li><li class="lv3" id="idx-l00-s029"><a class="" href="#l00-s029">参考资料</a></li><li class="lv3" id="idx-l00-s030"><a class="" href="#l00-s030">练习</a></li><li class="lv2" id="idx-l00-s031"><a class="" href="#l00-s031">阶段 7　数据并行与状态分片</a></li><li class="lv3" id="idx-l00-s032"><a class="" href="#l00-s032">DDP、ZeRO 与 FSDP</a></li><li class="lv3" id="idx-l00-s033"><a class="" href="#l00-s033">参考资料</a></li><li class="lv3" id="idx-l00-s034"><a class="" href="#l00-s034">练习</a></li><li class="lv2" id="idx-l00-s035"><a class="" href="#l00-s035">阶段 8　多维并行与 SPMD</a></li><li class="lv3" id="idx-l00-s036"><a class="" href="#l00-s036">张量、序列、上下文与流水线并行</a></li><li class="lv3" id="idx-l00-s037"><a class="" href="#l00-s037">参考资料</a></li><li class="lv3" id="idx-l00-s038"><a class="" href="#l00-s038">练习</a></li><li class="lv2" id="idx-l00-s039"><a class="" href="#l00-s039">阶段 9　MoE 与专家并行</a></li><li class="lv3" id="idx-l00-s040"><a class="" href="#l00-s040">专家选择、分派与回收</a></li><li class="lv3" id="idx-l00-s041"><a class="" href="#l00-s041">参考资料</a></li><li class="lv3" id="idx-l00-s042"><a class="" href="#l00-s042">练习</a></li><li class="lv2" id="idx-l00-s043"><a class="" href="#l00-s043">阶段 10　低精度训练、量化与 Muon</a></li><li class="lv3" id="idx-l00-s044"><a class="" href="#l00-s044">浮点格式与量化粒度</a></li><li class="lv3" id="idx-l00-s045"><a class="" href="#l00-s045">参考资料</a></li><li class="lv3" id="idx-l00-s046"><a class="" href="#l00-s046">Muon 的矩阵更新</a></li><li class="lv2" id="idx-l00-s047"><a class="" href="#l00-s047">阶段 11　长上下文模型与历史状态</a></li><li class="lv3" id="idx-l00-s048"><a class="" href="#l00-s048">KV 压缩</a></li><li class="lv3" id="idx-l00-s049"><a class="" href="#l00-s049">可学习的稀疏注意力</a></li><li class="lv3" id="idx-l00-s050"><a class="" href="#l00-s050">DeepSeek V4 与 V4.1</a></li><li class="lv3" id="idx-l00-s051"><a class="" href="#l00-s051">递归状态与混合注意力</a></li><li class="lv3" id="idx-l00-s052"><a class="" href="#l00-s052">Kimi 与 Qwen 的模型设计</a></li><li class="lv3" id="idx-l00-s053"><a class="" href="#l00-s053">练习与自测</a></li><li class="lv2" id="idx-l00-s054"><a class="" href="#l00-s054">阶段 12　LLM 推理性能</a></li><li class="lv3" id="idx-l00-s055"><a class="" href="#l00-s055">首 token 时延与生成吞吐</a></li><li class="lv3" id="idx-l00-s056"><a class="" href="#l00-s056">参考资料</a></li><li class="lv2" id="idx-l00-s057"><a class="" href="#l00-s057">阶段 13　推理引擎</a></li><li class="lv3" id="idx-l00-s058"><a class="" href="#l00-s058">vLLM</a></li><li class="lv3" id="idx-l00-s059"><a class="" href="#l00-s059">SGLang</a></li><li class="lv3" id="idx-l00-s060"><a class="" href="#l00-s060">TensorRT-LLM</a></li><li class="lv3" id="idx-l00-s061"><a class="" href="#l00-s061">练习</a></li><li class="lv2" id="idx-l00-s062"><a class="" href="#l00-s062">阶段 14　分离式推理与 KV 传输</a></li><li class="lv3" id="idx-l00-s063"><a class="" href="#l00-s063">Prefill 与 decode 的资源需求</a></li><li class="lv3" id="idx-l00-s064"><a class="" href="#l00-s064">跨机 KV 传输</a></li><li class="lv3" id="idx-l00-s065"><a class="" href="#l00-s065">练习</a></li><li class="lv2" id="idx-l00-s066"><a class="" href="#l00-s066">阶段 15　推测解码与并行生成</a></li><li class="lv3" id="idx-l00-s067"><a class="" href="#l00-s067">参考资料</a></li><li class="lv3" id="idx-l00-s068"><a class="" href="#l00-s068">自测</a></li><li class="lv2" id="idx-l00-s069"><a class="" href="#l00-s069">阶段 16　智能体强化学习训练</a></li><li class="lv3" id="idx-l00-s070"><a class="" href="#l00-s070">策略优化与采样</a></li><li class="lv3" id="idx-l00-s071"><a class="" href="#l00-s071">轨迹、权重与调度</a></li><li class="lv3" id="idx-l00-s072"><a class="" href="#l00-s072">训练框架</a></li><li class="lv3" id="idx-l00-s073"><a class="" href="#l00-s073">练习</a></li><li class="lv2" id="idx-l00-s074"><a class="" href="#l00-s074">阶段 17　数据管线、检查点与集群调度</a></li><li class="lv3" id="idx-l00-s075"><a class="" href="#l00-s075">数据与存储</a></li><li class="lv3" id="idx-l00-s076"><a class="" href="#l00-s076">调度平台</a></li><li class="lv3" id="idx-l00-s077"><a class="" href="#l00-s077">作业放置约束</a></li><li class="lv2" id="idx-l00-s078"><a class="" href="#l00-s078">阶段 18　性能剖析、故障恢复与成本</a></li><li class="lv3" id="idx-l00-s079"><a class="" href="#l00-s079">系统、算子与硬件指标</a></li><li class="lv3" id="idx-l00-s080"><a class="" href="#l00-s080">故障诊断与恢复</a></li><li class="lv3" id="idx-l00-s081"><a class="" href="#l00-s081">单位训练与推理成本</a></li><li class="lv2" id="idx-l00-s082"><a class="" href="#l00-s082">阶段 19　长上下文服务设计</a></li><li class="lv3" id="idx-l00-s083"><a class="" href="#l00-s083">系统论文与案例</a></li><li class="lv3" id="idx-l00-s084"><a class="" href="#l00-s084">百万上下文 MoE 平台设计</a></li><li class="lv3" id="idx-l00-s085"><a class="" href="#l00-s085">设计评审</a></li><li class="lv2" id="idx-l00-s086"><a class="" href="#l00-s086">框架与工具索引</a></li><li class="lv2" id="idx-l00-s087"><a class="" href="#l00-s087">论文与源码阅读</a></li><li class="lv2" id="idx-l00-s088"><a class="" href="#l00-s088">参考文献索引</a></li><li class="lv2" id="idx-l00-s089"><a class="" href="#l00-s089">版本与资料来源</a></li></ol></details></aside><div class="toc-divider" role="separator" tabindex="0" aria-label="目录宽度" aria-controls="reader-toc" aria-orientation="vertical" aria-valuemin="180" aria-valuemax="560" aria-valuenow="300" title="拖动调宽，也可用左右方向键" hidden></div><div class="toc-shade" aria-hidden="true" hidden></div><article><p class="prose">GPU 编程、分布式训练与推理系统</p><section class="topic" id="l00-s001">
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light"><title>AI 基础设施学习路线 · AI Infra Course</title><style>.response textarea{box-sizing:border-box;width:100%;max-width:100%}</style><link rel="stylesheet" href="assets/course.css?v=34e195836844"><script defer src="assets/index-data.js?v=42945821d381"></script><script defer src="assets/course.js?v=4a8b3f9723c2"></script><style>.code .tok-keyword{color:#CDB1FF}.code .tok-type{color:#82E0D1}.code .tok-function{color:#F6D78E}.code .tok-string{color:#F6B797}.code .tok-comment{color:#A2B9A0}.code .tok-number{color:#B6DEA3}.code .tok-variable{color:#9AD8FF}.code .tok-operator{color:#E5B2E9}.code .tok-added{color:#98DDA4}.code .tok-removed{color:#FF9F9F}@media print{.code .tok-keyword{color:#5E258F}.code .tok-type{color:#005C55}.code .tok-function{color:#714900}.code .tok-string{color:#85380D}.code .tok-comment{color:#3C6143}.code .tok-number{color:#345E26}.code .tok-variable{color:#154F7C}.code .tok-operator{color:#733B79}.code .tok-added{color:#1D6234}.code .tok-removed{color:#972F38}}</style></head><body class="articlepage" data-root=""><a href="#main" class="skip">跳至正文</a><header class="top"><div class="bar"><a class="brand" href="index.html"><span class="brandmark" aria-hidden="true"><i></i><i></i><i></i></span>AI Infra Course</a><button class="toc-toggle" type="button" data-toc-toggle aria-controls="reader-toc" aria-expanded="true" hidden>收起目录</button><nav aria-label="主导航"><a href="index.html">课程</a><a href="roadmap.html">学习路线</a><a href="handbook.html">合订本</a><a href="https://github.com/ZJtoast/AI-Infra-Course">GitHub ↗</a></nav></div></header><main id="main" class="reader"><div class="articlehero"><div class="eyebrow">课程指南</div><h1>AI 基础设施学习路线</h1><p>按知识依赖编排的 19 个阶段，附参考资料、编程练习和自测题。</p><div class="actions"><a class="btn" href="word/00-learning-roadmap.docx">下载 Word ↓</a></div></div><div class="layout"><aside id="reader-toc" aria-label="知识点目录"><details class="tocbox" open><summary>本页知识点 <small>89</small></summary><ol class="toc"><li class="lv2" id="idx-l00-s001"><a class="" href="#l00-s001">课程目标</a></li><li class="lv3" id="idx-l00-s002"><a class="" href="#l00-s002">计算、访存、通信与调度</a></li><li class="lv3" id="idx-l00-s003"><a class="" href="#l00-s003">硬件、模型与框架</a></li><li class="lv3" id="idx-l00-s004"><a class="" href="#l00-s004">课程顺序</a></li><li class="lv2" id="idx-l00-s005"><a class="" href="#l00-s005">阶段 1　Transformer 与计算成本</a></li><li class="lv3" id="idx-l00-s006"><a class="" href="#l00-s006">张量形状与计算量</a></li><li class="lv3" id="idx-l00-s007"><a class="" href="#l00-s007">参考资料</a></li><li class="lv3" id="idx-l00-s008"><a class="" href="#l00-s008">练习</a></li><li class="lv3" id="idx-l00-s009"><a class="" href="#l00-s009">自测</a></li><li class="lv2" id="idx-l00-s010"><a class="" href="#l00-s010">阶段 2　GPU 架构与存储层次</a></li><li class="lv3" id="idx-l00-s011"><a class="" href="#l00-s011">GPU 的执行与访存</a></li><li class="lv3" id="idx-l00-s012"><a class="" href="#l00-s012">架构文档</a></li><li class="lv3" id="idx-l00-s013"><a class="" href="#l00-s013">AMD GPU、TPU 与 Trainium</a></li><li class="lv3" id="idx-l00-s014"><a class="" href="#l00-s014">练习与自测</a></li><li class="lv2" id="idx-l00-s015"><a class="" href="#l00-s015">阶段 3　CUDA、Triton 与分块算子</a></li><li class="lv3" id="idx-l00-s016"><a class="" href="#l00-s016">编程练习顺序</a></li><li class="lv3" id="idx-l00-s017"><a class="" href="#l00-s017">源码与编程指南</a></li><li class="lv3" id="idx-l00-s018"><a class="" href="#l00-s018">练习</a></li><li class="lv2" id="idx-l00-s019"><a class="" href="#l00-s019">阶段 4　Attention 算子与编译</a></li><li class="lv3" id="idx-l00-s020"><a class="" href="#l00-s020">FlashAttention 的代际变化</a></li><li class="lv3" id="idx-l00-s021"><a class="" href="#l00-s021">编译器与后端</a></li><li class="lv3" id="idx-l00-s022"><a class="" href="#l00-s022">编译边界与融合条件</a></li><li class="lv2" id="idx-l00-s023"><a class="" href="#l00-s023">阶段 5　集合通信与 RDMA</a></li><li class="lv3" id="idx-l00-s024"><a class="" href="#l00-s024">集合通信原语</a></li><li class="lv3" id="idx-l00-s025"><a class="" href="#l00-s025">参考资料</a></li><li class="lv3" id="idx-l00-s026"><a class="" href="#l00-s026">练习</a></li><li class="lv2" id="idx-l00-s027"><a class="" href="#l00-s027">阶段 6　单机训练显存</a></li><li class="lv3" id="idx-l00-s028"><a class="" href="#l00-s028">参数、梯度、优化器状态与激活</a></li><li class="lv3" id="idx-l00-s029"><a class="" href="#l00-s029">参考资料</a></li><li class="lv3" id="idx-l00-s030"><a class="" href="#l00-s030">练习</a></li><li class="lv2" id="idx-l00-s031"><a class="" href="#l00-s031">阶段 7　数据并行与状态分片</a></li><li class="lv3" id="idx-l00-s032"><a class="" href="#l00-s032">DDP、ZeRO 与 FSDP</a></li><li class="lv3" id="idx-l00-s033"><a class="" href="#l00-s033">参考资料</a></li><li class="lv3" id="idx-l00-s034"><a class="" href="#l00-s034">练习</a></li><li class="lv2" id="idx-l00-s035"><a class="" href="#l00-s035">阶段 8　多维并行与 SPMD</a></li><li class="lv3" id="idx-l00-s036"><a class="" href="#l00-s036">张量、序列、上下文与流水线并行</a></li><li class="lv3" id="idx-l00-s037"><a class="" href="#l00-s037">参考资料</a></li><li class="lv3" id="idx-l00-s038"><a class="" href="#l00-s038">练习</a></li><li class="lv2" id="idx-l00-s039"><a class="" href="#l00-s039">阶段 9　MoE 与专家并行</a></li><li class="lv3" id="idx-l00-s040"><a class="" href="#l00-s040">专家选择、分派与回收</a></li><li class="lv3" id="idx-l00-s041"><a class="" href="#l00-s041">参考资料</a></li><li class="lv3" id="idx-l00-s042"><a class="" href="#l00-s042">练习</a></li><li class="lv2" id="idx-l00-s043"><a class="" href="#l00-s043">阶段 10　低精度训练、量化与 Muon</a></li><li class="lv3" id="idx-l00-s044"><a class="" href="#l00-s044">浮点格式与量化粒度</a></li><li class="lv3" id="idx-l00-s045"><a class="" href="#l00-s045">参考资料</a></li><li class="lv3" id="idx-l00-s046"><a class="" href="#l00-s046">Muon 的矩阵更新</a></li><li class="lv2" id="idx-l00-s047"><a class="" href="#l00-s047">阶段 11　长上下文模型与历史状态</a></li><li class="lv3" id="idx-l00-s048"><a class="" href="#l00-s048">KV 压缩</a></li><li class="lv3" id="idx-l00-s049"><a class="" href="#l00-s049">可学习的稀疏注意力</a></li><li class="lv3" id="idx-l00-s050"><a class="" href="#l00-s050">DeepSeek V4 与 V4.1</a></li><li class="lv3" id="idx-l00-s051"><a class="" href="#l00-s051">递归状态与混合注意力</a></li><li class="lv3" id="idx-l00-s052"><a class="" href="#l00-s052">Kimi 与 Qwen 的模型设计</a></li><li class="lv3" id="idx-l00-s053"><a class="" href="#l00-s053">练习与自测</a></li><li class="lv2" id="idx-l00-s054"><a class="" href="#l00-s054">阶段 12　LLM 推理性能</a></li><li class="lv3" id="idx-l00-s055"><a class="" href="#l00-s055">首 token 时延与生成吞吐</a></li><li class="lv3" id="idx-l00-s056"><a class="" href="#l00-s056">参考资料</a></li><li class="lv2" id="idx-l00-s057"><a class="" href="#l00-s057">阶段 13　推理引擎</a></li><li class="lv3" id="idx-l00-s058"><a class="" href="#l00-s058">vLLM</a></li><li class="lv3" id="idx-l00-s059"><a class="" href="#l00-s059">SGLang</a></li><li class="lv3" id="idx-l00-s060"><a class="" href="#l00-s060">TensorRT-LLM</a></li><li class="lv3" id="idx-l00-s061"><a class="" href="#l00-s061">练习</a></li><li class="lv2" id="idx-l00-s062"><a class="" href="#l00-s062">阶段 14　分离式推理与 KV 传输</a></li><li class="lv3" id="idx-l00-s063"><a class="" href="#l00-s063">Prefill 与 decode 的资源需求</a></li><li class="lv3" id="idx-l00-s064"><a class="" href="#l00-s064">跨机 KV 传输</a></li><li class="lv3" id="idx-l00-s065"><a class="" href="#l00-s065">练习</a></li><li class="lv2" id="idx-l00-s066"><a class="" href="#l00-s066">阶段 15　推测解码与并行生成</a></li><li class="lv3" id="idx-l00-s067"><a class="" href="#l00-s067">参考资料</a></li><li class="lv3" id="idx-l00-s068"><a class="" href="#l00-s068">自测</a></li><li class="lv2" id="idx-l00-s069"><a class="" href="#l00-s069">阶段 16　智能体强化学习训练</a></li><li class="lv3" id="idx-l00-s070"><a class="" href="#l00-s070">策略优化与采样</a></li><li class="lv3" id="idx-l00-s071"><a class="" href="#l00-s071">轨迹、权重与调度</a></li><li class="lv3" id="idx-l00-s072"><a class="" href="#l00-s072">训练框架</a></li><li class="lv3" id="idx-l00-s073"><a class="" href="#l00-s073">练习</a></li><li class="lv2" id="idx-l00-s074"><a class="" href="#l00-s074">阶段 17　数据管线、检查点与集群调度</a></li><li class="lv3" id="idx-l00-s075"><a class="" href="#l00-s075">数据与存储</a></li><li class="lv3" id="idx-l00-s076"><a class="" href="#l00-s076">调度平台</a></li><li class="lv3" id="idx-l00-s077"><a class="" href="#l00-s077">作业放置约束</a></li><li class="lv2" id="idx-l00-s078"><a class="" href="#l00-s078">阶段 18　性能剖析、故障恢复与成本</a></li><li class="lv3" id="idx-l00-s079"><a class="" href="#l00-s079">系统、算子与硬件指标</a></li><li class="lv3" id="idx-l00-s080"><a class="" href="#l00-s080">故障诊断与恢复</a></li><li class="lv3" id="idx-l00-s081"><a class="" href="#l00-s081">单位训练与推理成本</a></li><li class="lv2" id="idx-l00-s082"><a class="" href="#l00-s082">阶段 19　长上下文服务设计</a></li><li class="lv3" id="idx-l00-s083"><a class="" href="#l00-s083">系统论文与案例</a></li><li class="lv3" id="idx-l00-s084"><a class="" href="#l00-s084">百万上下文 MoE 平台设计</a></li><li class="lv3" id="idx-l00-s085"><a class="" href="#l00-s085">设计评审</a></li><li class="lv2" id="idx-l00-s086"><a class="" href="#l00-s086">框架与工具索引</a></li><li class="lv2" id="idx-l00-s087"><a class="" href="#l00-s087">论文与源码阅读</a></li><li class="lv2" id="idx-l00-s088"><a class="" href="#l00-s088">参考文献索引</a></li><li class="lv2" id="idx-l00-s089"><a class="" href="#l00-s089">版本与资料来源</a></li></ol></details></aside><div class="toc-divider" role="separator" tabindex="0" aria-label="目录宽度" aria-controls="reader-toc" aria-orientation="vertical" aria-valuemin="180" aria-valuemax="560" aria-valuenow="300" title="拖动调宽，也可用左右方向键" hidden></div><div class="toc-shade" aria-hidden="true" hidden></div><article><p class="prose">GPU 编程、分布式训练与推理系统</p><section class="topic" id="l00-s001">
 <h2>课程目标</h2>
+<p class="prose">同样一张 GPU，首词慢可能因为一段长提示词算得久，也可能因为请求一直排不上批次。学习路线的终点是能从记录中区分这两种情况，并估出改动一次调度或算子能省多少时间。</p>
 <p class="prose">路线按知识依赖排列。前四个阶段学习计算量、<a class="term" href="#Def00a9ee0ebd3974">显存</a>和 <a class="term" href="#Def008552a9d24381">GPU</a> 编程，随后学习通信与训练并行。推理部分以一次生成请求为例，讨论模型状态、调度和服务容量。</p>
 <div class="tablewrap"><table><tr><th><strong>总目标</strong><br>拿到模型配置和请求长度后，分别估算浮点运算量、显存占用和跨卡通信量。再用这些数字判断怎样切分模型，解释用户何时收到<strong>首个词</strong>、随后多久收到下一个词，以及缩短历史或压缩缓存可以省去多少工作。</th></tr></table></div>
 <a class="back" href="#idx-l00-s001">↑ 返回知识点目录</a></section><section class="topic" id="l00-s002">
 <h3>计算、访存、通信与调度</h3>
+<p class="prose">计算量、显存访问量和通信量的单位不同。先各自除以相应的吞吐率估时间，再沿依赖关系判断哪些时间会相加、哪些可能重叠。</p>
 <p class="prose">• 计算量按算子分项统计。先估算矩阵乘的浮点运算次数，再核对 <a class="term" href="#Def00abdd7779982c">Tensor Core</a> 吞吐；若整体仍慢，查看归一化、<a class="term" href="#Def00fe112bc935e2">激活</a>函数等算子占用的时间。</p>
 <figure class="study-figure"><a href="assets/figures/concept-request-observation.png?v=20e81a5445b5" target="_blank" rel="noopener" aria-label="一次生成请求在哪里花时间，打开大图"><img loading="lazy" src="assets/figures/concept-request-observation.png?v=20e81a5445b5" alt="横向为入队、预填充、逐步解码和流式返回，下排给出相应观测对象。" width="1740" height="483"></a><figcaption>从左向右读请求经过的阶段。观测时先确定起止事件，再决定去看系统时间线还是单个算子。</figcaption></figure>
 <p class="prose">• <a class="term" href="#Def00a9ee0ebd3974">显存</a>既要算容量，也要算流量。列出权重、激活、优化器状态和 <a class="term" href="#Def0041a59e42e6db">KV 缓存</a>的字节数；再注明数据是在片上、显存、主存还是 SSD 之间传输。</p>
@@ -13,6 +15,7 @@
 <div class="tablewrap"><table><tr><th>模型 / Workload<br>    ↓<br>算子与精度 → Kernel / Compiler → <a class="term" href="#Def008552a9d24381">GPU</a> / Accelerator<br>    ↓                           ↓<br>Parallelism ← Collectives / Fabric → Cluster<br>    ↓                           ↓<br>Training / RL                Inference / <a class="term" href="#Def00221e82c84d42">KV</a><br>    \_____________________________/<br>          Reliability / Cost</th></tr></table></div>
 <a class="back" href="#idx-l00-s002">↑ 返回知识点目录</a></section><section class="topic" id="l00-s003">
 <h3>硬件、模型与框架</h3>
+<p class="prose">以一次注意力调用为线索：模型规定哪些位置互相可见，框架决定把哪些请求放在本批，内核决定按什么顺序读取 K 和 V。分析结果出错时，先判断是哪一层改变了可见数据。</p>
 <p class="prose">• <a class="term" href="#Def00b409c80937d4">分块</a>算子有多种实现，包括 CuTeDSL、cuTile、<a class="term" href="#Def0042a389719825">TileLang</a> 和 ThunderKittens。<a class="term" href="#Def0046564393b587">FlashAttention-4</a> 可用来比较矩阵乘、<a class="term" href="#Def002c44907a4775">softmax</a> 与数据搬运在 <a class="term" href="#Def00bc2577f3699f">Blackwell</a> 上的分工。</p>
 <p class="prose">• 从一次集合通信的发起方读起：它可以由主机提交，也可从设备代码触发。再查 <a class="term" href="#Def007555efb4d8a7">GIN</a>、<a class="term" href="#Def008cb35fb6bd5b">CFT</a> 及<a class="term" href="#Def00385a096e1df5">对称内存</a>相关接口能访问哪些缓冲区，谁能确认传输完成。</p>
 <p class="prose">• TorchTitan 用<a class="term" href="#Def0017a13674c9f1">设备网格</a>与 <a class="term" href="#Def0028e89b772733">DTensor</a> 描述参数怎样<a class="term" href="#Def003770e3485f96">分片</a>。阅读 <code class="inline-id">spmd_types</code> 时，先画保存在各卡上的局部形状，再看算子入口是否需要重新分布<a class="term" href="#Def0045bb44d04ce3">张量</a>。</p>
@@ -21,43 +24,52 @@
 <p class="prose">• 智能体训练同时涉及采样、工具等待和策略更新。部分轨迹跨越权重切换时，还要记录<a class="term" href="#Def0049b18a3aac46"><strong>行为策略</strong></a><strong>的版本</strong>。</p>
 <a class="back" href="#idx-l00-s003">↑ 返回知识点目录</a></section><section class="topic" id="l00-s004">
 <h3>课程顺序</h3>
+<p class="prose">第一次学习可按表中顺序前进。已有 CUDA 基础的读者可以从注意力算子开始；遇到数据搬运或同步问题，再回看第 2、3 课的线程映射和片上布局。</p>
 <div class="tablewrap"><table><thead><tr><th><strong>阶段</strong></th><th><strong>主题</strong></th><th><strong>学习内容</strong></th></tr></thead><tbody><tr><td>1</td><td><a class="term" href="#Def0014eb042ea056">Transformer</a> 成本模型</td><td><a class="term" href="#Def006ce9830ea9da">参数量</a>、浮点运算量、<a class="term" href="#Def00221e82c84d42">KV</a> 容量与<a class="term" href="#Def001ab30790fd98">算术强度</a></td></tr><tr><td>2</td><td><a class="term" href="#Def008552a9d24381">GPU</a> 与现代加速器</td><td>用 <a class="term" href="#Def009150ae85d1b5">HBM</a>、<a class="term" href="#Def00abdd7779982c">Tensor Core</a> 和<a class="term" href="#Def008890d4f7539c">互连</a>解释不同加速器的资源约束</td></tr><tr><td>3</td><td><a class="term" href="#Def00c6bc8e04694a">CUDA</a>、<a class="term" href="#Def004f9c0b554551">Triton</a> 与<a class="term" href="#Def00b409c80937d4">分块</a>编程</td><td>追踪算子分块、<a class="term" href="#Def00ceb95691b622">融合</a>和<a class="term" href="#Def00bbaa2ba9297f">布局</a>，对读 <a class="term" href="#Def009b0828cdab03">CuTe</a>、cuTile、<a class="term" href="#Def0042a389719825">TileLang</a> 与 DeepGEMM</td></tr><tr><td>4</td><td>注意力算子与编译</td><td><a class="term" href="#Def00035a73508c9b">FlashAttention</a> 各代实现、<a class="term" href="#Def00cd873abe89f8">FlexAttention</a> 与 PyTorch 编译后端</td></tr><tr><td>5</td><td>集合通信与互连</td><td>从 <a class="term" href="#Def0087b406bce49b">NCCL</a>、<a class="term" href="#Def0033550f6bd57f">RDMA</a> 与 <a class="term" href="#Def00d5916e8bd63e">NVSHMEM</a> 读到 DeepEP 的跨卡分派</td></tr><tr><td>6</td><td>训练<a class="term" href="#Def00a9ee0ebd3974">显存</a></td><td>混合精度、<a class="term" href="#Def00dffd6510d93e">激活重计算</a>与优化器状态</td></tr><tr><td>7</td><td>数据并行与状态<a class="term" href="#Def003770e3485f96">分片</a></td><td><a class="term" href="#Def000b2f0f7cc306">梯度同步</a>、<a class="term" href="#Def00532cd9c7e852">参数分片</a>与检查点恢复时的<a class="term" href="#Def001100add545af">重新分片</a></td></tr><tr><td>8</td><td>多维并行</td><td>用<a class="term" href="#Def0017a13674c9f1">设备网格</a>表示<a class="term" href="#Def0045bb44d04ce3">张量</a>、<a class="term" href="#Def00a970838bde1d">流水线</a>、序列、上下文和专家并行</td></tr><tr><td>9</td><td><a class="term" href="#Def00b3b8fcb4bc6c">MoE</a> 系统</td><td>专家路由、负载均衡、分组矩阵乘与<strong>全互换通信</strong></td></tr><tr><td>10</td><td>低精度、<a class="term" href="#Def0039bf4075bd29">量化</a>与优化器</td><td><a class="term" href="#Def00c3e89a78ee46">FP8</a> 与 <a class="term" href="#Def00cd156f69853f">FP4</a> 格式、训练后量化、量化感知训练和 <a class="term" href="#Def0052505d44fe19">Muon</a></td></tr><tr><td>11</td><td>长上下文架构</td><td>比较<a class="term" href="#Def009fbf12bf8548">潜在 KV</a>、稀疏索引和<a class="term" href="#Def0067cd4acd319a">递归状态</a>，并阅读 DeepSeek、Kimi 和 Qwen 实例</td></tr><tr><td>12</td><td>推理服务指标</td><td>提示词预填充、逐词生成、<a class="term" href="#Def00969f7a64a82c">连续批处理</a>与<a class="term" href="#Def00e786d7fcb3e9">服务目标</a></td></tr><tr><td>13</td><td>推理引擎</td><td>Orca、vLLM、SGLang、TensorRT-LLM、MRV2</td></tr><tr><td>14</td><td><a class="term" href="#Def008f0f8b90e927">分离式推理</a>与 KV 传输</td><td>DistServe、Mooncake、Dynamo 与 NIXL 的计算放置和分层缓存</td></tr><tr><td>15</td><td>推测解码</td><td>候选生成与目标验证，以及 Medusa、<a class="term" href="#Def00ae390c328058">EAGLE</a>、<a class="term" href="#Def00bcc0446500fc">MTP</a> 和 <a class="term" href="#Def007eab98f07664">DSpark</a></td></tr><tr><td>16</td><td>强化学习训练系统</td><td>追踪异步采样、权重同步和训练框架中的轨迹交接</td></tr><tr><td>17</td><td>数据、存储与作业调度</td><td>分布式检查点、对象存储、并行文件系统与集群调度</td></tr><tr><td>18</td><td>性能剖析、可靠性与成本</td><td>用 Nsight 和 DCGM 诊断慢进程，核算容量及<a class="term" href="#Def00069476205914">达标吞吐</a></td></tr><tr><td>19</td><td>长上下文平台设计</td><td>将系统论文和模型配置放进同一份端到端容量设计</td></tr></tbody></table></div>
 <a class="back" href="#idx-l00-s004">↑ 返回知识点目录</a></section><section class="topic" id="l00-s005">
 <h2>阶段 1　Transformer 与计算成本</h2>
+<p class="prose">先手算一个位置怎样从输入得到输出，再把计算放大到整段序列。这样数出来的 FLOPs 和字节都有具体对象，也看得出哪些工作只随 token 数线性增长。</p>
 <div class="tablewrap"><table><tr><th><strong>从一个解码器层开始，数清权重有多少参数、前向需要多少次乘加、</strong><strong>每多一个历史 </strong><a class="term" href="#Def00397a73c4e319"><strong>token</strong></a><strong> 又要多留多少字节的 </strong><a class="term" href="#Def00221e82c84d42"><strong>KV</strong></a><strong>。</strong></th></tr></table></div>
 <a class="back" href="#idx-l00-s005">↑ 返回知识点目录</a></section><section class="topic" id="l00-s006">
 <h3>张量形状与计算量</h3>
+<p class="prose">先分清哪些维度会随请求增长。一层投影的权重在不同请求之间共用，KV 缓存却要为每条请求的每个历史位置另留空间。两者即使都以字节计，也要分别估算。</p>
 <p class="prose">• 给 Q、K、V <a class="term" href="#Def00076e61dd94e8">投影</a>、注意力与前馈层标出矩阵形状，再分别计算整段预填充、新增一个词的解码以及包含反向的训练运算量。</p>
 <p class="prose">• 列出参数、梯度、优化器状态、<a class="term" href="#Def00fe112bc935e2">激活</a>和 <a class="term" href="#Def0041a59e42e6db">KV 缓存</a>的形状及精度。比较 <a class="term" href="#Def00bae53b3d7d1d">MHA</a>、<a class="term" href="#Def009fd7226a2b39">MQA</a>、<a class="term" href="#Def00d643a4ba2470">GQA</a> 和 <a class="term" href="#Def00810106df1b85">MLA</a> 各要保留几份历史记录。</p>
 <p class="prose">• 用有效浮点运算量除以同一层级的访存字节数得到<a class="term" href="#Def00e4915578ac87"><strong>算术强度</strong></a>，在 <a class="term" href="#Def00bf95ac5fdfa6">Roofline</a> 图上比较计算和带宽上界；再检查小任务是否受启动或等待限制。</p>
 <p class="prose">• 记录算子每秒浮点运算数、模型与硬件 <a class="term" href="#Def00dc3c9e236521">FLOP</a> 利用率，再分别统计首词延迟、相邻输出间隔、完整请求延迟和达标请求率。</p>
 <a class="back" href="#idx-l00-s006">↑ 返回知识点目录</a></section><section class="topic" id="l00-s007">
 <h3>参考资料</h3>
+<p class="prose">先从模型配置找层数、头数和头宽，再到模型实现查看投影怎样使用这些数字。公式里的一个 D，有时代表全模型宽度，有时只是每卡所持分片的宽度。</p>
 <p class="reading"><strong>论文  </strong><a href="https://arxiv.org/abs/1706.03762">Attention Is All You Need</a> — 按一行输入的走向，标出多头注意力和前馈层每一步的<a class="term" href="#Def0045bb44d04ce3">张量</a>形状。</p>
 <p class="reading"><strong>论文  </strong><a href="https://dl.acm.org/doi/10.1145/1498765.1498785">Roofline: An Insightful Visual Performance Model</a> — 用图中的斜线和平顶分别计算<strong>带宽上界</strong>和计算上界，找出两者的交点。</p>
 <p class="reading"><strong>参考  </strong><a href="https://arxiv.org/abs/2104.04473">Transformer FLOPs / scaling 的经典估算：Megatron-LM</a> — 采用论文约定的乘加口径，把参数规模和每步处理的有效 <a class="term" href="#Def00397a73c4e319">token</a> 数换算为训练吞吐。</p>
 <a class="back" href="#idx-l00-s007">↑ 返回知识点目录</a></section><section class="topic" id="l00-s008">
 <h3>练习</h3>
+<p class="prose">验算时先把序列长度改成 1。此时因果注意力只有一个合法配对，单头的注意力输出应等于该位置的 value。通过这一项再加入第二个位置。</p>
 <p class="prose">• 写一张可复算的计算表或一段 Python 程序。输入<a class="term" href="#Def0064e4d568ccad">隐藏宽度</a>、前馈宽度、层数、Q 头数、<a class="term" href="#Def00a3316f4dfe1c">KV 头</a>数、头宽、批量、序列长度及各<a class="term" href="#Def0045bb44d04ce3">张量</a>精度，分别输出参数与状态字节、每词 <a class="term" href="#Def00221e82c84d42">KV</a> 字节、注意力和前馈层的浮点运算量；注明是否含反向、<a class="term" href="#Def00fe112bc935e2">激活</a>和<a class="term" href="#Def00921abb7193c8">临时工作区</a>。</p>
 <p class="prose">• 各选一个约 70 亿参数、约 700 亿参数的稠密模型和一个 <a class="term" href="#Def00b3b8fcb4bc6c">MoE</a> 模型，附上配置。令<strong>有效序列</strong>从 8192 增至 1048576，固定批量；对 MoE 另列总专家数与每词选中数。逐项解释哪些量按长度线性增长，哪些在全历史注意力下近似二次增长。</p>
 <a class="back" href="#idx-l00-s008">↑ 返回知识点目录</a></section><section class="topic" id="l00-s009">
 <h3>自测</h3>
+<p class="prose">自测时给每个估算值写上单位。若算出的 KV 缓存是“元素数”，还要乘每个元素的字节数，才能与显存上限比较。</p>
 <p class="reading">□ 给出一个数值例子，分别标出模型参数和请求长度怎样进入 <a class="term" href="#Def00dc3c9e236521">FLOP</a> 与<a class="term" href="#Def00a9ee0ebd3974">显存</a>公式，并注明训练还是推理、精度、批量及是否<a class="term" href="#Def003770e3485f96">分片</a>。</p>
 <p class="reading">□ 固定模型，对比一个词的低并发解码与一整段提示词的预填充。算出两者的<a class="term" href="#Def00250d5f6bb634"><strong>理想算术强度</strong></a>，再说明批量、历史长度或缓存命中发生什么变化时，原瓶颈判断需要重做。</p>
 <a class="back" href="#idx-l00-s009">↑ 返回知识点目录</a></section><section class="topic" id="l00-s010">
 <h2>阶段 2　GPU 架构与存储层次</h2>
+<p class="prose">从一个 warp 的读取开始，列出每条 lane 的地址。再顺着寄存器、共享内存、缓存到显存的路径，看一个值被谁再次使用，能避免哪一次搬运。</p>
 <div class="tablewrap"><table><tr><th><strong>比较 </strong><a class="term" href="#Def006aebaceb6afe"><strong>warp</strong></a><strong> 执行、</strong><strong>内存层次</strong><strong>与 </strong><a class="term" href="#Def008552a9d24381"><strong>GPU</strong></a><strong> </strong><a class="term" href="#Def008890d4f7539c"><strong>互连</strong></a><strong>怎样限制同一个矩阵乘。</strong></th></tr></table></div>
 <a class="back" href="#idx-l00-s010">↑ 返回知识点目录</a></section><section class="topic" id="l00-s011">
 <h3>GPU 的执行与访存</h3>
-<p class="prose">• 一个<a class="term" href="#Def00b8d82cdebd0a">线程块</a>在一个 <a class="term" href="#Def00b5df4538d2b1">SM</a> 上执行，块内线程以 <a class="term" href="#Def006aebaceb6afe">warp</a> 为单位发射。沿一次矩阵乘追踪<a class="term" href="#Def000d6e4e28f51c">寄存器</a>、<a class="term" href="#Def009a324576344e">共享内存</a>、<a class="term" href="#Def0049c44fcbbd54">L2</a> 和 <a class="term" href="#Def009150ae85d1b5">HBM</a> 的读写，再看<strong>可</strong><a class="term" href="#Def00c0c8484528dc"><strong>驻留</strong></a><strong>的 warp</strong> 中有几组真正能发出下一条指令。</p>
+<p class="prose">• 一个<a class="term" href="#Def00b8d82cdebd0a">线程块</a>在一个 <a class="term" href="#Def00b5df4538d2b1">SM</a> 上执行，块内线程以 <a class="term" href="#Def006aebaceb6afe">warp</a> 为单位发射。沿一次矩阵乘追踪<a class="term" href="#Def000d6e4e28f51c">寄存器</a>、<a class="term" href="#Def009a324576344e">共享内存</a>、<a class="term" href="#Def0049c44fcbbd54">L2</a> 和 <a class="term" href="#Def009150ae85d1b5">HBM</a> 的读写，再看<strong>可</strong><a class="term" href="#Def00c0c8484528dc"><strong>驻留</strong></a><strong>的 warp</strong> 中有几个已就绪、可以发出下一条指令。</p>
 <p class="prose">• 画出同机 <a class="term" href="#Def008552a9d24381">GPU</a> 经 <a class="term" href="#Def0058e976d32a43">PCIe</a> 或 <a class="term" href="#Def00f43591e48c64">NVLink</a>/NVSwitch 的路径，以及跨机 GPU 经网卡走 <a class="term" href="#Def0030609c05b9fe">InfiniBand</a> 或 <a class="term" href="#Def00767e11eb8f81">RoCE</a> 的路径。再标出 CPU 与 GPU 的连接方式，区分经过主存与设备间直接传输。</p>
 <p class="prose">• 分开估算矩阵乘、指数运算和搬运的时间。以 <a class="term" href="#Def0046564393b587">FlashAttention-4</a> 为例，矩阵引擎的吞吐提高之后，若指数或访存时间仍占主导，加快矩阵乘能节约的总时间就有限。</p>
 <a class="back" href="#idx-l00-s011">↑ 返回知识点目录</a></section><section class="topic" id="l00-s012">
 <h3>架构文档</h3>
+<p class="prose">查硬件手册时，同时记录架构代号、数据类型和指令形状。同为“矩阵乘”，换了操作数类型，能用的指令与公开峰值都可能改变。</p>
 <p class="reading"><strong>官方  </strong><a href="https://docs.nvidia.com/cuda/cuda-c-programming-guide/">CUDA C++ Programming Guide</a> — 先读线程与存储层级图，再跟踪一次<a class="term" href="#Def003bdc659c9a02">异步拷贝</a>的发起、可见和完成条件。</p>
 <p class="reading"><strong>官方  </strong><a href="https://developer.nvidia.com/blog/inside-nvidia-rubin-gpu-architecture-powering-the-era-of-agentic-ai/">NVIDIA Rubin GPU Architecture</a> — 分开查 <a class="term" href="#Def009150ae85d1b5">HBM</a> 对本卡的带宽、<a class="term" href="#Def00f43591e48c64">NVLink</a> 对卡间的带宽，以及标称矩阵吞吐对应的数据类型。</p>
 <a class="back" href="#idx-l00-s012">↑ 返回知识点目录</a></section><section class="topic" id="l00-s013">
 <h3>AMD GPU、TPU 与 Trainium</h3>
+<p class="prose">比较不同加速器，可以给它们同一题目：一个矩阵块由谁搬进片上存储、谁保存部分和、下一块何时覆盖原槽。这比逐字翻译各家组件名称更容易解释差异。</p>
 <p class="reading"><strong>官方  </strong><a href="https://www.amd.com/en/products/accelerators/instinct/mi350/mi355x.html">AMD Instinct MI355X / CDNA4</a> — 用架构图找到 <a class="term" href="#Def009150ae85d1b5">HBM</a>、矩阵引擎及其低精度输入格式。抄录带宽时注明是单个加速器的指标。</p>
 <p class="reading"><strong>官方  </strong><a href="https://docs.cloud.google.com/tpu/docs/tpu7x">Google TPU7x (Ironwood)</a> — 将每芯片的 HBM 容量与整个<a class="term" href="#Def008890d4f7539c">互连</a><a class="term" href="#Def00d9c80c5b0f4a">拓扑</a>分开，追踪一次跨芯片通信在<strong>三维环面</strong>中的路径。</p>
 <p class="reading"><strong>官方  </strong><a href="https://awsdocs-neuron.readthedocs-hosted.com/en/v2.30.0/about-neuron/arch/neuron-hardware/trainium2.html">AWS Trainium2 Architecture</a> — 从 NeuronCore 和片上 SBUF 读起，检查编译器怎样安排搬运，再用 NeuronLink 图解释跨芯片通信。</p>
@@ -65,13 +77,15 @@
 <a class="back" href="#idx-l00-s013">↑ 返回知识点目录</a></section><section class="topic" id="l00-s014">
 <h3>练习与自测</h3>
 <p class="prose">• 使用一份多 <a class="term" href="#Def008552a9d24381">GPU</a> 节点的既有<a class="term" href="#Def00d9c80c5b0f4a">拓扑</a>输出，或在可用设备上查看 nvidia-smi topo -m。选定两张 GPU 和一块网卡，画出数据从哪张卡出发，中间经过哪个交换结构，最终到哪个端点。</p>
-<p class="reading">□ 以一块矩阵被数个线程重复读取为例，标出数据原来在 <a class="term" href="#Def009150ae85d1b5">HBM</a>、搬到<a class="term" href="#Def009a324576344e">共享内存</a>后由谁<a class="term" href="#Def00f465e0254961">复用</a>，以及每线程<a class="term" href="#Def000d6e4e28f51c">寄存器</a>保留什么。说明块变大可能付出的<a class="term" href="#Def00c0c8484528dc">驻留</a>代价。</p>
+<p class="reading">□ 以一块矩阵被数个线程重复读取为例，标出数据原来在 <a class="term" href="#Def009150ae85d1b5">HBM</a>、搬到<a class="term" href="#Def009a324576344e">共享内存</a>后由谁<a class="term" href="#Def00f465e0254961">复用</a>，以及每线程<a class="term" href="#Def000d6e4e28f51c">寄存器</a>保留什么。说明块变大后，每个 SM 可同时<a class="term" href="#Def00c0c8484528dc">驻留</a>的块数可能怎样变化。</p>
 <p class="reading">□ 给<a class="term" href="#Def0045bb44d04ce3">张量</a>并行、专家分派和预填充到解码的 <a class="term" href="#Def00221e82c84d42">KV</a> 交接各选一种拓扑。解释各自传多少数据、由谁等待，以及链路带宽或启动延迟怎样影响放置。</p>
 <a class="back" href="#idx-l00-s014">↑ 返回知识点目录</a></section><section class="topic" id="l00-s015">
 <h2>阶段 3　CUDA、Triton 与分块算子</h2>
+<p class="prose">写第一个内核前，选定一个输出元素，算出它要读的输入地址。之后换成 Triton 或其他分块接口，仍用这个元素核对，才能区分表达方式变化和计算本身变化。</p>
 <div class="tablewrap"><table><tr><th><strong>从</strong><a class="term" href="#Def008de0dcc95ca5"><strong>归约</strong></a><strong>和矩阵乘的源码识别线程分工、访问地址与</strong><strong>同步点</strong><strong>。</strong></th></tr></table></div>
 <a class="back" href="#idx-l00-s015">↑ 返回知识点目录</a></section><section class="topic" id="l00-s016">
 <h3>编程练习顺序</h3>
+<p class="prose">归约练习先用全 1 输入核对总数，再只保留末尾一个非零值。后者能暴露漏算尾块的问题，而随机输入的一个近似总和不容易让人看出漏的是哪一项。</p>
 <p class="prose">• <a class="term" href="#Def00c6bc8e04694a">CUDA</a> 练习依次实现向量加法、<a class="term" href="#Def008de0dcc95ca5"><strong>归约</strong></a>、<a class="term" href="#Def00b409c80937d4">分块</a> <a class="term" href="#Def00706d08729f40">GEMM</a> 和 <a class="term" href="#Def002c44907a4775">softmax</a>。逐步检查相邻线程的访存地址、<a class="term" href="#Def009a324576344e">共享内存</a><a class="term" href="#Def00f465e0254961">复用</a>、<a class="term" href="#Def006aebaceb6afe">warp</a> 内交换以及<a class="term" href="#Def003bdc659c9a02">异步拷贝</a>的完成条件。</p>
 <p class="prose">• 在 <a class="term" href="#Def004f9c0b554551">Triton</a> 中重做向量加法、<a class="term" href="#Def00ceb95691b622">融合</a> softmax 和矩阵乘。先写出一个<a class="term" href="#Def00168f5d911fd9">程序实例</a>负责哪些元素，再读<a class="term" href="#Def00b3b28c19a652">块指针</a>的<a class="term" href="#Def00d9a4c6de44fe">步长</a>和<a class="term" href="#Def00a51bf3638890">自动调优</a>选择的块形状。</p>
 <p class="prose">• 用 <a class="term" href="#Def009b0828cdab03">CuTe</a>/<a class="term" href="#Def005229e443f2ca">CUTLASS</a> 把逻辑矩阵坐标换成实际地址，随后跟踪操作数怎样送入矩阵指令、何时可以复用流水缓冲。</p>
@@ -79,6 +93,7 @@
 <p class="prose">• 从 DeepGEMM 选一条与模型结构有关的实现，例如分组矩阵乘或稀疏索引。跟踪输入布局、编译分派与输出位置，注明阅读的提交。</p>
 <a class="back" href="#idx-l00-s016">↑ 返回知识点目录</a></section><section class="topic" id="l00-s017">
 <h3>源码与编程指南</h3>
+<p class="prose">教程用于看完整的调用方式，指令手册用于确认参与线程、地址空间和同步条件。遇到示例只支持特定形状时，沿调用向下找出第一条依赖该条件的指令。</p>
 <p class="reading"><strong>教程  </strong><a href="https://triton-lang.org/main/getting-started/tutorials/03-matrix-multiplication.html">Triton: Matrix Multiplication</a> — 自己推导一个输出块的坐标与 K 轴循环，再用非整除形状测试<a class="term" href="#Def009e4989330de2">掩码</a>。</p>
 <p class="reading"><strong>官方  </strong><a href="https://docs.nvidia.com/cuda/cutile-python/">cuTile Python</a> — 查目标架构与软件版本支持的矩阵指令，重点核对<strong>块尺度</strong>所在的<a class="term" href="#Def00d9810cec9bd1">归约轴</a>。</p>
 <p class="reading"><strong>项目  </strong><a href="https://github.com/tile-ai/tilelang">TileLang</a> — 选一个目标后端和一个注意力示例，对照<a class="term" href="#Def0045bb44d04ce3">张量</a>的逻辑<a class="term" href="#Def00bbaa2ba9297f">布局</a>与生成内核的<a class="term" href="#Def00b409c80937d4">分块</a>。</p>
@@ -87,94 +102,113 @@
 <div class="tablewrap"><table><tr><th><strong>分块编程接口</strong><br>挑同一个矩阵乘，对照 cuTile、DeepGEMM 与 ThunderKittens 的块形状、缩放粒度和流水同步。遇到架构专用指令时，把最低目标架构与仓库版本一起记在笔记里。</th></tr></table></div>
 <a class="back" href="#idx-l00-s017">↑ 返回知识点目录</a></section><section class="topic" id="l00-s018">
 <h3>练习</h3>
+<p class="prose">用同一组矩阵分别测试一个整块、一个尾行和一个尾列。若只有尾块结果不符，先检查掩码和写回地址，再去调累加精度。</p>
 <p class="prose">• 固定输入形状和精度，分别用 PyTorch <a class="term" href="#Def00aeba0bc5c6db">eager</a>、<code class="inline-id">torch.compile</code> 和 <a class="term" href="#Def004f9c0b554551">Triton</a> 实现逐行 <a class="term" href="#Def002c44907a4775">softmax</a>。先比较输出，再核对执行了几个 kernel、实际 <a class="term" href="#Def0086a02b7b9c8b">DRAM</a> 字节与<strong>正常运行时长</strong>。</p>
 <p class="prose">• 选一个采用 <a class="term" href="#Def00c3e89a78ee46">FP8</a> 或 <a class="term" href="#Def00cd156f69853f">FP4</a> <a class="term" href="#Def00b409c80937d4">分块</a>缩放的 <a class="term" href="#Def00706d08729f40">GEMM</a>，从小矩阵参考或 DeepGEMM 内核入手，标出每个尺度负责哪些元素、部分和以什么精度保存、<a class="term" href="#Def00b78f83147c69">反量化</a>发生在哪次相加之前。</p>
 <p class="reading">□ 给出一段系统<a class="term" href="#Def001f3fb14715bc">时间线</a>与其中一个算子的报告。先判断空档在启动前还是执行中，再用带宽、矩阵指令或指数吞吐证据提出一个可用对照推翻的解释。</p>
 <a class="back" href="#idx-l00-s018">↑ 返回知识点目录</a></section><section class="topic" id="l00-s019">
 <h2>阶段 4　Attention 算子与编译</h2>
+<p class="prose">注意力优化要同时保持两件事：每行看见相同的历史，以及权重仍相对于这一行全部有效位置归一化。接下来的分块与重算都可以用这两项检验。</p>
 <div class="tablewrap"><table><tr><th><strong>先手算一个 </strong><a class="term" href="#Def003b7755ef3059"><strong>query</strong></a><strong> 在两个历史块上的</strong><a class="term" href="#Def00e288fb23b06d"><strong>加权输出</strong></a><strong>，再读各代 </strong><a class="term" href="#Def00035a73508c9b"><strong>FlashAttention</strong></a><strong> 由哪些线程保存</strong><strong>分子、分母</strong><strong>，以及编译器怎样选择内核。</strong></th></tr></table></div>
 <a class="back" href="#idx-l00-s019">↑ 返回知识点目录</a></section><section class="topic" id="l00-s020">
 <h3>FlashAttention 的代际变化</h3>
+<p class="prose">读新一代 FlashAttention 时，先找仍然保留的逐行统计量，再找这一代改变了哪一处任务划分、缓存位置或等待事件。这样才看得出加速来自哪里。</p>
 <p class="reading"><strong>论文  </strong><a href="https://arxiv.org/abs/2205.14135">FlashAttention</a> — 用分成两块的历史记录手算<a class="term" href="#Def00582d5dc451fc">在线 softmax</a>，并找出哪些中间<a class="term" href="#Def0045bb44d04ce3">张量</a>可以免于写回<a class="term" href="#Def00a9ee0ebd3974">显存</a>。</p>
 <p class="reading"><strong>论文  </strong><a href="https://arxiv.org/abs/2307.08691">FlashAttention-2</a> — 对同一形状先数有多少个独立 <a class="term" href="#Def003b7755ef3059">query</a> 行块，再解释这些块怎样分给 <a class="term" href="#Def00c1196d0e6a29">CTA</a>、块内怎样分给 <a class="term" href="#Def006aebaceb6afe">warp</a>。</p>
 <p class="reading"><strong>论文  </strong><a href="https://arxiv.org/abs/2407.08608">FlashAttention-3</a> — 在 <a class="term" href="#Def002401fe19f773">Hopper</a> 的相邻两个 <a class="term" href="#Def00221e82c84d42">KV</a> 块之间画出 <a class="term" href="#Def00729fb0d6ba53">TMA</a>、异步矩阵乘和 <a class="term" href="#Def002c44907a4775">softmax</a> 的先后关系，单独核对 <a class="term" href="#Def00c3e89a78ee46">FP8</a> 的尺度。</p>
 <p class="reading"><strong>论文  </strong><a href="https://arxiv.org/abs/2603.05451">FlashAttention-4</a> — 对照 <a class="term" href="#Def00e3c03f29bd29">SM100</a> 的 <a class="term" href="#Def009b0828cdab03">CuTe</a> DSL 实现，区分 <a class="term" href="#Def00fdd4b30673c0">TMEM</a>、<a class="term" href="#Def009a324576344e">共享内存</a>和指数管线的职责；反向另查两个 CTA 怎样交换梯度片段。</p>
 <a class="back" href="#idx-l00-s020">↑ 返回知识点目录</a></section><section class="topic" id="l00-s021">
 <h3>编译器与后端</h3>
+<p class="prose">一段模型代码可以写成一次张量运算，编译器仍要决定中间结果放在哪里、哪些操作合在一个内核里执行。读执行图时，沿一份中间张量追踪它的写入和下一次读取，就能看出一次融合究竟省了什么。</p>
 <p class="reading"><strong>官方  </strong><a href="https://docs.pytorch.org/tutorials/intermediate/torch_compile_tutorial.html">torch.compile Tutorial</a> — 追踪一段 Python 代码怎样被 Dynamo 捕获，训练图如何进入自动微分阶段，<a class="term" href="#Def00d372449a9be3">Inductor</a> 最终生成哪些调用。</p>
 <p class="reading"><strong>官方  </strong><a href="https://pytorch.org/blog/flexattention/">FlexAttention</a> — 各写一个改变<strong>分数</strong>的函数和一个限制可见位置的<a class="term" href="#Def009e4989330de2">掩码</a>，比较哪一步影响点积、哪一步影响可跳过的块。</p>
 <p class="reading"><strong>资料  </strong><a href="https://pytorch.org/blog/flexattention-flashattention-4-fast-and-flexible/">FlexAttention + FlashAttention-4</a> — 检查自定义注意力在给定形状与设备上选中的后端，从生成代码确认是否走 <a class="term" href="#Def009b0828cdab03">CuTe</a> DSL 的 <a class="term" href="#Def0046564393b587">FlashAttention-4</a> 路径。</p>
 <p class="reading"><strong>资料  </strong><a href="https://pytorch.org/blog/pytorch-2-14-release-blog/">PyTorch 2.14 Release</a> — 在发行说明中找到矩阵乘后端、目标架构与计算通信<a class="term" href="#Def006b4ca1a43b48">重叠</a>的启用条件，记录哪些选项会影响同一模型的编译产物。</p>
 <a class="back" href="#idx-l00-s021">↑ 返回知识点目录</a></section><section class="topic" id="l00-s022">
 <h3>编译边界与融合条件</h3>
+<p class="prose">若一种融合声称省去一次写回，可在原执行图中圈出产生该中间张量的节点和下一位读者。还有其他读者时，原缓冲便未必能完全消失。</p>
 <p class="prose">• 沿一次调用标出前端图的边界。<strong>动态形状</strong>可能触发重新编译，后端可能把若干操作<a class="term" href="#Def00ceb95691b622">融合</a>为一个内核；<a class="term" href="#Def00706ced8f7049">CUDA Graph</a> 则负责记录并<a class="term" href="#Def00bba03723d890">重放</a>设备工作。分别在日志与<a class="term" href="#Def001f3fb14715bc">时间线</a>上核实。</p>
 <p class="prose">• <a class="term" href="#Def00d372449a9be3">Inductor</a> 可选择 <a class="term" href="#Def004f9c0b554551">Triton</a>、CuTeDSL 或 NVGEMM 等路径。后端选择取决于算子、数据类型和设备。</p>
 <p class="reading">□ 为任意两代 <a class="term" href="#Def00035a73508c9b">FlashAttention</a> 指定同一输入，说明后者希望减少哪种数据传输或等待，指出需要哪种硬件以及什么观测能验证。</p>
 <p class="reading">□ 给一个编译区域加标记，利用 <code class="inline-id">torch.profiler</code> 的关联记录找到实际 kernel，再与 Inductor 生成代码中的调用逐一对应。</p>
 <a class="back" href="#idx-l00-s022">↑ 返回知识点目录</a></section><section class="topic" id="l00-s023">
 <h2>阶段 5　集合通信与 RDMA</h2>
+<p class="prose">两个 rank 相加一份梯度很直观。多到几十个 rank 后，同一数学归约可以走多种链路和分片顺序。用每轮的消息大小、依赖和经过的链路比较这些实现。</p>
 <div class="tablewrap"><table><tr><th><strong>模型扩到多卡后，先按</strong><a class="term" href="#Def004bdd5e2818e1"><strong>通信组</strong></a><strong>计算需要传输的字节，再标出链路和</strong><strong>数据依赖</strong><strong>。只有当计算可以独立推进且资源足够时，通信才有机会被覆盖。</strong></th></tr></table></div>
 <a class="back" href="#idx-l00-s023">↑ 返回知识点目录</a></section><section class="topic" id="l00-s024">
 <h3>集合通信原语</h3>
+<p class="prose">先画出通信前各 rank 拥有什么，再画通信后希望每个 rank 拥有什么。若每卡最后只需一段归约结果，单做 ReduceScatter 可能已满足下一算子。</p>
 <p class="prose">• 用四个 <a class="term" href="#Def00c2aaec5fcdcc">rank</a> 的小向量分别演算广播、全<a class="term" href="#Def008de0dcc95ca5">归约</a>、归约<a class="term" href="#Def003770e3485f96">分片</a>、全收集和全互换。再将环形与树形排程分成若干轮，每轮分开计算消息启动成本及按字节计的传输成本。</p>
 <p class="prose">• 在数据并行的反向中找梯度归约，在<a class="term" href="#Def00532cd9c7e852">参数分片</a>中找权重收集与梯度归约分片，在专家并行中找 <a class="term" href="#Def00397a73c4e319">token</a> 分派与回收。<a class="term" href="#Def0045bb44d04ce3">张量</a>并行采用哪种通信，需要结合输入和输出的分片方向判断。</p>
 <a class="back" href="#idx-l00-s024">↑ 返回知识点目录</a></section><section class="topic" id="l00-s025">
 <h3>参考资料</h3>
+<p class="prose">对照集合通信接口与基准说明时，核对张量大小是每卡输入、全部输出还是链路折算量。只要分母不同，两个都写成 GB/s 的数字也不能直接比较。</p>
 <p class="reading"><strong>官方  </strong><a href="https://docs.nvidia.com/deeplearning/nccl/user-guide/docs/">NCCL User Guide</a> — 按<a class="term" href="#Def004bdd5e2818e1">通信组</a>说明一次操作由哪些 <a class="term" href="#Def00c2aaec5fcdcc">rank</a> 参加，输入、输出的元素个数应怎样对应。</p>
 <p class="reading"><strong>官方  </strong><a href="https://docs.nvidia.com/cuda/gpudirect-rdma/">GPUDirect RDMA</a> — 用数据路径图解释网卡怎样读写已注册的 <a class="term" href="#Def008552a9d24381">GPU</a> 缓冲，分别核对发送端<a class="term" href="#Def00f465e0254961">复用</a>和接收端可见的条件。</p>
 <p class="reading"><strong>官方  </strong><a href="https://developer.nvidia.com/nvshmem">NVSHMEM</a> — 跟踪<a class="term" href="#Def008afe865f79c0"><strong>对称内存</strong></a>中的对象怎样在远端寻址，以及设备线程发出单边操作后怎样通知<a class="term" href="#Def00381527ac5680">消费者</a>。</p>
 <p class="reading"><strong>资料  </strong><a href="https://docs.nvidia.com/deeplearning/nccl/user-guide/docs/usage/deviceapi.html">NCCL Device-Initiated Communication</a> — 分别检查 <a class="term" href="#Def0056128f8e6492">LSA</a>、<a class="term" href="#Def007555efb4d8a7">GIN</a>、<a class="term" href="#Def008cb35fb6bd5b">CFT</a> 等接口的目标平台、操作范围和完成条件；遇到版本特有功能时回查对应发行说明。</p>
 <p class="reading"><strong>项目  </strong><a href="https://github.com/deepseek-ai/DeepEP">DeepEP</a> — 把每条专家路由从发送、分派追到返回，比较吞吐优先和低延迟两条路径怎样占用通信链路与 <a class="term" href="#Def00b5df4538d2b1">SM</a>。</p>
-<p class="reading"><strong>案例  </strong><a href="https://www.kimi.com/news/kimi-k3-open-source">Kimi K3 Infra / MoonEP</a> — 定位一轮专家分派中的跨节点消息，检查通信排程怎样配合每个专家真正收到的行数。</p>
+<p class="reading"><strong>案例  </strong><a href="https://www.kimi.com/news/kimi-k3-open-source">Kimi K3 Infra / MoonEP</a> — 定位一轮专家分派中的跨节点消息，检查通信排程怎样配合各专家实际收到的行数。</p>
 <div class="tablewrap"><table><tr><th><strong>GPU 发起的通信</strong><br>使用 <a class="term" href="#Def0087b406bce49b">NCCL</a> Device <a class="term" href="#Def00763beedf4d8a">API</a> 或 <a class="term" href="#Def00d5916e8bd63e">NVSHMEM</a> 时，kernel 可以在设备上发起传输。分析专家分派或 <a class="term" href="#Def00221e82c84d42">KV</a> 搬运时，需要分别标出数据何时到达、接收端何时可读，以及发送端何时可复用缓冲。</th></tr></table></div>
 <a class="back" href="#idx-l00-s025">↑ 返回知识点目录</a></section><section class="topic" id="l00-s026">
 <h3>练习</h3>
+<p class="prose">手推四卡通信时可给每一片加上来源编号。最后检查每个目标元素恰好收到了四份贡献，并核对经过网络的字节数是否误含本地复制。</p>
 <p class="prose">• 选取 nccl-tests 中同一操作、同一<a class="term" href="#Def0064ac0a19c6f6">消息大小</a>的多卡结果，对照<a class="term" href="#Def004bdd5e2818e1">通信组</a>与<a class="term" href="#Def00d9c80c5b0f4a">拓扑</a>比较单机和跨机速率。区分算法带宽与按集合通信模型折算的<a class="term" href="#Def0078536ca12f12"><strong>总线带宽</strong></a>；单 <a class="term" href="#Def00c2aaec5fcdcc">rank</a> 只作无跨卡通信的基线。</p>
 <p class="prose">• 在一次训练步的 <a class="term" href="#Def00e50ad048c9c6">Nsight Systems</a> <a class="term" href="#Def001f3fb14715bc">时间线</a>中对齐集合通信与 <a class="term" href="#Def00706d08729f40">GEMM</a>。标出能同时推进的区间，再比较串行和<a class="term" href="#Def006b4ca1a43b48">重叠</a>排程的结束时刻，观察 <a class="term" href="#Def008552a9d24381">GPU</a> 工作或网络争用是否抵消了节省。</p>
 <p class="reading">□ 为<a class="term" href="#Def0045bb44d04ce3">张量</a>并行和专家并行各画一个通信组。给出每卡的消息数、有效字节和需要等待的后续算子，据此判断哪一次通信最可能限制当前请求。</p>
 <a class="back" href="#idx-l00-s026">↑ 返回知识点目录</a></section><section class="topic" id="l00-s027">
 <h2>阶段 6　单机训练显存</h2>
+<p class="prose">一份能装进显存的模型未必能完成第一步训练。沿前向、反向和首次优化器更新列出同时还活着的对象，比只数模型权重更容易定位峰值。</p>
 <div class="tablewrap"><table><tr><th><strong>区分参数、梯度、优化器状态和</strong><a class="term" href="#Def00fe112bc935e2"><strong>激活</strong></a><strong>，并找出它们</strong><strong>同时存活</strong><strong>的时段。</strong></th></tr></table></div>
 <a class="back" href="#idx-l00-s027">↑ 返回知识点目录</a></section><section class="topic" id="l00-s028">
 <h3>参数、梯度、优化器状态与激活</h3>
+<p class="prose">把同一参数的权重、梯度和两份优化器状态画在时间线上。权重跨步常驻，临时工作区可能只活一个内核，两者对峰值的贡献取决于是否同时出现。</p>
 <p class="prose">• 把参数、梯度、优化器状态、<a class="term" href="#Def00fe112bc935e2">激活</a>及算子临时区按<strong>生存期</strong>画在同一步时间轴上，再加入通信缓冲。框架保留但未使用的空间要单列，检查是否存在可<a class="term" href="#Def00f465e0254961">复用</a>的大块。</p>
 <p class="prose">• 逐项写明权重、梯度与<a class="term" href="#Def00529e2f3bfb94">主权重</a>是否各自使用 <a class="term" href="#Def00fcbbd9b7732e">BF16</a>、<a class="term" href="#Def0051ee3210470c">FP16</a> 或 <a class="term" href="#Def0028c554f6c5e8">FP32</a>。<a class="term" href="#Def0008b553ef63f7">梯度累积</a>结束后再按约定<a class="term" href="#Def00ac0386385faa">反缩放</a>；启用<a class="term" href="#Def00dffd6510d93e">激活重计算</a>时，同时记录少保留的字节与多做的前向工作。</p>
 <a class="back" href="#idx-l00-s028">↑ 返回知识点目录</a></section><section class="topic" id="l00-s029">
 <h3>参考资料</h3>
+<p class="prose">阅读显存快照时，要把分配器视角与框架对象对应起来。某块内存没有归还给驱动，既可能仍被张量引用，也可能已在内存池内等待复用。</p>
 <p class="reading"><strong>论文  </strong><a href="https://arxiv.org/abs/1710.03740">Mixed Precision Training</a> — 对照低精度前向、<strong>梯度缩放</strong>和高精度更新，列出训练中实际同时存在的几份状态。</p>
 <p class="reading"><strong>论文  </strong><a href="https://arxiv.org/abs/1604.06174">Training Deep Nets with Sublinear Memory Cost</a> — 取一段连续网络画出保存的边界和反向必须重算的中间<a class="term" href="#Def00fe112bc935e2">激活</a>，再核算峰值。</p>
 <a class="back" href="#idx-l00-s029">↑ 返回知识点目录</a></section><section class="topic" id="l00-s030">
 <h3>练习</h3>
 <p class="prose">• 以同一小型解码器和同一份<strong>有效 </strong><a class="term" href="#Def00397a73c4e319"><strong>token</strong></a> 为基线，分别改变混合精度、<a class="term" href="#Def00dffd6510d93e">激活重计算</a>或<a class="term" href="#Def0008b553ef63f7">梯度累积</a>。每次核对一次更新的输入、峰值<a class="term" href="#Def00a9ee0ebd3974">显存</a>和<a class="term" href="#Def00a1a871769569">稳态</a>步时；改变 microbatch 时要保持或说明全局批量。</p>
-<p class="reading">□ 若基线每步用 100 ms 处理 8000 个有效 token，重算后步时为 125 ms，至少需处理 10000 个有效 token 才能保持 80000 token/s。另列节省的<a class="term" href="#Def00fe112bc935e2">激活</a>字节，解释能够装下更大批量和实际提高吞吐之间还隔着哪些条件。</p>
+<p class="reading">□ 若基线每步用 100 ms 处理 8000 个有效 token，重算后步时为 125 ms，至少需处理 10000 个有效 token 才能保持 80000 token/s。另列节省的<a class="term" href="#Def00fe112bc935e2">激活</a>字节，说明增大批量后，有效 token 数和单步耗时各需满足什么条件，吞吐量才会提高。</p>
 <a class="back" href="#idx-l00-s030">↑ 返回知识点目录</a></section><section class="topic" id="l00-s031">
 <h2>阶段 7　数据并行与状态分片</h2>
+<p class="prose">数据并行让每个 rank 看到不同样本，却希望最后得到同一次参数更新。状态分片在此基础上追问：哪些数据真的需要全员长期保存，哪些只在计算前临时收集？</p>
 <div class="tablewrap"><table><tr><th><strong>选定一个训练进程，分别标出它</strong><a class="term" href="#Def00d74e2538f88c"><strong>常驻</strong></a><strong>的参数、梯度和优化器</strong><a class="term" href="#Def003770e3485f96"><strong>分片</strong></a><strong>，再沿一层前向、反向追踪何时收齐权重、何时释放。</strong></th></tr></table></div>
 <a class="back" href="#idx-l00-s031">↑ 返回知识点目录</a></section><section class="topic" id="l00-s032">
 <h3>DDP、ZeRO 与 FSDP</h3>
+<p class="prose">沿同一个参数追踪它在前向前、反向后和更新时的位置。三种方法的差别会落到具体动作上：谁保存完整参数、谁拥有梯度、谁执行更新、何时需要通信。</p>
 <p class="prose">• 在 PyTorch <a class="term" href="#Def00cf23d6d2c26c">DDP</a> 中，先看哪些参数梯度被放入同一个桶。反向钩子在这些梯度就绪后触发<a class="term" href="#Def008de0dcc95ca5">归约</a>，先就绪的桶才有机会与后续反向<a class="term" href="#Def006b4ca1a43b48">重叠</a>。</p>
 <p class="prose">• 按 <a class="term" href="#Def009bf98c397529">ZeRO</a> 的三个阶段为每卡画出优化器状态、梯度和权重<a class="term" href="#Def003770e3485f96">分片</a>，再比较哪些状态临时需要收齐。</p>
 <p class="prose">• 跟踪 <code class="inline-id">fully_shard</code> 管理的一层：前向前收集完整权重，反向后归约并分片梯度。是否要在反向前再收集权重，取决于前向后是否<a class="term" href="#Def001100add545af"><strong>重新分片</strong></a>。</p>
 <p class="prose">• 分布式检查点把数据和全局坐标一起保存。恢复设备数改变时，新分片需从相交的旧区间读取；异步上传尚未完整提交的版本不能当作完整<a class="term" href="#Def0067801c4aa712">恢复点</a>。</p>
 <a class="back" href="#idx-l00-s032">↑ 返回知识点目录</a></section><section class="topic" id="l00-s033">
 <h3>参考资料</h3>
+<p class="prose">对照论文的内存公式与框架代码时，把常驻分片和临时收集的完整层分两栏记录。前者随卡数下降，后者可能仍决定某一时刻的峰值。</p>
 <p class="reading"><strong>论文  </strong><a href="https://arxiv.org/abs/1910.02054">ZeRO</a> — 为三个阶段各画一张状态分布图，在图上注明为下一层计算额外搬入了什么。</p>
 <p class="reading"><strong>官方  </strong><a href="https://docs.pytorch.org/tutorials/distributed.html">PyTorch Distributed Tutorials</a> — 对读 <a class="term" href="#Def00cf23d6d2c26c">DDP</a>、<a class="term" href="#Def0005347a409fb2">FSDP</a> 与<a class="term" href="#Def0045bb44d04ce3">张量</a>并行教程，观察数据批次和权重各自如何<a class="term" href="#Def003770e3485f96">分片</a>。</p>
 <p class="reading"><strong>官方  </strong><a href="https://docs.pytorch.org/docs/stable/distributed.checkpoint.html">PyTorch Distributed Checkpoint</a> — 从保存清单找到某一分片的<strong>全局坐标</strong>，再检查换设备数量后的目标区间如何恢复。</p>
 <p class="reading"><strong>资料  </strong><a href="https://pytorch.org/blog/pytorch-2-14-release-blog/">PyTorch 2.14 modern NCCL backend &amp; fault tolerance</a> — 查看发行说明中注明为预览的后端或进程组重配置能力，分开核对通信恢复与训练状态恢复所需证据。</p>
 <a class="back" href="#idx-l00-s033">↑ 返回知识点目录</a></section><section class="topic" id="l00-s034">
 <h3>练习</h3>
+<p class="prose">恢复练习可以有意把保存时的分片数与读取时设成不同值。验证时按参数全局坐标比较前后值，再核对优化器状态是否与同一参数片对应。</p>
 <p class="prose">• 对同一模型和相同全局批量，对比 <a class="term" href="#Def00cf23d6d2c26c">DDP</a> 与 FSDP2 的峰值<a class="term" href="#Def00a9ee0ebd3974">显存</a>、训练步时和每卡实际传输字节。再选一份进程失效的记录，分别定位进程组重配、参数与优化器加载、数据游标恢复三个时点。</p>
 <p class="reading">□ 选一层参数，按实际<a class="term" href="#Def00f41f71848500">重新分片</a>策略画出前向前是否收集、前向后是否释放、反向前是否再次收集，以及<strong>梯度</strong><a class="term" href="#Def008de0dcc95ca5"><strong>归约</strong></a><a class="term" href="#Def003770e3485f96"><strong>分片</strong></a>何时结束。</p>
 <a class="back" href="#idx-l00-s034">↑ 返回知识点目录</a></section><section class="topic" id="l00-s035">
 <h2>阶段 8　多维并行与 SPMD</h2>
+<p class="prose">把参数、序列位置和样本分别画成不同轴。一张卡持有哪些坐标，决定它需要向谁收数据；卡数相同并不意味着两套并行方案需要相同通信。</p>
 <div class="tablewrap"><table><tr><th><strong>先把每个</strong><a class="term" href="#Def009bc1eca7f3f3"><strong>并行维度</strong></a><strong>写成</strong><a class="term" href="#Def0045bb44d04ce3"><strong>张量</strong></a><a class="term" href="#Def00bbaa2ba9297f"><strong>布局</strong></a><strong>，再算各</strong><a class="term" href="#Def004bdd5e2818e1"><strong>通信组</strong></a><strong>需要交换的数据。</strong></th></tr></table></div>
 <a class="back" href="#idx-l00-s035">↑ 返回知识点目录</a></section><section class="topic" id="l00-s036">
 <h3>张量、序列、上下文与流水线并行</h3>
+<p class="prose">列并行和行并行针对权重的不同轴；上下文并行则切序列。给每项通信标明它在补齐哪条轴，能看出某次交换为什么不能用简单复制代替。</p>
 <p class="prose">• 为同一组 <a class="term" href="#Def008552a9d24381">GPU</a> 画三种不同分工：<strong>数据并行</strong>划分样本，<a class="term" href="#Def0045bb44d04ce3">张量</a>并行划分头或隐藏通道，流水并行划分层。再看<a class="term" href="#Def008d6c44586dba">序列并行</a>、<a class="term" href="#Def00c4abfa7e3fff">上下文并行</a>如何拆 <a class="term" href="#Def00397a73c4e319">token</a>，以及专家并行如何分配专家权重。</p>
 <p class="prose">• 给每种并行方式列出组成员和局部张量形状。用实际<a class="term" href="#Def00d9c80c5b0f4a">拓扑</a>标出跨组数据，再沿微批<a class="term" href="#Def001f3fb14715bc">时间线</a>找出等待、<a class="term" href="#Def0073223db16fe4">在途</a><a class="term" href="#Def00fe112bc935e2">激活</a>和 <a class="term" href="#Def00221e82c84d42">KV</a> 所在的位置。</p>
 <a class="back" href="#idx-l00-s036">↑ 返回知识点目录</a></section><section class="topic" id="l00-s037">
 <h3>参考资料</h3>
+<p class="prose">阅读 DeviceMesh 或模型并行代码时，先抄下某个 rank 所属的各个通信组。下一次看到 AllReduce，用组成员和张量形状确定它实际合并的是哪类贡献。</p>
 <p class="reading"><strong>论文  </strong><a href="https://arxiv.org/abs/1909.08053">Megatron-LM</a> — 从两层线性变换推导权重沿行或列拆分时，结果应在何处求和或拼接。</p>
 <p class="reading"><strong>论文  </strong><a href="https://arxiv.org/abs/2104.04473">Efficient Large-Scale Language Model Training on GPU Clusters Using Megatron-LM</a> — 从一次完整训练步读出<a class="term" href="#Def0045bb44d04ce3">张量</a>、<a class="term" href="#Def00a970838bde1d">流水线</a>和数据并行各自占用的设备和通信带宽。</p>
 <p class="reading"><strong>论文  </strong><a href="https://arxiv.org/abs/1811.06965">GPipe</a> — 画出连续微批通过多段流水线的时序，计数启动与<a class="term" href="#Def00ada18e969553">排空</a>时的空槽。</p>
@@ -188,16 +222,19 @@
 <h3>练习</h3>
 <p class="prose">• 八卡分别试<a class="term" href="#Def0045bb44d04ce3">张量</a>并行度 2 和 4，其余独立设备轴用于状态<a class="term" href="#Def003770e3485f96">分片</a>。列出每组成员和每层<strong>局部形状</strong>，再用 <a class="term" href="#Def006b3452e21204">DeviceMesh</a>、<a class="term" href="#Def0028e89b772733">DTensor</a> 表示它们。可用已有 trace 核对张量<a class="term" href="#Def008de0dcc95ca5">归约</a>与参数收集所在的流。</p>
 <p class="prose">• 画一个 <span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><mn>2</mn><mo>×</mo><mn>2</mn><mo>×</mo><mn>2</mn></math></span> 的教学网格，为权重、输入和<a class="term" href="#Def00fe112bc935e2">激活</a>写出每轴是复制还是分片。另画专家层的设备组，说明它与稠密层使用哪些相同的物理 <a class="term" href="#Def008552a9d24381">GPU</a>。</p>
-<p class="reading">□ 面对 64 或 512 张卡的方案，先写每节点卡数、链路和内存预算，再选设备组。至少计算一次跨节点通信量，解释把这组换到节点内后能节省什么。</p>
+<p class="reading">□ 面对 64 或 512 张卡的方案，先写每个节点卡数、链路和内存预算，再选设备组。至少计算一次跨节点通信量，解释把这组换到节点内后能节省什么。</p>
 <a class="back" href="#idx-l00-s038">↑ 返回知识点目录</a></section><section class="topic" id="l00-s039">
 <h2>阶段 9　MoE 与专家并行</h2>
+<p class="prose">MoE 把每个 token 交给少数专家。总参数可以很大，但决定某轮耗时的往往是每个专家真正收到多少行，以及这些行从哪些卡到达。</p>
 <div class="tablewrap"><table><tr><th><a class="term" href="#Def00b3b8fcb4bc6c"><strong>MoE</strong></a><strong> 的稀疏性来自每个 </strong><a class="term" href="#Def00397a73c4e319"><strong>token</strong></a><strong> 只访问少量专家。常见的专家层内部仍执行稠密 </strong><a class="term" href="#Def00706d08729f40"><strong>GEMM</strong></a><strong>。采用</strong><strong>专家并行</strong><strong>时，还要核算 token 分派与回收的通信量、各专家的批大小及负载差异。</strong></th></tr></table></div>
 <a class="back" href="#idx-l00-s039">↑ 返回知识点目录</a></section><section class="topic" id="l00-s040">
 <h3>专家选择、分派与回收</h3>
+<p class="prose">跟踪一个被选中两次的 token。分发时会形成两条专家记录，回收时必须用各自的门值合成一行输出；只保存 token 编号会丢掉两条路径的区别。</p>
 <p class="prose">• 取一个选中两位专家的 <a class="term" href="#Def00397a73c4e319">token</a>，跟踪路由器给它的两个权重、出发与返回的行号，以及两个专家输出如何合并。再观察容量不足时哪一路被舍弃，是否要重新归一。</p>
 <p class="prose">• 为每位专家标出所在 <a class="term" href="#Def00c2aaec5fcdcc">rank</a>、<a class="term" href="#Def0088a887c70a72">有效行</a>数和执行结束时刻。少量解码 token 常形成许多小消息，大批预填充则可能带来高字节流量；分别比较节点内与跨节点通信。</p>
 <a class="back" href="#idx-l00-s040">↑ 返回知识点目录</a></section><section class="topic" id="l00-s041">
 <h3>参考资料</h3>
+<p class="prose">读专家通信库时可对照三份数据：路由给出的目的专家、实际选择的目的 rank、接收端组织出的本地专家区间。三者描述不同的排序。</p>
 <p class="reading"><strong>论文  </strong><a href="https://arxiv.org/abs/2006.16668">GShard</a> — 从专家权重的<a class="term" href="#Def003770e3485f96">分片</a>标注追到 <a class="term" href="#Def00397a73c4e319">token</a> 在设备间的交换。</p>
 <p class="reading"><strong>论文  </strong><a href="https://arxiv.org/abs/2101.03961">Switch Transformers</a> — 跟踪每个 token 选定的专家，检查容量上限如何改变被实际执行的路由。</p>
 <p class="reading"><strong>论文  </strong><a href="https://arxiv.org/abs/2401.06066">DeepSeekMoE</a> — 比较细粒度<strong>路由专家</strong>和共享专家，数清一个 token 实际调用哪些权重。</p>
@@ -207,19 +244,22 @@
 <p class="reading"><strong>资料  </strong><a href="https://www.kimi.com/news/kimi-k3-open-source">Kimi K3 / MoonEP</a> — 结合专家所在 <a class="term" href="#Def00c2aaec5fcdcc">rank</a> 与一轮消息的大小，解释 MoonEP 对跨机通信的处理。</p>
 <a class="back" href="#idx-l00-s041">↑ 返回知识点目录</a></section><section class="topic" id="l00-s042">
 <h3>练习</h3>
+<p class="prose">让四个 token 都把同一个专家列为首选，再与均匀路由对比。总分配数不变，最忙专家的行数却会增加，正好检验容量、填充和丢弃的处理。</p>
 <p class="prose">• 构造四个专家和一批已知 <a class="term" href="#Def00397a73c4e319">token</a>，每个 token 选两位专家。先用专家编号作为返回值验证分派和回收，再让大部分 token 选择同一专家，观察最晚结束的 <a class="term" href="#Def00c2aaec5fcdcc">rank</a>。</p>
 <p class="prose">• 固定有效路由数、行宽与专家权重，比较节点内<a class="term" href="#Def008890d4f7539c">互连</a>和跨节点 <a class="term" href="#Def0033550f6bd57f">RDMA</a> 的传输字节、消息数、等待时间。分别考虑低并发解码和大批预填充。</p>
 <p class="reading">□ 构造总有效乘加数相同、专家行数分布不同的两个批次。比较填充后的实际行数、跨机字节与<strong>最慢 rank</strong>，说明为什么两批的步时可能不同。</p>
 <a class="back" href="#idx-l00-s042">↑ 返回知识点目录</a></section><section class="topic" id="l00-s043">
 <h2>阶段 10　低精度训练、量化与 Muon</h2>
+<p class="prose">低精度课程先问一个值存成什么，再问乘法与累加用什么精度。Muon 讨论的是更新方向，两者在训练中会相遇，但需要分别验证数值误差和更新语义。</p>
 <div class="tablewrap"><table><tr><th><strong>权重编码和</strong><a class="term" href="#Def00ff00e82b7cd3"><strong>缩放因子</strong></a><strong>决定存储量，内核支持的输入与</strong><strong>累加格式</strong><strong>决定实际执行路径。</strong></th></tr></table></div>
 <a class="back" href="#idx-l00-s043">↑ 返回知识点目录</a></section><section class="topic" id="l00-s044">
 <h3>浮点格式与量化粒度</h3>
 <div class="tablewrap"><table><tr><th>Training / Inference precision<br>├─ <a class="term" href="#Def00fcbbd9b7732e">BF16</a> / <a class="term" href="#Def0051ee3210470c">FP16</a><br>├─ <a class="term" href="#Def00c3e89a78ee46">FP8</a> (<a class="term" href="#Def00a0ad970137a9">E4M3</a> / E5M2)<br>├─ Microscaling: <a class="term" href="#Def002e50f899583d">MXFP8</a> / MXFP6 / MXFP4<br>├─ NVIDIA <a class="term" href="#Def0092282824ef0e">NVFP4</a><br>└─ <a class="term" href="#Def00b4709201e27a">INT8</a> / <a class="term" href="#Def00f76143f77fda">INT4</a> / weight-only <a class="term" href="#Def0051765284d842">PTQ</a><br>   ├─ <a class="term" href="#Def005a34cd0a8aaa">SmoothQuant</a> (<a class="term" href="#Def006b5e70c23e4e">W8A8</a>)<br>   ├─ <a class="term" href="#Def000d51802f6b5a">GPTQ</a><br>   └─ <a class="term" href="#Def001ad3f37081e2">AWQ</a></th></tr></table></div>
 <p class="prose">• 为一层实际权重分别记录落盘位宽、乘法接受的输入类型和<a class="term" href="#Def008644317bec03"><strong>累加器</strong></a>类型。指出一个<a class="term" href="#Def00ff00e82b7cd3">缩放因子</a>覆盖整张<a class="term" href="#Def0045bb44d04ce3">张量</a>、一个通道还是一个小块，再把尺度元数据列入容量。</p>
-<p class="prose">• 核算低比特权重时把码字、尺度和对齐分别记账，<a class="term" href="#Def0041a59e42e6db">KV 缓存</a>另算。检查目标矩阵指令是否接受该格式、是否需要单独转换，然后对同一输入比较输出误差和完整耗时。</p>
+<p class="prose">• 估算低比特权重的存储量时，分别统计码字、缩放因子和对齐填充所占的字节，<a class="term" href="#Def0041a59e42e6db">KV 缓存</a>另算。检查目标矩阵指令是否接受该格式、是否需要单独转换，然后对同一输入比较输出误差和完整耗时。</p>
 <a class="back" href="#idx-l00-s044">↑ 返回知识点目录</a></section><section class="topic" id="l00-s045">
 <h3>参考资料</h3>
+<p class="prose">查某种低精度格式时，除码表外还要看尺度如何存放。仅凭一个元素有几位，既算不出整块权重的真实字节数，也无法确定乘法把尺度乘回的位置。</p>
 <p class="reading"><strong>官方  </strong><a href="https://docs.nvidia.com/deeplearning/transformer-engine/">NVIDIA Transformer Engine</a> — 选定一种配方，查清保存格式、更新尺度的时点和运行所需的硬件。</p>
 <p class="reading"><strong>论文  </strong><a href="https://arxiv.org/abs/2211.10438">SmoothQuant</a> — 对一对<a class="term" href="#Def00fe112bc935e2">激活</a>通道和权重列做互逆缩放，先验证浮点乘积不变，再测 <a class="term" href="#Def006b5e70c23e4e">W8A8</a> 的误差。</p>
 <p class="reading"><strong>论文  </strong><a href="https://arxiv.org/abs/2210.17323">GPTQ</a> — 跟踪一列权重舍入后如何用<a class="term" href="#Def0053c49578cc8c"><strong>校准</strong></a><strong>输入</strong>补偿后续列的误差。</p>
@@ -227,24 +267,29 @@
 <p class="reading"><strong>资料  </strong><a href="https://developer.nvidia.com/blog/3-ways-nvfp4-accelerates-ai-training-and-inference/">NVIDIA NVFP4 training/inference overview</a> — 从格式图数出一块的码字与尺度字节，再查哪些矩阵乘输入和累加格式与之兼容。</p>
 <a class="back" href="#idx-l00-s045">↑ 返回知识点目录</a></section><section class="topic" id="l00-s046">
 <h3>Muon 的矩阵更新</h3>
+<p class="prose">逐元素优化器可以只看本地元素，矩阵更新还要利用行列之间的关系。先用一个小矩阵比较“完整更新再切分”和“分别对分片更新”，就能看出何时必须交换信息。</p>
 <p class="prose"><a class="term" href="#Def0052505d44fe19">Muon</a> 对二维权重的<a class="term" href="#Def00c524bc333da2">动量</a>更新使用 Newton–Schulz 迭代。比较训练配置时，记录哪些参数交给 Muon、哪些保留 <a class="term" href="#Def0005495719246a">AdamW</a>，以及矩阵更新如何影响计算量和通信量。</p>
 <p class="reading"><strong>案例  </strong><a href="https://www.alibabacloud.com/blog/qwen3-8-flash-next-a-new-architecture-towardsultimate-cost-efficiency_603501">Qwen3.8-Flash-Next：Muon 的大规模工程用法</a> — 核对哪些矩阵使用 Muon、哪些参数保留 AdamW，并辨认<a class="term" href="#Def00ceb95691b622">融合</a>权重是否先按语义拆成不同矩阵。</p>
 <p class="reading">□ 给出两种低比特方案，一种只压权重，另一种只压 <a class="term" href="#Def00221e82c84d42">KV</a>。按同一请求的有效读取字节估算收益，再说明加入解包、<strong>缩放</strong>和重排后，哪些证据能确认节省的时间确实在<a class="term" href="#Def007f8faf02bd76">关键路径</a>上。</p>
 <a class="back" href="#idx-l00-s046">↑ 返回知识点目录</a></section><section class="topic" id="l00-s047">
 <h2>阶段 11　长上下文模型与历史状态</h2>
+<p class="prose">把“长上下文”拆成三个量：保留多少条历史、每条多少字节、每步实际读几条。压缩、稀疏检索和递归状态分别改变不同的量。</p>
 <div class="tablewrap"><table><tr><th><strong>给定同一段历史，分别计算逐词 </strong><a class="term" href="#Def00221e82c84d42"><strong>KV</strong></a><strong>、压缩记录与</strong><a class="term" href="#Def0067cd4acd319a"><strong>递归状态</strong></a><strong>的大小；延长序列后，检查哪些状态的数量会继续增长。</strong></th></tr></table></div>
 <a class="back" href="#idx-l00-s047">↑ 返回知识点目录</a></section><section class="topic" id="l00-s048">
 <h3>KV 压缩</h3>
+<p class="prose">一种缓存方案若把每个位置从多个头的 K、V 换成一个压缩向量，容量应按真实记录字段重新求和。仍需保存的位置分量也要算进去。</p>
 <p class="prose">• 固定 <a class="term" href="#Def003b7755ef3059">query</a> 头数。<a class="term" href="#Def00bae53b3d7d1d">MHA</a> 通常为每个 query 头配一组 K/V；<a class="term" href="#Def009fd7226a2b39">MQA</a> 让全部 query 头共用一组，<a class="term" href="#Def00d643a4ba2470">GQA</a> 则由若干组头各共享一组。<a class="term" href="#Def00810106df1b85">MLA</a> 还会压缩表示维度，比较容量时须回到各自缓存的真实形状。</p>
 <p class="reading"><strong>论文  </strong><a href="https://arxiv.org/abs/2405.04434">DeepSeek-V2</a> — 画出<a class="term" href="#Def009fbf12bf8548"><strong>潜在 KV</strong></a> 与位置分支的形状，再算本层每多一个历史 <a class="term" href="#Def00397a73c4e319">token</a> 要保存的字节。</p>
 <a class="back" href="#idx-l00-s048">↑ 返回知识点目录</a></section><section class="topic" id="l00-s049">
 <h3>可学习的稀疏注意力</h3>
+<p class="prose">先在 CPU 上列出选中位置，再查看 GPU 实际加载了哪几块。若先算完整分数、最后才遮住大部分位置，数学上虽然稀疏，读取与乘法却未必减少。</p>
 <p class="reading"><strong>论文  </strong><a href="https://arxiv.org/abs/2512.02556">DeepSeek-V3.2</a> — 把<strong>索引器</strong>打分、选取候选和主注意力读 <a class="term" href="#Def00221e82c84d42">KV</a> 画成三个步骤，分别核算访问的历史位置。</p>
 <p class="reading"><strong>前沿  </strong><a href="https://arxiv.org/abs/2603.12201">IndexCache</a> — 标出首次生成候选的层和<a class="term" href="#Def00f465e0254961">复用</a>层，检查节约的是索引器工作还是主注意力读取。</p>
 <p class="reading"><strong>前沿  </strong><a href="https://arxiv.org/abs/2605.07363">MISA</a> — 追踪某个 <a class="term" href="#Def003b7755ef3059">query</a> 实际启用的索引头，解释路由如何改变候选打分的开销。</p>
 <p class="reading"><strong>前沿  </strong><a href="https://arxiv.org/abs/2608.01662">LongCat Sparse Attention</a> — 从分层索引得到的物理位置出发，检查跨层复用和连续数据<a class="term" href="#Def00bbaa2ba9297f">布局</a>分别改变哪些读操作。</p>
 <a class="back" href="#idx-l00-s049">↑ 返回知识点目录</a></section><section class="topic" id="l00-s050">
 <h3>DeepSeek V4 与 V4.1</h3>
+<p class="prose">对照不同模型版本时，按层列出写入的历史、下一步会读的历史和共享这些历史的范围。只凭两个配置里相同的字段名，无法确认缓存布局相同。</p>
 <p class="reading"><strong>论文  </strong><a href="https://arxiv.org/abs/2606.19348">DeepSeek-V4</a> — 结合技术报告分别定位压缩稀疏注意力、较高压缩率的注意力、<a class="term" href="#Def004571f5d06883">残差连接</a>和优化器，避免把预训练方法计入单步推理。</p>
 <p class="reading"><strong>官方  </strong><a href="https://huggingface.co/deepseek-ai/DeepSeek-V4-Pro">DeepSeek-V4-Pro Model Card</a> — 按<a class="term" href="#Def00d29c48a9727b">模型卡</a>的对应版本，分别记录 Pro 与 Flash 的总<a class="term" href="#Def006ce9830ea9da">参数量</a>、每词<a class="term" href="#Def002f8748ab77ab">激活参数</a>量及权重存储格式。容量预算要用实际加载的权重。</p>
 <p class="prose">在 DeepSeek-V4 中，CSA 从压缩后的历史记录选候选，HCA 在压缩率更高的历史表示上计算注意力。压缩与候选选择会改变可访问的信息。另有 mHC 作用于残差连接、<a class="term" href="#Def0052505d44fe19">Muon</a> 用于训练更新，两者应放在计算图的不同位置。</p>
@@ -253,6 +298,7 @@
 <div class="tablewrap"><table><tr><th><strong>V4.1-Flash 的缓存与恢复</strong><br>V4.1-Flash 的因果编码器与解码器各有 20 层。模型卡给出的每 <a class="term" href="#Def00397a73c4e319">token</a> 激活参数量，在预填充与解码阶段分别约为 80 亿和 160 亿。CSA2 按层选择新建、重建索引或<a class="term" href="#Def00f465e0254961">复用</a>；较深的解码索引层只在首个 Full 层给出的候选池内搜索。<a class="term" href="#Def00cd156f69853f">FP4</a> 主 <a class="term" href="#Def00221e82c84d42">KV</a> 与跨层共享共同作用后，全局 KV 约为 <strong>890 B/token</strong>。按需重放近期滑窗则减少需要持久化的状态，官方报告这部分方案的持久化开销约为 V4-Flash 的八分之一。<a class="term" href="#Def00ce054b8faab7">Engram</a> 的条件查表与 <a class="term" href="#Def007eab98f07664">DSpark</a> 的草稿验证分别影响权重访问与生成轮次，应另行计量。</th></tr></table></div>
 <a class="back" href="#idx-l00-s050">↑ 返回知识点目录</a></section><section class="topic" id="l00-s051">
 <h3>递归状态与混合注意力</h3>
+<p class="prose">检查一个状态能否截断时，试着删掉最近一步。按 token 分开的缓存可以缩短可见范围；已混合进同一个矩阵的递归状态，通常要从较早副本恢复并重放。</p>
 <p class="reading"><strong>论文  </strong><a href="https://arxiv.org/abs/2312.00752">Mamba</a> — 追踪一个输入怎样更新状态并产生输出，再对照序列扫描的并行实现。</p>
 <p class="reading"><strong>论文  </strong><a href="https://arxiv.org/abs/2405.21060">Mamba-2 / State Space Duality</a> — 从结构化矩阵的表达式看训练时如何<a class="term" href="#Def00b409c80937d4">分块</a>，以及解码时需要保留的<a class="term" href="#Def00f533181587c0">递归状态</a>。</p>
 <p class="reading"><strong>论文  </strong><a href="https://arxiv.org/abs/2412.06464">Gated DeltaNet</a> — 用一个小矩阵分别演算<a class="term" href="#Def00c5a6e818980a"><strong>门控</strong></a><strong>衰减</strong>与 delta 更新，观察旧信息怎样被保留或替换。</p>
@@ -260,60 +306,73 @@
 <p class="reading"><strong>前沿  </strong><a href="https://arxiv.org/abs/2605.22791">Gated DeltaNet-2</a> — 比较擦除与写入分别由什么量控制，给出一次旧内容保留程度不同的更新。</p>
 <a class="back" href="#idx-l00-s051">↑ 返回知识点目录</a></section><section class="topic" id="l00-s052">
 <h3>Kimi 与 Qwen 的模型设计</h3>
+<p class="prose">为比较两种混合模型，选定相同的历史长度和生成步数，逐层记录窗口、全局缓存和固定状态。不同的层数配比会改变整模型成本，即使单层公式一样。</p>
 <p class="reading"><strong>官方  </strong><a href="https://www.kimi.com/news/kimi-k3">Kimi K3</a> — <a class="term" href="#Def00d29c48a9727b">模型卡</a>列出 69 层 <a class="term" href="#Def00c918a081c31f">KDA</a>、24 层<a class="term" href="#Def00c5a6e818980a">门控</a> <a class="term" href="#Def00810106df1b85">MLA</a>，支持 1048576 个上下文位置。逐类统计每层保存的状态；总参数约 2.8 万亿与单词<a class="term" href="#Def00fe112bc935e2">激活</a>约 1040 亿是两项不同指标。</p>
 <p class="reading"><strong>模型  </strong><a href="https://huggingface.co/moonshotai/Kimi-K3">Kimi K3 Model Card</a> — 从 896 位<strong>路由专家</strong>中按 <a class="term" href="#Def00397a73c4e319">token</a> 选 16 位，共享专家另计。对照<a class="term" href="#Def0039bf4075bd29">量化</a>感知训练条目，区分 MXFP4 权重和 <a class="term" href="#Def002e50f899583d">MXFP8</a> 激活。</p>
 <p class="reading"><strong>官方  </strong><a href="https://www.alibabacloud.com/blog/qwen3-8-flash-next-a-new-architecture-towardsultimate-cost-efficiency_603501">Qwen3.8-Flash-Next</a> — 48 层由 12 组“三层 Gated DeltaNet 加一层 <a class="term" href="#Def0082c27eabd4bc">QSA</a>”组成，并使用四分支门控残差。另有约 510 亿参数的 n-gram 嵌入；估算访问开销应核对部署中这张表实际放在哪里。</p>
 <div class="tablewrap"><table><tr><th><strong>两种混合模型怎样保留历史</strong><br>Kimi K3 的 KDA 层更新<a class="term" href="#Def0067cd4acd319a">递归状态</a>，门控 MLA 层仍需访问历史表示。Qwen3.8-Flash-Next 把 Gated DeltaNet 与 QSA 交替排列，另有按 n-gram 查表的嵌入。比较两者时可固定序列长度，分三笔核算递归状态、随历史增长的缓存、每步真正读取的参数；三项会受不同的设计影响。</th></tr></table></div>
 <a class="back" href="#idx-l00-s052">↑ 返回知识点目录</a></section><section class="topic" id="l00-s053">
 <h3>练习与自测</h3>
+<p class="prose">给序列长度翻一倍，再分别估算常驻字节和下一步必须读取的字节。如果某个方法只降低其中一项，把理由写到相应一栏。</p>
 <p class="prose">• 固定 batch、历史长度与精度，为 <a class="term" href="#Def00bae53b3d7d1d">MHA</a>、<a class="term" href="#Def00d643a4ba2470">GQA</a>、<a class="term" href="#Def00810106df1b85">MLA</a>、DSA、CSA2 和 <a class="term" href="#Def00c918a081c31f">KDA</a> 列出每层持久状态及单个 <a class="term" href="#Def003b7755ef3059">query</a> 的读取对象。分别指出逐词增长的部分、固定大小的部分和额外索引开销。</p>
 <p class="prose">• 按 V4.1-Flash 的配置画出编码器到解码器的<a class="term" href="#Def000e5af2fa8fec"><strong>全局 KV</strong></a> 来源，标记 Full、<a class="term" href="#Def00966c22aef50c">Reindex</a>、Reuse 层。在<a class="term" href="#Def00d29c48a9727b">模型卡</a>的 890 B/<a class="term" href="#Def00397a73c4e319">token</a> 口径下，1048576 个 token 的全局 KV 为 933232640 B，即 890 <a class="term" href="#Def00b2d46656b021">MiB</a>；另列滑窗、临时区和<a class="term" href="#Def00b39504bb5cc8">页</a>填充，不把这个小计当作设备总<a class="term" href="#Def00a9ee0ebd3974">显存</a>。</p>
 <p class="reading">□ 先区分索引器打分和主注意力读取。分别指出 IndexCache、MISA 与 CSA2 改变了哪些层、哪些头或哪些候选，再说明在什么输入上索引器可能比主注意力更耗时。</p>
 <p class="reading">□ 给同一序列追加一个 token，判断 KDA 或 <a class="term" href="#Def007dc402101303">GDN</a> 要更新哪份固定形状状态，稀疏 <a class="term" href="#Def002c44907a4775">softmax</a> 又要保留或读取哪些历史记录。比较精度时用相同的检索任务，比较速度时用相同长度与批量。</p>
 <a class="back" href="#idx-l00-s053">↑ 返回知识点目录</a></section><section class="topic" id="l00-s054">
 <h2>阶段 12　LLM 推理性能</h2>
+<p class="prose">客户端看到的是到达、首词和后续各词的时间。把这三类时间与服务端入队、计算和网络发送对齐，才能解释“吞吐提高了，用户为什么还觉得慢”。</p>
 <div class="tablewrap"><table><tr><th><strong>从一条请求的排队、</strong><strong>首 </strong><a class="term" href="#Def00397a73c4e319"><strong>token</strong></a><strong> 和后续生成事件计算服务指标。</strong></th></tr></table></div>
 <a class="back" href="#idx-l00-s054">↑ 返回知识点目录</a></section><section class="topic" id="l00-s055">
 <h3>首 token 时延与生成吞吐</h3>
+<p class="prose">即使两个服务平均每秒都交付相同数量的 token，一个可能平稳逐词交付，另一个可能每隔较久才交付一组。保留各次到达的时间戳，才能区分两种体验。</p>
 <p class="prose">• 预填充一次处理多行 <a class="term" href="#Def003b7755ef3059">query</a>，矩阵乘可能有较高并行度。逐词解码时每个请求通常只增加一行，仍须读取权重与历史 <a class="term" href="#Def00221e82c84d42">KV</a>。瓶颈取决于批量、上下文长度及命中情况。</p>
 <p class="prose">• 先算每个历史 <a class="term" href="#Def00397a73c4e319">token</a> 的 KV 字节，再乘各请求当前已占位置。<a class="term" href="#Def00d7767a4d0b48">前缀命中</a>能减少重复预填充；若要从远端恢复，还要比较传输字节和等待时间。</p>
 <p class="prose">• 逐请求记录首词延迟 <a class="term" href="#Def00b9a844471798">TTFT</a>、<strong>相邻输出间隔</strong> <a class="term" href="#Def00446342477c85">ITL</a> 和请求内平均间隔 <a class="term" href="#Def009cbd8f7072d6">TPOT</a>。以相同负载统计尾部分位数、吞吐及同时满足各项<a class="term" href="#Def00e786d7fcb3e9">服务目标</a>的请求数。</p>
 <a class="back" href="#idx-l00-s055">↑ 返回知识点目录</a></section><section class="topic" id="l00-s056">
 <h3>参考资料</h3>
+<p class="prose">读推理基准时，先确认到达过程与输入、输出长度分布。固定并发的离线吞吐结果不能单独回答在线请求的排队时间。</p>
 <p class="reading"><strong>论文  </strong><a href="https://www.usenix.org/conference/osdi22/presentation/yu">Orca (OSDI)</a> — 在相邻生成轮次之间标出请求进入与退出的时刻，理解逐轮调度怎样改变批次。</p>
 <p class="reading"><strong>论文  </strong><a href="https://arxiv.org/abs/2309.06180">vLLM / PagedAttention</a> — 将<strong>逻辑 </strong><a class="term" href="#Def00397a73c4e319"><strong>token</strong></a><strong> 位置</strong>换算成块号与槽号，估算末<a class="term" href="#Def00b39504bb5cc8">页</a>未用空间和共享前缀页。</p>
 <p class="reading"><strong>论文  </strong><a href="https://arxiv.org/abs/2403.02310">Sarathi-Serve</a> — 在一条长提示词中插入解码批次，比较<a class="term" href="#Def00b409c80937d4">分块</a>后首词等待与连续出词间隔。</p>
 <p class="reading">□ 给两类请求分别规定首词与后续出词门槛。按同一请求检查两项是否同时达标，再判断超时更多来自首词还是后续生成。</p>
 <a class="back" href="#idx-l00-s056">↑ 返回知识点目录</a></section><section class="topic" id="l00-s057">
 <h2>阶段 13　推理引擎</h2>
+<p class="prose">同一模型的一次解码，从调度器看是一组请求，从 GPU 看却是一批连续输入行。读引擎实现时，沿一个请求号找到其输入行、输出行与 KV 页，就能把两个视角对应起来。</p>
 <div class="tablewrap"><table><tr><th><strong>一轮生成开始时，调度器选请求，</strong><strong>缓存管理器</strong><strong>为新增位置安排 </strong><a class="term" href="#Def00221e82c84d42"><strong>KV</strong></a><strong> </strong><a class="term" href="#Def00b39504bb5cc8"><strong>页</strong></a><strong>，</strong><a class="term" href="#Def009af96a1c83f5"><strong>模型执行器</strong></a><strong>据此准备输入并提交设备计算。</strong></th></tr></table></div>
 <a class="back" href="#idx-l00-s057">↑ 返回知识点目录</a></section><section class="topic" id="l00-s058">
 <h3>vLLM</h3>
+<p class="prose">两个同时生成的请求通常不会同时结束。跟踪其中一条短请求释放的 KV 页，再看后来加入的请求怎样取得空页，可以把调度器、块分配器和注意力后端的职责串起来。</p>
 <p class="reading"><strong>官方  </strong><a href="https://docs.vllm.ai/en/latest/">vLLM Documentation</a> — 从<a class="term" href="#Def00969f7a64a82c">连续批处理</a>读到分<a class="term" href="#Def00b39504bb5cc8">页</a> <a class="term" href="#Def00221e82c84d42">KV</a>，沿一条请求找到前缀<a class="term" href="#Def00f465e0254961">复用</a>、采样与并行组的交接位置。</p>
 <p class="reading"><strong>资料  </strong><a href="https://docs.vllm.ai/en/latest/design/model_runner_v2/">vLLM Model Runner V2 Design</a> — 跟踪<strong>持久批次</strong>中的请求槽、设备元数据和 <a class="term" href="#Def00706ced8f7049">CUDA Graph</a> 固定缓冲，核对<a class="term" href="#Def00bba03723d890">重放</a>后 <a class="term" href="#Def000d47b14df7c9">logits</a> 行如何回到正确请求。</p>
 <p class="prose">在核心矩阵乘已缩短的请求上，用<a class="term" href="#Def001f3fb14715bc">时间线</a>分别量 CPU 准备元数据、采样、同步和<a class="term" href="#Def00339c8297cbed">图重放</a>的耗时。只有这些操作位于决定结果就绪的依赖链上，继续优化它们才会改变请求时延。</p>
 <a class="back" href="#idx-l00-s058">↑ 返回知识点目录</a></section><section class="topic" id="l00-s059">
 <h3>SGLang</h3>
+<p class="prose">多条请求如果共享一段提示词，逐次从头预填充会重复计算同一个前缀。读 SGLang 的缓存路径时，先找两条请求从哪个 token 开始分叉，再看分叉前的 KV 由谁持有、何时才允许回收。</p>
 <p class="reading"><strong>论文  </strong><a href="https://arxiv.org/abs/2312.07104">SGLang</a> — 从<strong>共享前缀</strong>如何找到可<a class="term" href="#Def00f465e0254961">复用</a>状态入手，观察结构化生成如何约束可采样的下一项。</p>
 <p class="reading"><strong>官方  </strong><a href="https://docs.sglang.ai/">SGLang Docs</a> — 跟踪一次缓存命中和一次未命中，比较分离部署、专家通信或推测解码在哪个阶段改变执行。</p>
 <a class="back" href="#idx-l00-s059">↑ 返回知识点目录</a></section><section class="topic" id="l00-s060">
 <h3>TensorRT-LLM</h3>
+<p class="prose">某个请求本轮能放进批次，并不保证它再生成若干 token 后仍有足够的 KV 空间。比较 TensorRT-LLM 的调度策略时，先固定同一组请求，再观察两种准入决策各自在何时承担容量风险。</p>
 <p class="reading"><strong>官方  </strong><a href="https://nvidia.github.io/TensorRT-LLM/">TensorRT-LLM Documentation</a> — 跟踪<strong>进行中请求</strong>怎样进入下一批、<a class="term" href="#Def00221e82c84d42">KV</a> 怎样分配，再核对低精度矩阵乘和并行组需要的设备条件。</p>
 <a class="back" href="#idx-l00-s060">↑ 返回知识点目录</a></section><section class="topic" id="l00-s061">
 <h3>练习</h3>
+<p class="prose">让 A、B 两条请求同批开始，让 A 先完成，再加入 C。检查 B 的采样状态和缓存是否仍指向原请求，这个三步例子比始终固定 batch 更能检验映射表。</p>
 <p class="prose">• 给 vLLM 和 SGLang <a class="term" href="#Def00bba03723d890">重放</a>同一请求序列，固定模型、输入输出长度、并发与到达时刻。逐请求统计 <a class="term" href="#Def00b9a844471798">TTFT</a>、<a class="term" href="#Def009cbd8f7072d6">TPOT</a> 及尾部分位数，另记<a class="term" href="#Def00639aa8d7a63a">有效吞吐</a>、<a class="term" href="#Def00221e82c84d42">KV</a> <a class="term" href="#Def00b39504bb5cc8">页</a>占用和设备活动。</p>
 <p class="prose">• 一次只改一项：预填充<a class="term" href="#Def00b409c80937d4">分块</a>、前缀<a class="term" href="#Def00f465e0254961">复用</a>、推测解码或<a class="term" href="#Def0045bb44d04ce3">张量</a>并行度。记录改变了哪个阶段的工作量、哪些请求获益，并复核实际输出语义。</p>
 <p class="reading">□ 选一条<strong>尾延迟</strong>升高的请求，在<a class="term" href="#Def001f3fb14715bc">时间线</a>上找出它等待的批次。用扩批前后的达标请求率验算，总 <a class="term" href="#Def00397a73c4e319">token</a> 吞吐增加是否也改善了业务目标。</p>
 <a class="back" href="#idx-l00-s061">↑ 返回知识点目录</a></section><section class="topic" id="l00-s062">
 <h2>阶段 14　分离式推理与 KV 传输</h2>
+<p class="prose">把预填充和解码放在不同设备后，节省的是两类工作的相互干扰，新增的是排队协调和 KV 交接。判断分离是否划算要看新请求从入队到首词的完整时间。</p>
 <div class="tablewrap"><table><tr><th><strong>把预填充与逐词生成分开部署时，前者产生的 </strong><a class="term" href="#Def00221e82c84d42"><strong>KV</strong></a><strong> 必须能被后者找到并</strong><strong>安全读取</strong><strong>；传输和</strong><a class="term" href="#Def00f465e0254961"><strong>复用</strong></a><strong>会改变两侧排队时间。</strong></th></tr></table></div>
 <a class="back" href="#idx-l00-s062">↑ 返回知识点目录</a></section><section class="topic" id="l00-s063">
 <h3>Prefill 与 decode 的资源需求</h3>
+<p class="prose">预填充一次处理多行输入，解码通常每条活跃请求只提供很少的新行。即使使用同一模型，权重的复用机会和历史 KV 的读取量也会不同。</p>
 <p class="reading"><strong>论文  </strong><a href="https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin">DistServe</a> — 比较将两阶段合并部署和分开部署时，哪些请求同时满足首词与续词延迟要求。</p>
 <p class="reading"><strong>论文  </strong><a href="https://arxiv.org/abs/2311.18677">Splitwise</a> — 追踪两个阶段分别放在哪类设备上，再把阶段间<strong>传输</strong>加入同一条请求的<a class="term" href="#Def001f3fb14715bc">时间线</a>。</p>
 <p class="prose">长提示词的 <a class="term" href="#Def000247674f810d">prefill</a> 往往有较大的矩阵乘法，低并发 <a class="term" href="#Def00f28fe0b0f9e5">decode</a> 则常受权重和 <a class="term" href="#Def00221e82c84d42">KV</a> 读取影响。瓶颈随批大小、缓存命中和上下文长度而变。将两阶段分开可独立配置设备和调度器，收益要扣除 KV 传输、缓存局部性损失和新增排队时间。</p>
 <a class="back" href="#idx-l00-s063">↑ 返回知识点目录</a></section><section class="topic" id="l00-s064">
 <h3>跨机 KV 传输</h3>
+<p class="prose">源端发送完之前不能回收仍可能被读取的页，目标端开始解码之前必须确认所需数据已经可见。交接协议的两条完成条件保护的是不同的内存。</p>
 <p class="reading"><strong>项目  </strong><a href="https://github.com/kvcache-ai/Mooncake">Mooncake</a> — 沿一<a class="term" href="#Def00b39504bb5cc8">页</a> <a class="term" href="#Def00221e82c84d42">KV</a> 从<a class="term" href="#Def00a9ee0ebd3974">显存</a>到主存或 NVMe 的路径，区分传输引擎与分布式缓存各自维护的状态。</p>
 <p class="reading"><strong>官方  </strong><a href="https://docs.nvidia.com/dynamo/">NVIDIA Dynamo</a> — 追踪前端选择工作进程、路由器查询 KV、缓存管理器分配空间的顺序，再定位后端实际执行模型的位置。</p>
 <p class="reading"><strong>官方  </strong><a href="https://docs.nvidia.com/dynamo/dev/knowledge-base/concepts/system-architecture/disaggregated-serving">Dynamo Disaggregated Serving</a> — 比较跨 <a class="term" href="#Def008552a9d24381">GPU</a> 传输与拥有本地缓存两种命中路径，记录路由如何选择目标实例。</p>
@@ -323,14 +382,17 @@
 <div class="tablewrap"><table><tr><th><strong>多轮工具调用怎样改变前缀复用</strong><br>多轮请求可能反复带上工具定义、代码和历史消息。按每次请求的真实命中长度算出可复用字节，再将远端读取、目标等待与本地重算比较。采用 V4.1-Flash 时，还需分开计入<a class="term" href="#Def000e5af2fa8fec">全局 KV</a> 与恢复滑窗所做的有限<a class="term" href="#Def00bba03723d890">重放</a>。</th></tr></table></div>
 <a class="back" href="#idx-l00-s064">↑ 返回知识点目录</a></section><section class="topic" id="l00-s065">
 <h3>练习</h3>
+<p class="prose">设源端每页 16 个位置、目标端每页 8 个位置。用一个 17-token 请求画出两侧页表，标明最后一页的有效范围，再决定哪些字节可以复制。</p>
 <p class="prose">• 用两组设备的记录或小型实现标出预填充、发送 <a class="term" href="#Def00221e82c84d42">KV</a>、目标获<a class="term" href="#Def00b39504bb5cc8">页</a>和解码开算。选一条长提示词和一条短提示词，分别核对有效字节、真实首词交付端及跨设备等待。</p>
 <p class="prose">• 对同一前缀比较本地命中、远端命中和重算。例：远端额外开销 20 ms，需传 1 <a class="term" href="#Def00d027fdf77d2c">GiB</a>，有效带宽 20 GiB/s，共用 70 ms；若本地重算 60 ms 且另排队超过 10 ms，远端才严格更快。两路径都以<strong>状态可供消费</strong>为终点。</p>
 <p class="reading">□ 为分层缓存注明哪些页允许进入、何时淘汰、如何选择目标实例。模拟传输失败时，说明哪份旧页仍须保留，满足什么条件才向<a class="term" href="#Def00381527ac5680">消费者</a><a class="term" href="#Def00d17303ad5e2b">发布</a>新页。</p>
 <a class="back" href="#idx-l00-s065">↑ 返回知识点目录</a></section><section class="topic" id="l00-s066">
 <h2>阶段 15　推测解码与并行生成</h2>
+<p class="prose">一轮同时验证几个猜测，可能少做几次串行解码，也可能花时间验证随即被拒绝的后缀。估算收益要数目标模型最终交付的词，以及整轮草稿与验证的总时间。</p>
 <div class="tablewrap"><table><tr><th><a class="term" href="#Def00e1169341c4d3"><strong>草稿模型</strong></a><strong>先提出多个候选，</strong><a class="term" href="#Def0092a0d40d6d30"><strong>目标模型</strong></a><strong>在同一轮验证这些位置。只有</strong><strong>连续通过的前缀</strong><strong>能直接交付；首次拒绝后要按采样协议纠正，后面的候选不能继续当作已确认历史。</strong></th></tr></table></div>
 <a class="back" href="#idx-l00-s066">↑ 返回知识点目录</a></section><section class="topic" id="l00-s067">
 <h3>参考资料</h3>
+<p class="prose">读推测解码论文时，用一个只有三个词的词表检查概率质量。把接受分支与拒绝后的纠正分支相加，应能逐词恢复目标分布。</p>
 <p class="reading"><strong>论文  </strong><a href="https://arxiv.org/abs/2211.17192">Fast Inference from Transformers via Speculative Decoding</a> — 用三词小<a class="term" href="#Def005451e6c3575f">词表</a>手算直接接受与<strong>拒绝纠正</strong>的概率质量，检查最终分布能否还原目标采样。</p>
 <p class="reading"><strong>论文  </strong><a href="https://arxiv.org/abs/2401.10774">Medusa</a> — 跟踪多个预测头如何提供候选，以及树上哪些位置会送给<a class="term" href="#Def0092a0d40d6d30">目标模型</a>验证。</p>
 <p class="reading"><strong>论文  </strong><a href="https://arxiv.org/abs/2401.15077">EAGLE</a> — 对照草稿所用的中间特征与最终验证所用的目标分数，检查一次拒绝后哪些状态仍有效。</p>
@@ -339,22 +401,27 @@
 <p class="reading"><strong>系统  </strong><a href="https://github.com/kvcache-ai/Mooncake">Mooncake / TorchSpec 动态</a> — 从训练草稿器使用的隐藏状态开始，追踪跨实例传输的形状、版本及有效位置。</p>
 <a class="back" href="#idx-l00-s067">↑ 返回知识点目录</a></section><section class="topic" id="l00-s068">
 <h3>自测</h3>
+<p class="prose">若每个草稿有较高的平均接受率，仍要问连续接受了几步。前一项被拒后，后面的候选无法按原链交付，整轮收益不能简单用候选数乘平均接受率。</p>
 <p class="reading">□ 在同一模型、采样设置与负载下，基线每 5 ms 交付 1 个有效 <a class="term" href="#Def00397a73c4e319">token</a>。推测路径平均每轮花 12 ms，已含起草、验证、纠正和等待，每轮<strong>实际交付</strong> 3 个 token。若各轮不<a class="term" href="#Def006b4ca1a43b48">重叠</a>，基线是 200 token/s，推测路径是 250 token/s，<a class="term" href="#Def003b35a5a9e3da">速度比</a> 1.25；若只交付 2 个则约 167 token/s。各轮或请求并发时，应直接用相同的实际观测时段的总交付数比较。</p>
 <p class="reading">□ 假设前两个候选接受、第三个拒绝并产生纠正词，画出用户已见的词、可<a class="term" href="#Def00f465e0254961">复用</a> <a class="term" href="#Def00221e82c84d42">KV</a> 的最后一项和下一轮输入。再检查固定<a class="term" href="#Def000676dde80626">图桶</a>是否补齐、跨实例传的是哪一段，以及采样器使用的是哪份草稿概率。</p>
 <a class="back" href="#idx-l00-s068">↑ 返回知识点目录</a></section><section class="topic" id="l00-s069">
 <h2>阶段 16　智能体强化学习训练</h2>
+<p class="prose">智能体轨迹混合了模型动作、提示词和工具返回。只有识别出每个动作是在什么上下文、由哪个策略采样，训练时才知道该为哪些概率负责。</p>
 <div class="tablewrap"><table><tr><th><strong>强化学习系统连接训练、在线推理与环境交互。用同一条轨迹追踪数据从哪个</strong><a class="term" href="#Def00ac29f2300f46"><strong>策略版本</strong></a><strong>产生、何时获得奖励，以及哪个训练批次消费它。</strong></th></tr></table></div>
 <a class="back" href="#idx-l00-s069">↑ 返回知识点目录</a></section><section class="topic" id="l00-s070">
 <h3>策略优化与采样</h3>
+<p class="prose">沿一条回答选一个位置，分别找到采样时的行为概率、训练时当前策略的概率和优势估计。它们回答不同问题，不能因为来自同一串 token 就共用一个来源。</p>
 <p class="prose">• 在 <a class="term" href="#Def00862d20af8a6c">PPO</a>、<a class="term" href="#Def00a44b8e20d391">GRPO</a> 或 REINFORCE 的一条轨迹上标出采样动作、<strong>行为概率</strong>、参考模型打分与奖励。对所选方法再说明优势从哪里来，是否需要价值网络，以及这会多出哪些前向和参数同步。</p>
 <p class="reading"><strong>论文  </strong><a href="https://arxiv.org/abs/2402.03300">DeepSeekMath / GRPO</a> — 比较按组奖励估计优势与训练独立价值模型各自保存的状态和占用的计算。</p>
 <a class="back" href="#idx-l00-s070">↑ 返回知识点目录</a></section><section class="topic" id="l00-s071">
 <h3>轨迹、权重与调度</h3>
+<p class="prose">一组轨迹里只要有一条还在等工具，组内奖励基准就可能算不出来。记录各条轨迹完成时刻，可以区分生成慢、工具慢和组完成后的训练排队。</p>
 <p class="prose">• 采样侧逐词生成，完成时间受回答长度和工具等待影响；训练侧对批次做前向与反向。两侧同卡可少留一套设备，但可能争用<a class="term" href="#Def00a9ee0ebd3974">显存</a>和算力；分开放置则需传递权重与轨迹。</p>
 <p class="prose">• 工具调用等待外部服务时，异步调度可让其他就绪请求使用 <a class="term" href="#Def008552a9d24381">GPU</a>。若训练更新同时推进，尚未完成的轨迹可能跨版本，应按动作记录采样版本或<strong>固定整条轨迹</strong>使用的快照。</p>
 <p class="prose">• 比较集合广播、点对点传输与经检查点分发权重。先以实际传输参数和精度算字节，再沿生成池的<a class="term" href="#Def001f3fb14715bc">时间线</a>查新版本何时可供采样。</p>
 <a class="back" href="#idx-l00-s071">↑ 返回知识点目录</a></section><section class="topic" id="l00-s072">
 <h3>训练框架</h3>
+<p class="prose">比较训练框架时，让它们处理同一个中途暂停、随后恢复的样本。观察样本怎样带着策略版本、动作掩码和奖励流到训练端，比只比流程图的模块数更有意义。</p>
 <p class="reading"><strong>框架  </strong><a href="https://verl.readthedocs.io/en/latest/start/agentic_rl.html">veRL Agentic RL</a> — 跟随一次多轮工具调用，查生成服务何时挂起、取得工具结果后怎样继续同一条轨迹。</p>
 <p class="reading"><strong>资料  </strong><a href="https://verl.readthedocs.io/en/latest/advance/v1_async_trainer.html">veRL V1 Async Trainer</a> — 沿队列追踪部分轨迹的写入与消费，并对照同卡或分开放置下的权重更新时点。</p>
 <p class="reading"><strong>框架  </strong><a href="https://openrlhf.readthedocs.io/en/latest/async_training.html">OpenRLHF Async Training</a> — 检查异步生成能否与训练<a class="term" href="#Def006b4ca1a43b48">重叠</a>，比较部分轨迹<a class="term" href="#Def00f465e0254961">复用</a>和策略滞后各造成什么代价。</p>
@@ -366,19 +433,22 @@
 <div class="tablewrap"><table><tr><th><strong>一条轨迹在哪里等待</strong><br>给每条轨迹加上请求、版本和批次标识，记录工具返回、进入训练队列、实际消费及新权重发布的时点。观察训练缺批、生成等工具、权重同步暂停和长轨迹拖尾分别占多少时间，再评估缓存复用或分离部署会改变哪一段。</th></tr></table></div>
 <a class="back" href="#idx-l00-s072">↑ 返回知识点目录</a></section><section class="topic" id="l00-s073">
 <h3>练习</h3>
-<p class="prose">• 在同一组 <a class="term" href="#Def00a44b8e20d391">GRPO</a> 请求上比较同步和异步排程，保持生成预算、奖励规则与接收版本门槛一致。分别记录训练器等待、生成池空闲、队列年龄、同步停顿，以及每秒真正进入训练的<strong>完整轨迹组</strong>。</p>
+<p class="prose">• 在同一组 <a class="term" href="#Def00a44b8e20d391">GRPO</a> 请求上比较同步和异步排程，保持生成预算、奖励规则与接收版本门槛一致。分别记录训练器等待时间、生成池空闲时间、样本排队时间和同步停顿时长，以及每秒用于训练的<strong>完整轨迹组</strong>数。</p>
 <p class="prose">• 给同一套工具调用加入可重复的长短延迟，比较两种调度下 <a class="term" href="#Def008552a9d24381">GPU</a> 的空闲区间。另查异步方案是否提高了超龄丢弃率，防止只看到生成端变忙。</p>
 <p class="reading">□ 从某个实际采样 <a class="term" href="#Def00397a73c4e319">token</a> 开始，标出其策略概率、奖励、优势、所属训练批次和最终权重版本；分别注明轨迹、模型参数及工具结果经哪条路径传递。</p>
 <a class="back" href="#idx-l00-s073">↑ 返回知识点目录</a></section><section class="topic" id="l00-s074">
 <h2>阶段 17　数据管线、检查点与集群调度</h2>
+<p class="prose">训练恢复需要的不只是一个权重文件，还要知道哪一步已经提交、哪些样本已经消费。数据读取、检查点和资源调度三者要在同一个恢复边界对齐。</p>
 <div class="tablewrap"><table><tr><th><strong>用数据游标和检查点定位可恢复的训练步，再核对作业需要的 </strong><a class="term" href="#Def008552a9d24381"><strong>GPU</strong></a><strong>、网卡与</strong><a class="term" href="#Def0095d83e14ec0f"><strong>故障域</strong></a><strong>。</strong></th></tr></table></div>
 <a class="back" href="#idx-l00-s074">↑ 返回知识点目录</a></section><section class="topic" id="l00-s075">
 <h3>数据与存储</h3>
+<p class="prose">预取提高供给速度，也会把“已读”推到“已训练”之前。两个游标之间的样本在恢复后应重新送入，否则数据流会静默跳过一段。</p>
 <p class="prose">• 跟踪一条文本经分词、打乱和拼接后成为哪个训练位置。<a class="term" href="#Def00001983d4e839">预取</a>可以提前读数据，但断点恢复要从<a class="term" href="#Def00478c9f53b1cb">已提交训练步</a>的<strong>首个未消费位置</strong>开始；另查缓存是否能持续供给 <a class="term" href="#Def008552a9d24381">GPU</a>。</p>
 <p class="prose">• 对同一份检查点比较本地 NVMe、并行文件系统与对象存储。将写入有效字节、元数据请求、文件数量和清单提交分别计时，检查异步或增量保存的恢复条件。</p>
 <p class="prose">• 权重、<a class="term" href="#Def00221e82c84d42">KV</a> 和 <a class="term" href="#Def00765a0154e89e">rollout</a> 数据都可能经过 <a class="term" href="#Def0033550f6bd57f">RDMA</a>、主存或 NVMe。分别记录传输、落盘和恢复的完成条件。</p>
 <a class="back" href="#idx-l00-s075">↑ 返回知识点目录</a></section><section class="topic" id="l00-s076">
 <h3>调度平台</h3>
+<p class="prose">分布式训练的单个 rank 即使已经拿到 GPU，也可能因其余 rank 尚未就位而不能工作。调度平台既要凑齐整组资源，还要让通信频繁的 rank 落到合适的链路上。</p>
 <p class="reading"><strong>官方  </strong><a href="https://kubernetes.io/docs/tasks/manage-gpus/scheduling-gpus/">Kubernetes GPU Scheduling</a> — 从设备插件上报 <a class="term" href="#Def008552a9d24381">GPU</a> 到 Pod 获得设备，核对请求的资源如何映射为实际可见的卡。</p>
 <p class="reading"><strong>官方  </strong><a href="https://slurm.schedmd.com/gres.html">Slurm GRES</a> — 查作业申请的 GPU 或 MIG 资源怎样记入 GRES，并对照进程真实可见的设备。</p>
 <p class="reading"><strong>官方  </strong><a href="https://kueue.sigs.k8s.io/docs/overview/">Kueue</a> — 分别定位<strong>队列配额</strong>、获准、抢占和<a class="term" href="#Def00d9c80c5b0f4a">拓扑</a>条件，判断作业为什么仍未开始。</p>
@@ -387,30 +457,35 @@
 <a class="back" href="#idx-l00-s076">↑ 返回知识点目录</a></section><section class="topic" id="l00-s077">
 <h3>作业放置约束</h3>
 <p class="prose">• 先判断整组任务是否能同时获准，再核对<a class="term" href="#Def008890d4f7539c">互连</a><a class="term" href="#Def00d9c80c5b0f4a">拓扑</a>、<a class="term" href="#Def008552a9d24381">GPU</a> 与网卡的邻近关系、多条网络链路以及抢占策略；故障时还要确认剩余设备能否组成<strong>合法并行组</strong>。</p>
-<p class="prose">• 把调度器给出的逻辑节点落到实际机架与互连域上。若高频通信的两个 <a class="term" href="#Def00c2aaec5fcdcc">rank</a> 跨越较慢链路，即使总卡数增加，等待仍可能变长。</p>
-<p class="reading">□ 给一个 256 卡 <a class="term" href="#Def00b3b8fcb4bc6c">MoE</a> 作业选择每节点卡数、<a class="term" href="#Def0045bb44d04ce3">张量</a>与专家并行组，标出跨节点消息经过哪块网卡。再模拟失去一台节点，指出可用副本、检查点访问路径和重组条件。</p>
+<p class="prose">• 把调度器分配的节点映射到所在机架和互连域。若高频通信的两个 <a class="term" href="#Def00c2aaec5fcdcc">rank</a> 跨越较慢链路，即使总卡数增加，等待仍可能变长。</p>
+<p class="reading">□ 给一个 256 卡 <a class="term" href="#Def00b3b8fcb4bc6c">MoE</a> 作业选择每个节点卡数、<a class="term" href="#Def0045bb44d04ce3">张量</a>与专家并行组，标出跨节点消息经过哪块网卡。再模拟失去一台节点，指出可用副本、检查点访问路径和重组条件。</p>
 <a class="back" href="#idx-l00-s077">↑ 返回知识点目录</a></section><section class="topic" id="l00-s078">
 <h2>阶段 18　性能剖析、故障恢复与成本</h2>
+<p class="prose">把现场现象还原成一个具体问题，例如“第 73 步为什么晚了 80 ms”。先定位最早偏离正常时间线的事件，再决定查 GPU 指令、网络还是数据输入。</p>
 <div class="tablewrap"><table><tr><th><strong>遇到吞吐下降、训练中断或成本上升时，先固定</strong><strong>工作负载</strong><strong>与比较区间，再用</strong><a class="term" href="#Def001f3fb14715bc"><strong>时间线</strong></a><strong>和资源计数定位变化。</strong></th></tr></table></div>
 <a class="back" href="#idx-l00-s078">↑ 返回知识点目录</a></section><section class="topic" id="l00-s079">
 <h3>系统、算子与硬件指标</h3>
+<p class="prose">系统时间线回答设备何时空闲，内核计数器回答忙的时候在等什么。若空闲出现在内核启动以前，继续增加该内核的采集指标无法解释那段空白。</p>
 <p class="reading"><strong>官方  </strong><a href="https://docs.pytorch.org/tutorials/recipes/recipes/profiler_recipe.html">PyTorch Profiler</a> — 把框架算子和它发起的设备任务对应起来，检查一次调用实际生成了多少内核。</p>
 <p class="reading"><strong>官方  </strong><a href="https://docs.nvidia.com/nsight-systems/UserGuide/">Nsight Systems</a> — 从请求标记找到 CPU 提交、<a class="term" href="#Def008552a9d24381">GPU</a> 活动和集合通信的先后；<strong>网卡轨道</strong>是否可见需核对采集配置。</p>
 <p class="reading"><strong>官方  </strong><a href="https://docs.nvidia.com/nsight-compute/">Nsight Compute</a> — 选择同一形状、设备和实例，分别看计算/访存屋顶、<a class="term" href="#Def009e5a7e6a9f21">sector</a> 和可<a class="term" href="#Def00c0c8484528dc">驻留</a> <a class="term" href="#Def006aebaceb6afe">warp</a>，再用无 profiler 的计时核查变化。</p>
 <p class="reading"><strong>官方  </strong><a href="https://docs.nvidia.com/datacenter/dcgm/latest/">DCGM</a> — 用设备遥测检查温度、错误或降频，并与监控时间窗对齐；全卡采样不能直接当作某个短内核的计数。</p>
 <a class="back" href="#idx-l00-s079">↑ 返回知识点目录</a></section><section class="topic" id="l00-s080">
 <h3>故障诊断与恢复</h3>
+<p class="prose">同一故障可能先表现为某个 rank 等数据，随后所有 rank 都等通信。用第一次异常的时间排序，比按哪条报错最响亮来找根因更可靠。</p>
 <p class="prose">• <a class="term" href="#Def0087b406bce49b">NCCL</a> 超时只说明通信未在期限内完成。对齐各 <a class="term" href="#Def00c2aaec5fcdcc">rank</a> 同一轮输入就绪时间，再查 <a class="term" href="#Def008552a9d24381">GPU</a> 的 <a class="term" href="#Def000dc25f92f9ce">Xid</a>/ECC 记录、网卡错误、温度功耗和文件系统等待，找出<strong>最早异常的事件</strong>。</p>
 <p class="prose">• 确定故障影响的是进程、设备、节点、机架、网络还是存储。把检查点副本放到相应<a class="term" href="#Def002c6d9e83e2d6">故障域</a>之外，并核对剩余设备能否重组出合法并行<a class="term" href="#Def00bbaa2ba9297f">布局</a>。</p>
 <p class="reading"><strong>资料  </strong><a href="https://pytorch.org/blog/pytorch-2-14-release-blog/">PyTorch 2.14 fault-tolerant c10d</a> — 核对进程组重配置的前提，利用飞行记录器比对各 rank 最近一次集合通信；通信重新可用后还须恢复同一步的训练状态。</p>
 <a class="back" href="#idx-l00-s080">↑ 返回知识点目录</a></section><section class="topic" id="l00-s081">
 <h3>单位训练与推理成本</h3>
+<p class="prose">一次失败后重放的训练步也消耗 GPU 时间。按有效 token 或成功任务计算成本时，应把这些 GPU 秒放进成本分子，同时避免把重放的结果再算一份有效产出。</p>
 <p class="prose">• 训练按有效 <a class="term" href="#Def00397a73c4e319">token</a> 统计成本与每 <a class="term" href="#Def008552a9d24381">GPU</a> 小时的产量，另列重算、通信、检查点和故障回退耗去的时间。</p>
 <p class="prose">• 推理分开统计每百万输入、输出 token 的成本。在相同质量和时延门槛下，再核对每 GPU 小时的<strong>达标请求数</strong>，并计入远端缓存、网络与存储。</p>
 <p class="prose">• 智能体服务按完成一次任务计成本，纳入工具等待、缓存<a class="term" href="#Def00f465e0254961">复用</a>、实际推理 token 与被丢弃的轨迹；分别给出总完成数和满足业务门槛的完成数。</p>
 <p class="reading">□ 对齐退化前后的输入与<a class="term" href="#Def00e786d7fcb3e9">服务目标</a>，沿端到端<a class="term" href="#Def007f8faf02bd76">关键路径</a>找出首先变慢的区间，再选择通信、算子、存储或调度证据检验原因。</p>
 <a class="back" href="#idx-l00-s081">↑ 返回知识点目录</a></section><section class="topic" id="l00-s082">
 <h2>阶段 19　长上下文服务设计</h2>
+<p class="prose">最后用同一组请求检验前面得到的容量、带宽和等待预算。若某项设计同时声称省显存、降首词时延，须指出它分别减少了哪份存储和哪段关键等待。</p>
 <div class="tablewrap"><table><tr><th><strong>对同一组长上下文请求分别编制</strong><a class="term" href="#Def00a9ee0ebd3974"><strong>显存</strong></a><strong>、通信和延迟预算。来自模型配置、论文测量与自选假设的数字应有各自的来源，便于逐项复算。</strong></th></tr></table></div>
 <a class="back" href="#idx-l00-s082">↑ 返回知识点目录</a></section><section class="topic" id="l00-s083">
 <h3>系统论文与案例</h3>
@@ -422,9 +497,10 @@
 <p class="reading"><strong>系统  </strong><a href="https://arxiv.org/abs/2609.19969">DeepSeek-V4.1-Flash</a> — 把解码器<a class="term" href="#Def000e5af2fa8fec">全局 KV</a> 来源、滑窗<a class="term" href="#Def00bba03723d890">重放</a>、条件查表和草稿验证分别记入容量、恢复、权重读取与生成轮次。</p>
 <p class="reading"><strong>系统  </strong><a href="https://www.kimi.com/news/kimi-k3-open-source">Kimi K3 Infra Open Day</a> — 比较 <a class="term" href="#Def00c918a081c31f">KDA</a> 的状态更新、专家分派与工具环境各自的时间窗，避免把单个算子收益直接用于整任务。</p>
 <p class="reading"><strong>系统  </strong><a href="https://www.alibabacloud.com/blog/qwen3-8-flash-next-a-new-architecture-towardsultimate-cost-efficiency_603501">Qwen3.8-Flash-Next</a> — 查明递归层、稀疏注意力层和 n-gram 查表各保存什么，再跟踪 <a class="term" href="#Def0052505d44fe19">Muon</a> 只在哪个训练阶段出现。</p>
-<p class="reading"><strong>系统  </strong><a href="https://developer.nvidia.com/blog/inside-nvidia-rubin-gpu-architecture-powering-the-era-of-agentic-ai/">NVIDIA Rubin Architecture</a> — 把平台的矩阵算力、<a class="term" href="#Def00a9ee0ebd3974">显存</a>与跨卡带宽分别代入已有预算，核对上界口径和设备数量。</p>
+<p class="reading"><strong>系统  </strong><a href="https://developer.nvidia.com/blog/inside-nvidia-rubin-gpu-architecture-powering-the-era-of-agentic-ai/">NVIDIA Rubin Architecture</a> — 把平台的矩阵算力、<a class="term" href="#Def00a9ee0ebd3974">显存</a>与跨卡带宽分别代入已有预算，核对峰值的适用条件及参与计算的设备数。</p>
 <a class="back" href="#idx-l00-s083">↑ 返回知识点目录</a></section><section class="topic" id="l00-s084">
 <h3>百万上下文 MoE 平台设计</h3>
+<p class="prose">把一个冷请求和一个长前缀已命中的请求分别走完一遍。二者可以占用同样的模型权重，却产生不同的预填充工作、历史恢复流量和排队风险。</p>
 <p class="prose">为一个能读取图文、支持百万 <a class="term" href="#Def00397a73c4e319">token</a> 上下文的 <a class="term" href="#Def00b3b8fcb4bc6c">MoE</a> 智能体服务写部署方案。它要同时供线上生成和持续强化学习使用。先给出代表性的输入输出长度、到达率、工具等待分布和质量门槛；小模型的实测数据与大模型的推算分别标注。</p>
 <p class="prose">• 选定注意力与专家路由方案，给出每层缓存形状、实际访问的专家数和精度，再说明是否采用草稿验证。</p>
 <p class="prose">• 画出训练<a class="term" href="#Def0017a13674c9f1">设备网格</a>，注明各维<a class="term" href="#Def003770e3485f96">分片</a>、<a class="term" href="#Def00fe112bc935e2">激活</a>保留策略、优化器状态、数据入口与可恢复的检查点。</p>
@@ -436,6 +512,7 @@
 <p class="prose">• 训练按有效 token 统计，服务逐请求检查首词、续词与<a class="term" href="#Def00069476205914">达标吞吐</a>；另报每 token 的交接字节、每个达标任务的成本以及故障后的恢复时间。</p>
 <a class="back" href="#idx-l00-s084">↑ 返回知识点目录</a></section><section class="topic" id="l00-s085">
 <h3>设计评审</h3>
+<p class="prose">把验收要求写成可复核的问题：在指定到达率与输入分布下，多少请求在期限内完成？若没达到，时间线中最先超出预算的是哪一段？</p>
 <p class="reading">□ 从模型配置推出权重、<a class="term" href="#Def00221e82c84d42">KV</a> 与一轮跨卡通信所需字节，并写清哪些是<strong>算法</strong><a class="term" href="#Def006d186c04e9df"><strong>载荷</strong></a>，哪些能与 profiler 的对应层级计数直接比较。</p>
 <p class="reading">□ 能按<a class="term" href="#Def0045bb44d04ce3">张量</a><a class="term" href="#Def00bbaa2ba9297f">布局</a>、每轮通信量与<a class="term" href="#Def00d9c80c5b0f4a">拓扑</a>解释 <a class="term" href="#Def0052298fab40d3">TP</a>、<a class="term" href="#Def002000f5050fc2">EP</a> 和 <a class="term" href="#Def00727133c881c1">CP</a> 的取舍。</p>
 <p class="reading">□ 从首词延迟落在高分位的一条真实请求出发，沿入队、获准、命中、传输、计算和送出的事件定位最早变慢的一段。</p>
@@ -444,9 +521,11 @@
 <p class="reading">□ 能列出一项新方法同时改变的计算、访存、通信与调度成本，再用<a class="term" href="#Def007f8faf02bd76">关键路径</a>判断这些变化会不会影响端到端表现。</p>
 <a class="back" href="#idx-l00-s085">↑ 返回知识点目录</a></section><section class="topic" id="l00-s086">
 <h2>框架与工具索引</h2>
+<p class="prose">按正在定位的问题查工具：原始运行时间找系统时间线，单个内核的访存与发射找硬件计数，模型配置和数据布局则回到对应版本的实现。</p>
 <div class="tablewrap"><table><thead><tr><th><strong>领域</strong></th><th><strong>入门工具</strong></th><th><strong>延伸阅读</strong></th><th><strong>阅读或实验任务</strong></th></tr></thead><tbody><tr><td>算子编程</td><td><a class="term" href="#Def00c6bc8e04694a">CUDA</a>, <a class="term" href="#Def004f9c0b554551">Triton</a>, <a class="term" href="#Def005229e443f2ca">CUTLASS</a>/<a class="term" href="#Def009b0828cdab03">CuTe</a></td><td>cuTile, <a class="term" href="#Def0042a389719825">TileLang</a>, ThunderKittens, DeepGEMM</td><td>核对<a class="term" href="#Def00b409c80937d4">分块</a>、<a class="term" href="#Def00a970838bde1d">流水线</a>、低精度乘加与实际访存量</td></tr><tr><td>编译器</td><td><code class="inline-id">torch.compile</code> / <a class="term" href="#Def00d372449a9be3">Inductor</a> / AOTAutograd</td><td><a class="term" href="#Def00cd873abe89f8">FlexAttention</a>, <span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><mi>N</mi><mi>V</mi><mi>G</mi><mi>E</mi><mi>M</mi><mi>M</mi><mo>,</mo><mfrac><mrow><mi>X</mi><mi>L</mi><mi>A</mi></mrow><mrow><mi>J</mi><mi>A</mi><mi>X</mi></mrow></mfrac></math></span> concepts</td><td>定位捕获边界、算子<a class="term" href="#Def00ceb95691b622">融合</a>、动态形状与最终生成代码</td></tr><tr><td>通信</td><td><a class="term" href="#Def0087b406bce49b">NCCL</a></td><td><a class="term" href="#Def00d5916e8bd63e">NVSHMEM</a>, NCCL Device <a class="term" href="#Def00763beedf4d8a">API</a>, DeepEP, MoonEP</td><td>追踪集合通信、单边传输和<strong>设备发起</strong>操作的完成顺序</td></tr><tr><td>训练</td><td><a class="term" href="#Def00cf23d6d2c26c">DDP</a> / FSDP2 / <a class="term" href="#Def0028e89b772733">DTensor</a></td><td>Megatron Core, TorchTitan, DeepSpeed</td><td>在<a class="term" href="#Def0017a13674c9f1">设备网格</a>上画出参数、梯度及输入的<a class="term" href="#Def003770e3485f96">分片</a>位置</td></tr><tr><td>精度与<a class="term" href="#Def0039bf4075bd29">量化</a></td><td>AMP / <a class="term" href="#Def0014eb042ea056">Transformer</a> Engine</td><td>torchao、ModelOpt 与推理量化工具</td><td>核算低精度码字和尺度，区分训练后量化与量化感知训练</td></tr><tr><td>推理服务</td><td>vLLM + SGLang</td><td>TensorRT-LLM</td><td>按请求追踪批次调度、分<a class="term" href="#Def00b39504bb5cc8">页</a>缓存、前缀<a class="term" href="#Def00f465e0254961">复用</a>和草稿验证</td></tr><tr><td><a class="term" href="#Def00221e82c84d42">KV</a> 与分离式服务</td><td>Mooncake、NIXL</td><td>NVIDIA Dynamo, LMCache</td><td>比较阶段拆分、感知缓存的路由和多层存储</td></tr><tr><td>强化学习系统</td><td>veRL</td><td>OpenRLHF, AReaL, TorchTitan RL</td><td>追踪异步采样、权重同步和样本的<a class="term" href="#Def00ac29f2300f46">策略版本</a></td></tr><tr><td>集群平台</td><td>Slurm + Kubernetes</td><td>Kueue / Volcano / Ray</td><td>核对整组<a class="term" href="#Def0084a10b079a41">准入</a>、设备<a class="term" href="#Def00d9c80c5b0f4a">拓扑</a>、配额与实际放置</td></tr><tr><td>性能剖析</td><td><a class="term" href="#Def00e50ad048c9c6">Nsight Systems</a> + Compute + PyTorch Profiler</td><td>DCGM / Prometheus / Grafana</td><td>把请求<a class="term" href="#Def001f3fb14715bc">时间线</a>、单核计数与集群健康指标对应起来</td></tr></tbody></table></div>
 <a class="back" href="#idx-l00-s086">↑ 返回知识点目录</a></section><section class="topic" id="l00-s087">
 <h2>论文与源码阅读</h2>
+<p class="prose">先挑一张承载论文主张的图。沿横轴确定实验改变了什么，沿图例确认比较对象，再到方法或源码中找出唯一应当改变的步骤。</p>
 <p class="prose">阅读一篇系统论文时，先写下要解释的<strong>测量结果</strong>，再沿下面这些问题找出实现与实验依据。</p>
 <p class="prose">• 论文报告的是有效计算、某级存储字节、缓存容量、网络流量，还是从特定起点到终点的延迟？先写出分子、分母与单位。</p>
 <p class="prose">• 给输入注明训练或推理、预填充或解码、上下文长度与模型类型。这些条件中哪一项改变后，论文的收益可能不同？</p>
@@ -457,6 +536,7 @@
 <p class="prose">• 若换到另一代 GPU 或其他加速器，分别重算计算、存储和互连上界。注明哪些结论有目标平台数据，哪些仍是待检验假设。</p>
 <a class="back" href="#idx-l00-s087">↑ 返回知识点目录</a></section><section class="topic" id="l00-s088">
 <h2>参考文献索引</h2>
+<p class="prose">需要核对算法时从原论文的定义与假设入手；需要核对运行行为时转到实现与配置。相同的方法名可能覆盖不同精度、布局和后端路径。</p>
 <p class="reading"><strong>1. </strong><a href="https://arxiv.org/abs/1706.03762">Attention Is All You Need</a></p>
 <p class="reading"><strong>2. </strong><a href="https://dl.acm.org/doi/10.1145/1498765.1498785">Roofline Model</a></p>
 <p class="reading"><strong>3. </strong><a href="https://docs.nvidia.com/cuda/cuda-c-programming-guide/">CUDA C++ Programming Guide</a></p>
@@ -503,6 +583,7 @@
 <p class="reading"><strong>44. </strong><a href="https://developer.nvidia.com/blog/inside-nvidia-rubin-gpu-architecture-powering-the-era-of-agentic-ai/">NVIDIA Rubin Architecture</a></p>
 <a class="back" href="#idx-l00-s088">↑ 返回知识点目录</a></section><section class="topic" id="l00-s089">
 <h2>版本与资料来源</h2>
+<p class="prose">若读者使用的版本与讲义不同，可先比较同一个函数的输入形状、返回值和分派条件，再对照行号。这样即使文件移动，也能判断讲义中的解释是否仍适用。</p>
 <p class="prose">课程给出的模型配置、指令和框架接口对应各节列出的版本。复核某项实现时，可通过源码链接定位提交，并用<a class="term" href="#Def00d29c48a9727b">模型卡</a>或官方文档确认硬件与精度条件。</p>
 <div class="tablewrap"><table><tr><th><strong>论文阅读笔记</strong><br>读新的系统论文时，记下工作负载、比较基线和计时的<strong>起止事件</strong>。将节省与新增的工作分别换算为浮点运算次数、存储字节或传输字节，再检查它们是否改变同一请求或训练步的完成时刻。</th></tr></table></div>
 <a class="back" href="#idx-l00-s089">↑ 返回知识点目录</a></section><details class="definitions"><summary>学习路线术语</summary><dl>
@@ -719,7 +800,7 @@
 <dt id="Def009a324576344e">共享内存</dt>
 <dd>同一线程块中的线程可以共同访问的片上存储，用于暂存可复用数据。程序需要安排写入与读取的同步。</dd>
 <dt id="Def007f8faf02bd76">关键路径</dt>
-<dd>在已有依赖下决定结束时间的最长路径。缩短其他并发分支，只有改变最终等待的时刻才会降低端到端耗时。</dd>
+<dd>在已有依赖下决定结束时间的最长路径。若其他并发分支已在关键路径之前结束，单独缩短这些分支不会使任务提前完成。</dd>
 <dt id="Def0084a10b079a41">准入</dt>
 <dd>调度器确认有可用资源并允许请求开始执行。准入前的等待属于排队时间。</dd>
 <dt id="Def00b409c80937d4">分块</dt>
@@ -809,7 +890,7 @@
 <dt id="Def00639aa8d7a63a">有效吞吐</dt>
 <dd>单位时间向请求提交的有效输出 token 数，草稿生成和作废位置不计入分子。</dd>
 <dt id="Def0088a887c70a72">有效行</dt>
-<dd>真正对应某条路由记录的输入行。为对齐补出的行占空间，但没有对应的 token。</dd>
+<dd>由一次实际路由产生的输入行。为满足对齐要求而补出的行也占空间，但不对应任何 token。</dd>
 <dt id="Def00e786d7fcb3e9">服务目标</dt>
 <dd>为同一类真实请求约定的延迟、生成质量和可用性门槛，容量预算要按这些条件验收。</dd>
 <dt id="Def0053c49578cc8c">校准</dt>
@@ -881,7 +962,7 @@
 <dt id="Def005451e6c3575f">词表</dt>
 <dd>记录 token 与整数编号对应关系的表。词嵌入矩阵使用同一套编号查行，每行才是模型参与运算的向量。</dd>
 <dt id="Def006d186c04e9df">载荷</dt>
-<dd>应用真正要传递的数据。协议头、编码和重传可能占用链路，但不增加有效载荷字节数。</dd>
+<dd>应用需要传送的数据。协议头、编码开销和重传都会占用链路，有效载荷只统计应用数据本身。</dd>
 <dt id="Def00069476205914">达标吞吐</dt>
 <dd>在同一观察窗口内，满足约定服务指标的请求数除以窗口时长。</dd>
 <dt id="Def00969f7a64a82c">连续批处理</dt>
@@ -893,7 +974,7 @@
 <dt id="Def004bdd5e2818e1">通信组</dt>
 <dd>共同参与一系列集合操作的一组 rank。组内进程必须按兼容的顺序参与，成员失效后通常要重新建立。</dd>
 <dt id="Def003b35a5a9e3da">速度比</dt>
-<dd>完成等量有效输出时旧耗时除以新耗时；等价于相同口径下新输出速率除以旧输出速率。</dd>
+<dd>完成相同有效工作量时，原耗时与新耗时之比。若按输出速率计算，则用新速率除以原速率。</dd>
 <dt id="Def006b4ca1a43b48">重叠</dt>
 <dd>两项任务的执行区间在时间上有交集。它们若争用计算、访存或链路资源，即使时间线重叠也未必缩短整步。</dd>
 <dt id="Def00bba03723d890">重放</dt>
@@ -911,7 +992,7 @@
 <dt id="Def00b39504bb5cc8">页</dt>
 <dd>缓存分配器一次分配或回收的固定大小存储块。请求用页表把逻辑 token 的区间映射到这些块。</dd>
 <dt id="Def00001983d4e839">预取</dt>
-<dd>在后续层真正需要参数前，先为它发起通信。提早预取可缩短等待，但也延长完整参数与当前层重叠驻留的时间。</dd>
+<dd>在后续层开始计算前就发起参数传输。预取越早，计算等待参数的时间可能越短，但完整参数与当前层数据同时占用显存的时间也可能越长。</dd>
 <dt id="Def00c0c8484528dc">驻留</dt>
 <dd>线程块已获得在 SM 上运行所需的寄存器、共享内存和调度名额。块被接纳后，其线程仍可能等待数据。</dd>
 </dl></details><div class="adjacent"><a class="" href="lessons/01-transformer-compute-and-memory.html">→ Transformer 单层计算量与显存分析</a></div></article></div></main><footer><span>AI Infra Course</span><a href="https://github.com/ZJtoast/AI-Infra-Course">ZJtoast / GitHub ↗</a></footer></body></html>

@@ -198,6 +198,9 @@ class Document:
                     fmt["color"] = "14645A"
                 if tag == "a" and e.get("class") == "term":
                     fmt["dotted"] = True
+                    fmt["bold"] = True
+                if tag == "a" and e.get("class") in ("example-ref", "line-ref"):
+                    fmt["color"] = "185CA4" if e.get("class") == "example-ref" else "A13232"
                 if tag == "span" and opts.get("mono"):
                     role = e.get("class", "").removeprefix("tok-")
                     if role in COLORS:
@@ -332,9 +335,9 @@ class Document:
         elif tag == "table":
             self.table(parent, e.xpath("./tr|./thead/tr|./tbody/tr"))
         elif tag == "figure" and cls == "code":
-            self.inline(
-                paragraph(parent, "SourceCaption", keep=True), e.find("figcaption")
-            )
+            caption = paragraph(parent, "SourceCaption", keep=True)
+            self.mark(caption, e.get("id"))
+            self.inline(caption, e.find("figcaption"))
             self.table(parent, e.xpath('.//span[@class="cl"]'), True)
         elif tag == "figure":
             for im in e.iter("img"):
@@ -366,7 +369,7 @@ class Document:
                 p = paragraph(parent)
                 self.mark(p, dt.get("id"))
                 run(p, text(dt) + "　", bold=True)
-                self.inline(p, dt.getnext())
+                self.inline(p, dt.getnext(), bold=True)
         elif tag == "section" or cls == "tablewrap":
             for child in e:
                 self.block(parent, child)
