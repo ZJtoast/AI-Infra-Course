@@ -182,3 +182,32 @@
 .practice-links {display:flex;align-items:baseline;flex-wrap:wrap;gap:.45em 1.2em;margin-top:.8em}
 .practice-links>a {font-size:.88em}
 @media(max-width:520px){.practice-route li {display:block;margin:.6em 0}.practice-route li>a {margin-right:.65em}}
+
+article, article .prose, article .caption, article .reading, article td, article th, article .question, article .question p, article .qtitle strong, article .practice-route, article .chapterhead, article .definitions, .articlehero p { font-family:"Times New Roman","Songti SC","Source Han Serif SC","SimSun",serif }
+article .topic>h2, article .topic>h3 {font-family:"Times New Roman","Microsoft YaHei","PingFang SC",sans-serif}
+article strong {font-weight:700}
+article math {font-family:"Cambria Math","STIX Two Math",math; font-size:1.04em; line-height:normal}
+article p.prose, article .question p {line-height:1.9}
+article .eq {overflow-x:auto}
+article .inline-id {font:inherit; color:#215b57; background:#eaf1ee; padding:0 .18em; border-radius:.2em; overflow-wrap:anywhere}
+a.term {color:#145c56; text-decoration-line:underline; text-decoration-style:dotted; text-underline-offset:.21em; text-decoration-color:#759f98; text-decoration-thickness:1px}
+a.term:hover,a.term:focus-visible,a.term[aria-expanded=true]{color:#074941;background:#e2efea;border-radius:.18em}
+.term-card {position:fixed;z-index:110;box-sizing:border-box;width:min(22rem,calc(100vw - 24px));max-height:min(22rem,60dvh);overflow:auto;margin:0;padding:.95rem 1.08rem 1rem;background:#fffefa;border:1px solid #9dbab1;border-top:3px solid #24695e;border-radius:.65rem;box-shadow:0 10px 28px #123e3926;color:#173a33;font-family:"Times New Roman","Songti SC",SimSun,serif}
+.term-card[hidden]{display:none}
+.term-top{display:flex;align-items:flex-start;justify-content:space-between;gap:.7rem}
+.term-top strong{font-size:1.08rem;overflow-wrap:anywhere}
+.term-top button{border:0;background:transparent;color:#375b53;font:1.4em/1 Arial,sans-serif;min-width:32px;min-height:32px;cursor:pointer;border-radius:5px}
+.term-top button:focus-visible{outline:2px solid #30776b;outline-offset:1px}
+.term-card p{margin:.25rem 0 0;line-height:1.7;font-size:1rem;text-indent:0}
+.definitions {margin:1.1rem 0;padding:.6rem .95rem;border-block:1px solid var(--line)}
+.definitions summary {cursor:pointer;font-weight:700}
+.definitions dl {margin:.6em 0;display:grid;grid-template-columns:minmax(5rem,24%) 1fr;gap:.55em .9em}
+.definitions dt,.definitions dd{margin:0;overflow-wrap:anywhere}
+.definitions dt{font-weight:700;scroll-margin-top:6rem}
+@media(max-width:560px){.definitions dl{display:block}.definitions dd{margin:.15em 0 .7em}}
+@media print{.term-card{display:none!important}a.term{text-decoration:none;color:inherit}}
+
+.formula{text-indent:0;display:inline-block;vertical-align:middle;max-width:100%;overflow-x:auto;overflow-y:hidden;padding:.13em .03em .17em;line-height:normal;scrollbar-width:thin;box-sizing:border-box}
+article .eq .formula{max-width:100%}
+
+article p.prose>.formula:first-child,article .question p>.formula:first-child {max-width:calc(100% - 2em)}

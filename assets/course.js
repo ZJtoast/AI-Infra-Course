@@ -257,3 +257,69 @@ document.addEventListener("click", async e => {
   setTimeout(() => { button.textContent = "复制代码"; }, 2200);
 });
 
+
+(() => {
+  const page = document.querySelector("article");
+  if (!page) return;
+  const card = document.createElement("aside");
+  card.className = "term-card";
+  card.id = "active-term-card";
+  card.setAttribute("role","dialog");
+  card.setAttribute("aria-labelledby","term-name");
+  card.setAttribute("aria-describedby","term-meaning");
+  card.hidden = true;
+  card.innerHTML = '<div class="term-top"><strong id="term-name"></strong><button type="button" aria-label="关闭术语释义">×</button></div><p id="term-meaning"></p>';
+  document.body.append(card);
+  const name = card.querySelector("strong");
+  const meaning = card.querySelector("p");
+  const close = card.querySelector("button");
+  let current, frame;
+  function hide(restore = false) {
+    if (!current) return;
+    const previous = current;
+    current = null;
+    previous.setAttribute("aria-expanded","false");
+    previous.removeAttribute("aria-controls");
+    card.hidden = true;
+    if (restore) previous.focus({preventScroll:true});
+  }
+  function locate() {
+    if (!current) return;
+    const r = current.getBoundingClientRect(), c = card.getBoundingClientRect();
+    const viewportY = window.visualViewport?.offsetTop || 0;
+    const bottom = viewportY + (window.visualViewport?.height || innerHeight);
+    if (r.bottom < viewportY || r.top > bottom) { hide(); return; }
+    card.style.left = Math.max(12,Math.min(r.left,document.documentElement.clientWidth-c.width-12)) + "px";
+    const below = r.bottom+9;
+    card.style.top = (below+c.height <= bottom-12 ? below : Math.max(viewportY+10,r.top-c.height-9)) + "px";
+  }
+  function queue() { if (current) { cancelAnimationFrame(frame); frame=requestAnimationFrame(locate); } }
+  function open(link) {
+    if (link === current) { hide(true); return; }
+    hide(); current = link;
+    name.textContent=link.textContent;
+    const def=document.getElementById(link.hash.slice(1));
+    if (!def || !def.nextElementSibling) { hide(); return; }
+    meaning.textContent=def.nextElementSibling.textContent;
+    card.hidden=false;
+    current.setAttribute("aria-expanded","true");
+    current.setAttribute("aria-controls",card.id);
+    locate();
+    close.focus({preventScroll:true});
+  }
+  for (const a of page.querySelectorAll("a.term")) { a.setAttribute("aria-haspopup","dialog"); a.setAttribute("aria-expanded","false"); }
+  document.addEventListener("click", e=>{
+    const a=e.target.closest("a.term");
+    if (a && !e.ctrlKey && !e.metaKey && !e.shiftKey && !e.altKey && e.button===0) {e.preventDefault();open(a);}
+    else if (!card.contains(e.target)) hide();
+  });
+  close.addEventListener("click",()=>hide(true));
+  document.addEventListener("keydown",e=>{
+    if (!current) return;
+    if(e.key==="Escape"){e.preventDefault();hide(true);}
+    if(e.key==="Tab" && e.target===close){const trigger=current; hide(); trigger.focus({preventScroll:true});}
+  });
+  window.addEventListener("resize",queue);
+  document.addEventListener("scroll",queue,true);
+  window.visualViewport?.addEventListener("resize",queue);
+})();

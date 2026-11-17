@@ -12,10 +12,10 @@
 
 | 课次 | 讲义 | 主要内容 | 下载 |
 | :---: | :--- | :--- | :---: |
-| 01 | [Transformer 单层计算量与显存分析](https://zjtoast.github.io/AI-Infra-Course/lessons/01-transformer-compute-and-memory.html) | QKV 投影、FLOPs、KV cache | [Word](word/01-transformer-compute-and-memory.docx) |
+| 01 | [Transformer 单层计算量与显存分析](https://zjtoast.github.io/AI-Infra-Course/lessons/01-transformer-compute-and-memory.html) | QKV 投影、浮点运算量与 KV 缓存 | [Word](word/01-transformer-compute-and-memory.docx) |
 | 02 | [GPU 微架构与 Tensor Core](https://zjtoast.github.io/AI-Infra-Course/lessons/02-gpu-microarchitecture-and-tensor-cores.html) | SM、存储层次、Tensor Core | [Word](word/02-gpu-microarchitecture-and-tensor-cores.docx) |
 | 03 | [CUDA、PTX 与分块算子编程](https://zjtoast.github.io/AI-Infra-Course/lessons/03-cuda-ptx-and-tiled-kernels.html) | CUDA、PTX、Triton、TileLang | [Word](word/03-cuda-ptx-and-tiled-kernels.docx) |
-| 04 | [Attention 算子与编译执行](https://zjtoast.github.io/AI-Infra-Course/lessons/04-attention-kernels-and-compilation.html) | FlashAttention、图编译与算子融合 | [Word](word/04-attention-kernels-and-compilation.docx) |
+| 04 | [Attention 算子与编译执行](https://zjtoast.github.io/AI-Infra-Course/lessons/04-attention-kernels-and-compilation.html) | FlashAttention 1–4、SageAttention 系列与算子融合 | [Word](word/04-attention-kernels-and-compilation.docx) |
 
 ### 通信与分布式训练
 
@@ -40,18 +40,18 @@
 | :---: | :--- | :--- | :---: |
 | 12 | [推理服务指标与 KV 分页](https://zjtoast.github.io/AI-Infra-Course/lessons/12-llm-serving-metrics-and-kv-paging.html) | TTFT、TPOT、分页与连续批处理 | [Word](word/12-llm-serving-metrics-and-kv-paging.docx) |
 | 13 | [推理引擎执行与 CUDA Graph](https://zjtoast.github.io/AI-Infra-Course/lessons/13-inference-engine-execution.html) | 请求槽位、CUDA Graph、前缀树 | [Word](word/13-inference-engine-execution.docx) |
-| 14 | [分离式推理与 KV 传输](https://zjtoast.github.io/AI-Infra-Course/lessons/14-disaggregated-inference-and-kv-transfer.html) | Prefill/decode 分离、KV 重排与传输 | [Word](word/14-disaggregated-inference-and-kv-transfer.docx) |
+| 14 | [分离式推理与 KV 传输](https://zjtoast.github.io/AI-Infra-Course/lessons/14-disaggregated-inference-and-kv-transfer.html) | 预填充与解码分离、KV 重排与传输 | [Word](word/14-disaggregated-inference-and-kv-transfer.docx) |
 | 15 | [推测解码与前缀验证](https://zjtoast.github.io/AI-Infra-Course/lessons/15-speculative-decoding.html) | 拒绝采样、草稿长度、变长验证 | [Word](word/15-speculative-decoding.docx) |
 
 ### 训练平台与性能工程
 
 | 课次 | 讲义 | 主要内容 | 下载 |
 | :---: | :--- | :--- | :---: |
-| 16 | [智能体强化学习训练系统](https://zjtoast.github.io/AI-Infra-Course/lessons/16-agentic-rl-training-systems.html) | 轨迹、策略版本、异步 rollout | [Word](word/16-agentic-rl-training-systems.docx) |
+| 16 | [智能体强化学习训练系统](https://zjtoast.github.io/AI-Infra-Course/lessons/16-agentic-rl-training-systems.html) | 轨迹、策略版本与异步采样 | [Word](word/16-agentic-rl-training-systems.docx) |
 | 17 | [训练数据管线、检查点与调度](https://zjtoast.github.io/AI-Infra-Course/lessons/17-training-data-checkpoints-and-scheduling.html) | 有效 token、恢复点、作业放置 | [Word](word/17-training-data-checkpoints-and-scheduling.docx) |
 | 18 | [GPU 性能剖析与瓶颈诊断](https://zjtoast.github.io/AI-Infra-Course/lessons/18-gpu-profiling-and-performance-analysis.html) | Nsight Systems、Nsight Compute、SOL、Roofline | [Word](word/18-gpu-profiling-and-performance-analysis.docx) |
 | 19 | [长上下文服务的容量与系统设计](https://zjtoast.github.io/AI-Infra-Course/lessons/19-long-context-system-design.html) | 显存预算、跨机流量、服务容量 | [Word](word/19-long-context-system-design.docx) |
 
 ## 离线阅读
 
-　　下载仓库后，打开根目录的 [index.html](index.html)。Word 讲义位于 [word](word/) 目录。网页版练习可以直接作答，点「答案」即可查看推导。
+　　下载仓库后，打开根目录的 [index.html](index.html)。Word 讲义位于 [word](word/) 目录。网页版练习可以直接作答，点「答案」可展开推导。正文中带点状下划线的术语可以点开，就地查看释义。
