@@ -1,8 +1,8 @@
 # AI Infra Course
 
-**AI 基础设施课程**　·　19 课　·　143 道随堂练习
+**AI 基础设施课程**　·　19 课　·　190 道练习
 
-　　课程涵盖 GPU 编程、分布式训练、大模型推理和性能分析。分课讲义适合按顺序学习，合订本可直接查阅 427 个知识点。
+　　课程涵盖 GPU 编程、分布式训练、大模型推理和性能分析。分课讲义适合按顺序学习，合订本可直接查阅 427 个知识点。每课的普通题、进阶题和情景面试题都放在对应小节，可先独立作答，再展开推导。
 
 [在线阅读](https://zjtoast.github.io/AI-Infra-Course/)　·　[学习路线](https://zjtoast.github.io/AI-Infra-Course/roadmap.html)　·　[知识点合订本](https://zjtoast.github.io/AI-Infra-Course/handbook.html)　·　[下载 Word 合订本](word/ai-infra-course-handbook.docx)
 
