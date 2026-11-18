@@ -35,6 +35,8 @@ def compact(element):
 
 
 def symbol_key(node):
+    if node.get("data-symbol"):
+        return node.get("data-symbol")
     key = compact(node)
     if node.get("mathvariant") == "double-struck":
         return {"R": "ℝ", "N": "ℕ", "Z": "ℤ"}.get(key, key)
@@ -78,36 +80,29 @@ def symbols(element, known):
                 yield from symbols(child, known)
 
 
-def exercise_scope(element):
-    return next((n for n in element.iterancestors() if n.tag in ("answer", "exercise")), None)
-
-
-def collect_sentences(section, known, order):
-    # Keep MathML placeholders intact when splitting an explanatory sentence.
+def occurrence_context(section):
+    """Index only the sentence actually containing each occurrence, never nearby text."""
     formulas = []
-    passages = []
-    blocks = section.xpath(".//p | .//dd | .//figcaption | .//td | .//li")
-    for block in blocks:
-        if block.get("class") == "eq" or block.xpath("ancestor::pre | ancestor::figure[@class='code']"):
+    sentences = {}
+    for block in section.xpath(".//p[not(@class='eq')] | .//dd | .//figcaption | .//td | .//th | .//li"):
+        if block.find(".//" + MATH + "math") is None:
             continue
-        if not any("\u4e00" <= c <= "\u9fff" for c in "".join(block.itertext())):
-            continue
+
         def inline(node):
             if node.tag == MATH + "math":
-                idx = len(formulas)
+                mark = chr(0xf0000 + len(formulas))
                 formulas.append(node)
-                return chr(0xf0000 + idx)
+                return mark
             return (node.text or "") + "".join(inline(n) + (n.tail or "") for n in node)
+
         for sentence in re.split(r"(?<=[。！？；])", inline(block)):
             sentence = sentence.strip()
-            if not 8 <= len(re.findall(r"[\u4e00-\u9fff]", sentence)) or len(sentence) > 440:
+            if len(re.findall(r"[\u4e00-\u9fff]", sentence)) < 5:
                 continue
-            keys = set(re.findall(r"(?<![\w.])[A-Za-zΑ-ω]+(?![a-zA-Z0-9_.])", sentence, re.ASCII))
             for mark in sentence:
                 if ord(mark) >= 0xf0000:
-                    keys.update(symbols(formulas[ord(mark)-0xf0000], known))
-            passages.append((order[block], exercise_scope(block), keys, sentence))
-    return passages, formulas
+                    sentences[formulas[ord(mark)-0xf0000]] = sentence
+    return sentences, formulas
 
 
 def render_sentence(sentence, formulas):
@@ -137,17 +132,29 @@ def prepare_symbol_notes(chapter):
         spans = section.xpath('.//span[@class="formula"][not(ancestor::a or ancestor::button or ancestor::pre or ancestor::code)]')
         if not spans:
             continue
-        order = {node: i for i, node in enumerate(section.iter()) if not str(node.tag).startswith(MATH)}
-        passages, formulas = collect_sentences(section, known, order)
+        sentences, formulas = occurrence_context(section)
         notes = {}
+        base = known
+        exercise_scopes = {}
+        worked = ""
+        for block in section:
+            if block.get("id", "").startswith("handcalc-"):
+                worked = block.get("id")
+            elif block.tag in ("exercise","listing") or block.get("class") == "reading":
+                worked = ""
+            if worked:
+                exercise_scopes.update((node, worked) for node in block.iter("span") if node.get("class") == "formula")
         for span in spans:
+            known = base | catalog().get(exercise_scopes.get(span), {})
             math = span.find(MATH + "math")
             if math is None:
                 continue
             keys = list(dict.fromkeys(symbols(math, known)))
-            if not keys:
+            if not keys and span.get("data-note") is None:
                 continue
             selected = []
+            if "data-note" in span.attrib:
+                selected.append((span.attrib.pop("data-note-title", "本式的计算"), span.attrib.pop("data-note")))
             labels = {}
             for node in math.iter():
                 if ET.QName(node).localname in {"mi","mtext","msub","msup","msubsup","mover"}:
@@ -159,29 +166,8 @@ def prepare_symbol_notes(chapter):
                         note = (*note, "text", typeset_label(labels[key]))
                     if note not in selected:
                         selected.append(note)
-            unknown = set(keys) - known.keys()
-            if unknown:
-                here = order[span]
-                scope = exercise_scope(span)
-                parent = span.getparent()
-                while parent is not section and parent.tag not in ("p", "td", "dd", "li", "figcaption"):
-                    parent = parent.getparent()
-                owner = order[parent]
-                choices = []
-                for pos, zone, words, sentence in passages:
-                    if zone is not None and zone is not scope:
-                        continue
-                    hits = unknown & words
-                    distance = abs(pos-here)
-                    if not hits and (selected or (pos != owner and distance > 150)):
-                        continue
-                    same = pos == owner
-                    definition = bool(re.search("表示|代表|称为|记为|记作|为.+[维行列]|每[条个组头行列]|宽度|概率|分母|对应|索引|取值|等于|决定", sentence))
-                    score = (bool(hits), len(hits), same, definition and distance < 120, -distance)
-                    choices.append((score, sentence))
-                if choices:
-                    _, sentence = max(choices, key=lambda item: item[0])
-                    selected.append(("本节中的用法", render_sentence(sentence, formulas), "mathml"))
+            if not selected and math in sentences:
+                selected.append(("正文在此处的说明", render_sentence(sentences[math], formulas), "mathml"))
             if not selected:
                 continue
             ids = [notes.setdefault(note, len(notes)) for note in selected]
