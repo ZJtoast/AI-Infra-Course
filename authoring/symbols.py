@@ -2,7 +2,6 @@
 from collections import defaultdict
 from copy import deepcopy
 from functools import lru_cache
-from html import escape
 import json
 from itertools import groupby
 from pathlib import Path
@@ -88,43 +87,6 @@ def symbols(element, known):
                 yield from symbols(child, known)
 
 
-def occurrence_context(section):
-    """Index only the sentence actually containing each occurrence, never nearby text."""
-    formulas = []
-    sentences = {}
-    for block in section.xpath(".//p[not(@class='eq')] | .//dd | .//figcaption | .//td | .//th | .//li"):
-        if block.find(".//" + MATH + "math") is None:
-            continue
-
-        def inline(node):
-            if node.tag == MATH + "math":
-                mark = chr(0xf0000 + len(formulas))
-                formulas.append(node)
-                return mark
-            return (node.text or "") + "".join(inline(n) + (n.tail or "") for n in node)
-
-        for sentence in re.split(r"(?<=[。！？；])", inline(block)):
-            sentence = sentence.strip()
-            if len(re.findall(r"[\u4e00-\u9fff]", sentence)) < 5:
-                continue
-            for mark in sentence:
-                if ord(mark) >= 0xf0000:
-                    sentences[formulas[ord(mark)-0xf0000]] = sentence
-    return sentences, formulas
-
-
-def render_sentence(sentence, formulas):
-    # Only generated MathML can supply markup. Prose, code names and links become plain text.
-    parts = []
-    for fragment in re.split(r"([\U000f0000-\U000ffffd])", sentence):
-        if len(fragment) == 1 and ord(fragment) >= 0xf0000:
-            math = formulas[ord(fragment)-0xf0000]
-            parts.append(ET.tostring(math, encoding="unicode", with_tail=False))
-        else:
-            parts.append(escape(fragment))
-    return "".join(parts)
-
-
 def typeset_label(node):
     math = ET.Element(MATH + "math", nsmap={None: MATH[1:-1]})
     math.append(deepcopy(node))
@@ -140,7 +102,6 @@ def prepare_symbol_notes(chapter):
         spans = section.xpath('.//span[@class="formula"][not(ancestor::a or ancestor::button or ancestor::pre or ancestor::code)]')
         if not spans:
             continue
-        sentences, formulas = occurrence_context(section)
         notes = {}
         base = known
         exercise_scopes = {}
@@ -174,8 +135,6 @@ def prepare_symbol_notes(chapter):
                         note = (*note, "text", typeset_label(labels[key]))
                     if note not in selected:
                         selected.append(note)
-            if not selected and math in sentences:
-                selected.append(("正文在此处的说明", render_sentence(sentences[math], formulas), "mathml"))
             if not selected:
                 continue
             ids = [notes.setdefault(note, len(notes)) for note in selected]
