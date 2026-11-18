@@ -3,6 +3,7 @@
 import os
 import re
 from functools import lru_cache
+from equations import aligned_dimensions
 from hashlib import sha1
 from io import BytesIO
 from pathlib import Path
@@ -68,7 +69,9 @@ def stylesheet():
 
 @lru_cache(maxsize=5000)
 def formula(source):
-    equation = stylesheet()(ET.fromstring(source)).getroot()
+    math = ET.fromstring(source)
+    aligned_dimensions(math)
+    equation = stylesheet()(math).getroot()
     # Office's transform treats a MathML underbrace as a fixed-width limit.
     # Use a stretching brace while retaining the separately editable dimension.
     for limit in equation.iterfind(f".//{M}limLow"):

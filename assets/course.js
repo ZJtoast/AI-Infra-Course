@@ -274,10 +274,11 @@ document.addEventListener("click", async e => {
   card.setAttribute("aria-labelledby","term-name");
   card.setAttribute("aria-describedby","term-meaning");
   card.hidden = true;
-  card.innerHTML = '<div class="term-top"><strong id="term-name"></strong><button type="button" aria-label="关闭术语释义">×</button></div><p id="term-meaning"></p>';
+  card.innerHTML = '<div class="term-top"><strong id="term-name"></strong><button type="button" aria-label="关闭解释">×</button></div><div id="term-meaning"></div>';
   document.body.append(card);
   const name = card.querySelector("strong");
-  const meaning = card.querySelector("p");
+  const meaning = card.querySelector("#term-meaning");
+  const symbolLists = new WeakMap();
   const close = card.querySelector("button");
   let current, frame;
   function hide(restore = false) {
@@ -303,11 +304,33 @@ document.addEventListener("click", async e => {
   function open(link) {
     if (link === current) { hide(true); return; }
     hide(); current = link;
-    name.textContent=link.textContent;
-    const def=document.getElementById(link.hash.slice(1));
-    if (!def || !def.nextElementSibling) { hide(); return; }
-    meaning.textContent=def.nextElementSibling.textContent;
+    card.classList.toggle("symbol-card",link.hasAttribute("data-symbols"));
+    if (card.classList.contains("symbol-card")) {
+      const section=link.closest("section.topic") || link.closest("section");
+      if (!symbolLists.has(section)) {
+        symbolLists.set(section, JSON.parse(section.querySelector("template.symbol-notes").content.textContent));
+      }
+      const notes=symbolLists.get(section);
+      name.textContent="符号说明";
+      const list=document.createElement("dl");
+      for (const index of link.dataset.symbols.split(" ")) {
+        const [label,body,format,labelMath]=notes[Number(index)];
+        const term=document.createElement("dt"), definition=document.createElement("dd");
+        if (labelMath) term.innerHTML=labelMath;
+        else term.textContent=label;
+        if (format === "mathml") definition.innerHTML=body;
+        else definition.textContent=body;
+        list.append(term,definition);
+      }
+      meaning.replaceChildren(list);
+    } else {
+      name.textContent=link.textContent;
+      const def=document.getElementById(link.hash.slice(1));
+      if (!def || !def.nextElementSibling) { hide(); return; }
+      meaning.textContent=def.nextElementSibling.textContent;
+    }
     card.hidden=false;
+    card.scrollTop=0;
     current.setAttribute("aria-expanded","true");
     current.setAttribute("aria-controls",card.id);
     locate();
@@ -315,12 +338,15 @@ document.addEventListener("click", async e => {
   }
   for (const a of page.querySelectorAll("a.term")) { a.setAttribute("aria-haspopup","dialog"); a.setAttribute("aria-expanded","false"); }
   document.addEventListener("click", e=>{
-    const a=e.target.closest("a.term");
+    const a=e.target.closest("a.term,[data-symbols]");
     if (a && !e.ctrlKey && !e.metaKey && !e.shiftKey && !e.altKey && e.button===0) {e.preventDefault();open(a);}
     else if (!card.contains(e.target)) hide();
   });
   close.addEventListener("click",()=>hide(true));
   document.addEventListener("keydown",e=>{
+    if ((e.key==="Enter" || e.key===" ") && e.target.matches("[data-symbols]")) {
+      e.preventDefault(); open(e.target); return;
+    }
     if (!current) return;
     if(e.key==="Escape"){e.preventDefault();hide(true);}
     if(e.key==="Tab" && e.target===close){const trigger=current; hide(); trigger.focus({preventScroll:true});}

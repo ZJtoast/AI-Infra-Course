@@ -23,6 +23,8 @@ from course import (
     write,
 )
 from lxml import html
+from equations import MATH, aligned_dimensions
+from symbols import prepare_symbol_notes
 from listings import language_of
 from PIL import Image
 from source_highlight import css as syntax_css, language_label, styled_lines
@@ -115,6 +117,8 @@ def practice(q, names, route):
 
 def contents(ch, prefix):
     copy = deepcopy(ch)
+    for math in copy.iter(MATH + "math"):
+        aligned_dimensions(math)
     # MathML Core uses explicit operators for fences, including ceiling and floor.
     for fenced in copy.xpath('.//*[local-name()="mfenced"]'):
         ns = "{http://www.w3.org/1998/Math/MathML}"
@@ -205,6 +209,7 @@ def build(chapters, out):
     groups = {}
     for i, ch in enumerate(chapters):
         prepare_line_refs(ch)
+        prepare_symbol_notes(ch)
         slug = ch.get("slug")
         title = ch.get("title")
         lead = text(ch.find("lead"))

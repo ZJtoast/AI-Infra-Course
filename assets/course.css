@@ -209,6 +209,19 @@ a.term:hover,a.term:focus-visible,a.term[aria-expanded=true]{color:#074941;backg
 .formula{text-indent:0;display:inline-block;vertical-align:middle;max-width:100%;overflow-x:auto;overflow-y:hidden;padding:.13em .03em .17em;line-height:normal;scrollbar-width:thin;box-sizing:border-box}
 article .eq .formula{max-width:none;overflow:visible;vertical-align:middle;padding:.2em .08em}
 article .eq>.formula:only-child{display:block;width:max-content;margin-inline:auto}
+article .dimension-grid>mtr>mtd{vertical-align:baseline;text-align:center;padding:0 .12em}
+article .dimension-grid>mtr+ mtr>mtd.dimension{border-top:1px solid #9aa9a5;padding-top:.12em}
+.formula[data-symbols]{cursor:pointer;border-bottom:1px dotted #47799a}
+.eq .formula[data-symbols]{border-color:#84a3b4}
+.term-card.symbol-card{width:min(32rem,calc(100vw - 24px));max-height:min(32rem,65dvh)}
+.symbol-card .term-top{position:sticky;top:-.95rem;padding:.35rem 0;background:#fffefa;z-index:1}
+.symbol-card dd{overflow:auto}
+.symbol-card math{font-family:"Cambria Math","STIX Two Math",math;font-size:1.13em}
+.formula[data-symbols]:is(:hover,:focus-visible,[aria-expanded=true]){background:#e1eef4;outline:1px solid #7598aa;outline-offset:1px;border-radius:3px}
+.term-card #term-meaning dl{margin:.55em 0 0;font-weight:400}
+.term-card #term-meaning dt{font-weight:700;color:#23546e}
+.term-card #term-meaning dd{margin:0 0 .6em;line-height:1.65}
+@media print{.formula[data-symbols]{border:0}}
 @media(max-width:700px){article .eq{padding:.65rem .55rem;text-align:start}}
 
 article p.prose>.formula:first-child,article .question p>.formula:first-child {max-width:calc(100% - 2em)}
