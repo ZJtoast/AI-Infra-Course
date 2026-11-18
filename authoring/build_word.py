@@ -28,6 +28,7 @@ PKG = "{http://schemas.openxmlformats.org/package/2006/relationships}"
 WP = "{http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing}"
 A = "{http://schemas.openxmlformats.org/drawingml/2006/main}"
 PIC = "{http://schemas.openxmlformats.org/drawingml/2006/picture}"
+M = "{http://schemas.openxmlformats.org/officeDocument/2006/math}"
 
 
 def w(parent, tag, **attrs):
@@ -67,7 +68,18 @@ def stylesheet():
 
 @lru_cache(maxsize=5000)
 def formula(source):
-    return ET.tostring(stylesheet()(ET.fromstring(source)).getroot())
+    equation = stylesheet()(ET.fromstring(source)).getroot()
+    # Office's transform treats a MathML underbrace as a fixed-width limit.
+    # Use a stretching brace while retaining the separately editable dimension.
+    for limit in equation.iterfind(f".//{M}limLow"):
+        if limit.findtext(f"{M}lim/{M}r/{M}t") == "⏟":
+            group = ET.Element(M + "groupChr")
+            properties = ET.SubElement(group, M + "groupChrPr")
+            for name, value in (("chr", "⏟"), ("pos", "bot"), ("vertJc", "top")):
+                ET.SubElement(properties, M + name, {M + "val": value})
+            group.append(limit.find(M + "e"))
+            limit.getparent().replace(limit, group)
+    return ET.tostring(equation)
 
 
 def paragraph(parent, style=None, indent=False, keep=False):
@@ -128,6 +140,13 @@ class Document:
             HERE / ("roadmap-layout.docx" if road else "lesson-layout.docx")
         ) as z:
             self.parts = {n: z.read(n) for n in z.namelist()}
+        styles = ET.fromstring(self.parts["word/styles.xml"])
+        equation_size = styles.find(
+            f"{W}style[@{W}styleId='EquationBlock']/{W}rPr/{W}sz"
+        )
+        if equation_size is not None:
+            equation_size.set(W + "val", "30")  # Word uses half-points.
+            self.parts["word/styles.xml"] = xml(styles)
         self.root = ET.fromstring(self.parts["word/document.xml"])
         self.body = self.root.find(W + "body")
         self.sect = self.body[-1]

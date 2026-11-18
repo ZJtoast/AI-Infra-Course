@@ -184,9 +184,10 @@
 @media(max-width:520px){.practice-route li {display:block;margin:.6em 0}.practice-route li>a {margin-right:.65em}}
 
 article strong {font-weight:700}
-article math {font-family:"Cambria Math","STIX Two Math",math; font-size:1.04em; line-height:normal}
+article math {font-family:"Cambria Math","STIX Two Math",math; font-size:max(1.18em,1.18rem); line-height:normal}
 article p.prose, article .question p {line-height:1.9}
-article .eq {overflow-x:auto}
+article .eq {overflow-x:auto; padding:.75rem .85rem}
+article .eq math {font-size:clamp(1.38rem,1.2rem + .5vw,1.65rem); math-style:normal}
 article .inline-id {font:inherit; color:#215b57; background:#eaf1ee; padding:0 .18em; border-radius:.2em; overflow-wrap:anywhere}
 a.term {color:#145c56; text-decoration-line:underline; text-decoration-style:dotted; text-underline-offset:.21em; text-decoration-color:#759f98; text-decoration-thickness:1px}
 a.term:hover,a.term:focus-visible,a.term[aria-expanded=true]{color:#074941;background:#e2efea;border-radius:.18em}
@@ -206,7 +207,9 @@ a.term:hover,a.term:focus-visible,a.term[aria-expanded=true]{color:#074941;backg
 @media print{.term-card{display:none!important}a.term{text-decoration:none;color:inherit}}
 
 .formula{text-indent:0;display:inline-block;vertical-align:middle;max-width:100%;overflow-x:auto;overflow-y:hidden;padding:.13em .03em .17em;line-height:normal;scrollbar-width:thin;box-sizing:border-box}
-article .eq .formula{max-width:100%}
+article .eq .formula{max-width:none;overflow:visible;vertical-align:middle;padding:.2em .08em}
+article .eq>.formula:only-child{display:block;width:max-content;margin-inline:auto}
+@media(max-width:700px){article .eq{padding:.65rem .55rem;text-align:start}}
 
 article p.prose>.formula:first-child,article .question p>.formula:first-child {max-width:calc(100% - 2em)}
 

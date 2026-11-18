@@ -39,6 +39,36 @@ def chapter_url(chapter):
     return "roadmap.html" if slug.startswith("00-") else "lessons/" + slug + ".html"
 
 
+RAW_MATH = re.compile(
+    r"\\(?:\(|\[|frac\b|sqrt\b|begin\{|[a-zA-Z]+\{)|\$\$|"
+    r"(?<![A-Za-z0-9_./])[A-Za-zα-ω]_(?:[A-Za-z0-9]+|\{[^}]+\})(?![A-Za-z0-9_./])"
+)
+
+
+def check_formulas(chapter):
+    for section in chapter.iter("section"):
+        for equation in section.xpath('./p[@class="eq"]'):
+            if not equation.xpath('.//*[local-name()="math"]'):
+                raise ValueError(f"Missing equation in {section.get('id')}")
+            if re.search(r"\[[A-Za-z0-9]+×[A-Za-z0-9]+\]", text(equation)):
+                raise ValueError(f"Unattached matrix dimensions in {section.get('id')}")
+        for node in section.xpath(
+            './/p[@class="prose"]//text() | .//td//text() | .//figcaption//text()'
+        ):
+            parent = node.getparent()
+            if node.is_tail:
+                parent = parent.getparent()
+            if any(
+                ET.QName(el).localname in ("math", "code", "pre", "listing")
+                or el.get("class") in ("inline-id", "code")
+                for el in (parent, *parent.iterancestors())
+            ):
+                continue
+            match = RAW_MATH.search(node)
+            if match:
+                raise ValueError(f"Unrendered {match[0]!r} in {section.get('id')}")
+
+
 def read(path):
     chapters = (
         ET.parse(path, ET.XMLParser(resolve_entities=False, no_network=True))
@@ -61,6 +91,7 @@ def read(path):
             raise ValueError("Duplicate id in " + ch.get("slug"))
         all_ids.update(ids)
         local_ids = set(ids)
+        check_formulas(ch)
         broken = {
             link[1:]
             for link in ch.xpath(".//a/@href")
