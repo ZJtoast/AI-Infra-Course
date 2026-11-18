@@ -6,6 +6,7 @@ import re
 import tempfile
 from functools import lru_cache
 from hashlib import sha256
+from itertools import groupby
 from pathlib import Path
 
 from listings import expand
@@ -32,6 +33,10 @@ def text(node):
 
 def topics(chapter):
     return chapter.findall('section[@class="topic"]')
+
+
+def topic_groups(chapter):
+    return groupby(topics(chapter), key=lambda section: section.get("data-track"))
 
 
 def chapter_url(chapter):
@@ -142,6 +147,10 @@ def read(path):
             image_path(im.get("src"))
     if not chapters or not chapters[0].get("slug").startswith("00-"):
         raise ValueError("Expected the roadmap first")
+    handbook_ids = {node.get("id") for ch in chapters[1:] for node in ch.iter() if node.get("id")}
+    for href in chapters[0].xpath('.//a[starts-with(@href, "handbook.html#")]/@href'):
+        if href.partition("#")[2] not in handbook_ids:
+            raise ValueError(f"Unknown roadmap destination: {href}")
     return chapters
 
 

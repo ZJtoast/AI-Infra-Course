@@ -19,6 +19,7 @@ from course import (
     image_path,
     read,
     text,
+    topic_groups,
     topics,
     write,
 )
@@ -164,16 +165,18 @@ def contents(ch, prefix):
 
 
 def toc(ch):
-    return (
-        '<ol class="toc">'
-        + "".join(
+    groups = []
+    for name, sections in topic_groups(ch):
+        entries = "".join(
             f'<li class="lv{s[0].tag[1]}" id="idx-{s.get("id")}">'
             + link("#" + s.get("id"), text(s[0]))
             + "</li>"
-            for s in topics(ch)
+            for s in sections
         )
-        + "</ol>"
-    )
+        if name:
+            groups.append(f"<strong>{escape(name)}</strong>")
+        groups.append(f'<ol class="toc">{entries}</ol>')
+    return "".join(groups)
 
 
 def reader(title, eyebrow, lead, download, aside, body, prefix):

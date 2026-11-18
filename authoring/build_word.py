@@ -17,7 +17,7 @@ from course import (
     image_path,
     read,
     text,
-    topics,
+    topic_groups,
     write,
 )
 from PIL import Image
@@ -199,7 +199,7 @@ class Document:
         else:
             if href.startswith("examples/"):
                 href = "https://github.com/ZJtoast/AI-Infra-Course/blob/main/" + href
-            elif href.startswith("lessons/"):
+            elif href.startswith(("lessons/", "handbook.html#")):
                 href = "https://zjtoast.github.io/AI-Infra-Course/" + href
             a.set(R + "id", self.rel("hyperlink", href))
         if label:
@@ -428,10 +428,13 @@ class Document:
                 paragraph(self.body, "Heading1", keep=True),
                 ch.get("title") if self.book else "知识点目录",
             )
-            for s in topics(ch):
-                p = paragraph(self.body)
-                self.mark(p, "idx-" + s.get("id"))
-                self.link(p, "#" + s.get("id"), text(s[0]))
+            for group, sections in topic_groups(ch):
+                if group:
+                    run(paragraph(self.body, keep=True), group, bold=True)
+                for s in sections:
+                    p = paragraph(self.body)
+                    self.mark(p, "idx-" + s.get("id"))
+                    self.link(p, "#" + s.get("id"), text(s[0]))
         for ch in self.chapters:
             p = paragraph(self.body, "Heading1", keep=True)
             w(p[0], "pageBreakBefore")
