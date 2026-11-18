@@ -49,11 +49,19 @@ def symbols(element, known):
     if tag == "munder" and len(element) == 2 and "⏟" in compact(element[1]):
         yield from symbols(element[0], known)
         return
+    if tag == "mrow" and len(element) > 1 and symbol_key(element) in known:
+        # Composite operands such as a transpose or a gradient can have their
+        # own meaning as well as the definitions of their constituent symbols.
+        yield symbol_key(element)
     if tag in ("msub", "msup", "msubsup", "mover"):
         key = symbol_key(element)
-        if key in known or (tag != "msup" and len(key) <= 14):
+        if key in known:
             yield key
             return
+        # Keep the compound available to the coverage audit. If the section
+        # defines the base name, an indexed occurrence inherits that meaning.
+        if tag != "msup" and len(key) <= 14:
+            yield key
         yield from symbols(element[0], known)
         if tag == "msup" and compact(element[-1]) not in ("⊤", "T"):
             yield from symbols(element[-1], known)
@@ -157,7 +165,7 @@ def prepare_symbol_notes(chapter):
                 selected.append((span.attrib.pop("data-note-title", "本式的计算"), span.attrib.pop("data-note")))
             labels = {}
             for node in math.iter():
-                if ET.QName(node).localname in {"mi","mtext","msub","msup","msubsup","mover"}:
+                if ET.QName(node).localname in {"mi","mtext","msub","msup","msubsup","mover","mrow"}:
                     labels.setdefault(symbol_key(node), node)
             for key in keys:
                 if key in known:
