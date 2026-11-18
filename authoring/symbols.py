@@ -34,6 +34,13 @@ def compact(element):
     return re.sub(r"\s+", "", "".join(element.itertext()))
 
 
+def symbol_key(node):
+    key = compact(node)
+    if node.get("mathvariant") == "double-struck":
+        return {"R": "ℝ", "N": "ℕ", "Z": "ℤ"}.get(key, key)
+    return key
+
+
 def symbols(element, known):
     """Treat a scripted name as one symbol, and a dimension label as notation."""
     tag = ET.QName(element).localname
@@ -41,7 +48,7 @@ def symbols(element, known):
         yield from symbols(element[0], known)
         return
     if tag in ("msub", "msup", "msubsup", "mover"):
-        key = compact(element)
+        key = symbol_key(element)
         if key in known or (tag != "msup" and len(key) <= 14):
             yield key
             return
@@ -50,8 +57,8 @@ def symbols(element, known):
             yield from symbols(element[-1], known)
         return
     if tag in ("mi", "mtext"):
-        key = compact(element)
-        if element.get("mathvariant") != "normal" and re.fullmatch(r"[A-Za-z\u0370-\u03ffℓ][A-Za-z\u0370-\u03ffℓ0-9_]*", key):
+        key = symbol_key(element)
+        if key in known or (element.get("mathvariant") != "normal" and re.fullmatch(r"[A-Za-z\u0370-\u03ffℓ][A-Za-z\u0370-\u03ffℓ0-9_]*", key)):
             yield key
         return
     if element.get("mathvariant") == "normal":
@@ -144,7 +151,7 @@ def prepare_symbol_notes(chapter):
             labels = {}
             for node in math.iter():
                 if ET.QName(node).localname in {"mi","mtext","msub","msup","msubsup","mover"}:
-                    labels.setdefault(compact(node), node)
+                    labels.setdefault(symbol_key(node), node)
             for key in keys:
                 if key in known:
                     note = known[key]
