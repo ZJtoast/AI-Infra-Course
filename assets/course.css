@@ -220,7 +220,7 @@ article,.articlehero,.term-card,.home .intro,.home .lessonrow p{
 }
 article,.articlehero p,.term-card,.home .intro,.home .lessonrow p{font-family:var(--sans)}
 .study-figure,.state-deck{box-sizing:border-box;margin:1.2rem 0;padding:clamp(9px,2vw,18px);background:#f9faf7;border:1px solid #c4d2ca;border-radius:8px;color:#193b39}
-.study-figure a,.state-image,.diagram a{display:block;cursor:zoom-in}
+.study-figure>a,.state-image,.diagram>a{display:block;cursor:zoom-in}
 .study-figure img,.state-image img{width:100%;max-width:790px;height:auto;display:block;margin:auto}
 .study-figure figcaption,.state-deck .state-note{font-size:1rem;line-height:1.7;color:#36554e;margin:.6em .1em .1em;text-align:left;text-indent:0}
 .state-deck>h4{font:700 1.15rem/1.45 var(--sans);margin:0 0 .7em}
@@ -255,7 +255,7 @@ article,.articlehero p,.term-card,.home .intro,.home .lessonrow p{font-family:va
  .mini-ring .edge{font:600 1.5em/1.15 var(--sans);color:#91a69e}.mini-ring .active{color:#995418}
 }
 
-@media(max-width:600px){.diagram a::after,.study-figure a::after{content:"查看大图 ↗";display:block;text-align:right;margin-top:.2em;font:600 .85rem/1.5 var(--sans);color:#286159}}
+@media(max-width:600px){.diagram>a::after,.study-figure>a::after{content:"查看大图 ↗";display:block;text-align:right;margin-top:.2em;font:600 .85rem/1.5 var(--sans);color:#286159}}
 
 .matrix-lab{margin:1.5rem 0;padding:clamp(12px,2vw,22px);border:1px solid #a7beb6;border-radius:8px;background:#fafbf8}
 .matrix-lab h4{font-size:1.22rem;margin:0 0 .35em}.matrix-lab p{margin:.4em 0 .85em}
