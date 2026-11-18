@@ -177,6 +177,8 @@ class Document:
         else:
             if href.startswith("examples/"):
                 href = "https://github.com/ZJtoast/AI-Infra-Course/blob/main/" + href
+            elif href.startswith("lessons/"):
+                href = "https://zjtoast.github.io/AI-Infra-Course/" + href
             a.set(R + "id", self.rel("hyperlink", href))
         if label:
             run(a, label, color="14645A")
