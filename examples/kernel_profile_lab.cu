@@ -256,9 +256,126 @@ __global__ void segment_histogram(const int* keys, float* counts) {
     }
 }
 
+#include <cuda_fp16.h>
+#include <mma.h>
+#ifdef PROFILE_CUBLAS
+#include <cublas_v2.h>
+#include <nvtx3/nvToolsExt.h>
+
+static void blas_check(cublasStatus_t status) {
+    if (status != CUBLAS_STATUS_SUCCESS) {
+        std::fprintf(stderr,"cuBLAS status %d\n",int(status));
+        std::exit(1);
+    }
+}
+#endif
+
+// All operands use row-major storage. The host pads each leading dimension to
+// a multiple of 16 half values; cudaMalloc supplies the base alignment.
+__global__ void half_scalar_gemm(const half* a, const half* b, float* c,
+                                 int rows, int cols, int k) {
+    int row = blockIdx.y * blockDim.y + threadIdx.y;
+    int col = blockIdx.x * blockDim.x + threadIdx.x;
+    if (row >= rows || col >= cols) return;
+    float sum = 0.0f;
+    for (int i = 0; i < k; ++i)
+        sum = fmaf(__half2float(a[row*k+i]), __half2float(b[i*cols+col]), sum);
+    c[row*cols+col] = sum;
+}
+
+template<int tiles>
+__global__ void warp_tile_gemm(const half* a, const half* b, float* c,
+                               int rows, int cols, int k) {
+    using namespace nvcuda;
+    int row = (blockIdx.y * (blockDim.x/32) + threadIdx.x / 32)*16;
+    int col = blockIdx.x * tiles * 16;
+    if (row >= rows) return;  // 同一 warp 的全部线程共同退出。
+    wmma::fragment<wmma::accumulator,16,16,16,float> accum[tiles];
+    #pragma unroll
+    for (int j = 0; j < tiles; ++j) wmma::fill_fragment(accum[j],0.0f);
+    for (int inner = 0; inner < k; inner += 16) {
+        wmma::fragment<wmma::matrix_a,16,16,16,half,wmma::row_major> left;
+        wmma::load_matrix_sync(left, a+row*k+inner, k);
+        #pragma unroll
+        for (int j = 0; j < tiles; ++j) {
+            if (col + 16*j < cols) {
+                wmma::fragment<wmma::matrix_b,16,16,16,half,wmma::row_major> right;
+                wmma::load_matrix_sync(right, b+inner*cols+col+16*j, cols);
+                wmma::mma_sync(accum[j],left,right,accum[j]);
+            }
+        }
+    }
+    #pragma unroll
+    for (int j = 0; j < tiles; ++j) {
+        if (col + 16*j < cols)
+            wmma::store_matrix_sync(c+row*cols+col+16*j,accum[j],cols,wmma::mem_row_major);
+    }
+}
+
+static void run_tensor_gemm(const std::string& mode) {
+    int m = 512, n = 512, k = 256;
+    if (mode == "tensor-thin" || mode == "tensor-grid") m = 17;
+    if (mode == "tensor-edge") { m = 17; n = 257; k = 17; }
+    if (mode == "tensor-control") { m = 32; n = 272; k = 32; }
+    auto pad = [](int x) { return (x+15)/16*16; };
+    int pm = pad(m), pn = pad(n), pk = pad(k);
+    std::vector<half> a(pm*pk,__float2half(0)), b(pk*pn,__float2half(0));
+    for (int row = 0; row < m; ++row)
+        for (int col = 0; col < k; ++col)
+            a[row*pk+col] = __int2half_rn((3*row+col)%7-3);
+    for (int row = 0; row < k; ++row)
+        for (int col = 0; col < n; ++col)
+            b[row*pn+col] = __int2half_rn((row+5*col)%11-5);
+    std::vector<float> reference(pm*pn);
+    for (int row = 0; row < m; ++row)
+        for (int inner = 0; inner < k; ++inner)
+            for (int col = 0; col < n; ++col)
+                reference[row*pn+col] += __half2float(a[row*pk+inner])*__half2float(b[inner*pn+col]);
+    Buffer<half> A(a.size()), B(b.size());
+    Buffer<float> C(reference.size());
+    A.upload(a); B.upload(b);
+    if (mode == "tensor-grid") {
+        std::vector<Variant> partitions;
+        for (int warps : {1, 2, 4}) {
+            const char* label = warps == 1 ? "one_warp" : (warps == 2 ? "two_warps" : "four_warps");
+            partitions.push_back({label,[&,warps]{
+                dim3 grid(pn/16,(pm+16*warps-1)/(16*warps));
+                warp_tile_gemm<1><<<grid,32*warps>>>(A.p,B.p,C.p,pm,pn,pk);
+            }});
+        }
+        compare(partitions,C.p,reference);
+        return;
+    }
+    std::vector<Variant> variants = {
+        {"scalar",[&]{half_scalar_gemm<<<dim3(pn/16,pm/16),dim3(16,16)>>>(A.p,B.p,C.p,pm,pn,pk);}},
+        {"warp1",[&]{warp_tile_gemm<1><<<dim3(pn/16,(pm+63)/64),128>>>(A.p,B.p,C.p,pm,pn,pk);}},
+        {"warp2",[&]{warp_tile_gemm<2><<<dim3((pn+31)/32,(pm+63)/64),128>>>(A.p,B.p,C.p,pm,pn,pk);}}
+    };
+#ifdef PROFILE_CUBLAS
+    cublasHandle_t handle;
+    blas_check(cublasCreate(&handle));
+    float alpha=1.0f, beta=0.0f;
+    variants.push_back({"blas",[&]{
+        nvtxRangePushA("tensor_blas");
+        // Row-major C=A*B is column-major C^T=B^T*A^T in the same memory.
+        blas_check(cublasGemmEx(handle,CUBLAS_OP_N,CUBLAS_OP_N,pn,pm,pk,
+                               &alpha,B.p,CUDA_R_16F,pn,A.p,CUDA_R_16F,pk,
+                               &beta,C.p,CUDA_R_32F,pn,CUBLAS_COMPUTE_32F,CUBLAS_GEMM_DEFAULT));
+        nvtxRangePop();
+    }});
+#endif
+    compare(variants,C.p,reference);
+#ifdef PROFILE_CUBLAS
+    blas_check(cublasDestroy(handle));
+#endif
+}
+
 int main(int argc,char** argv) {
     std::string mode=argc==2?argv[1]:"";
-    if (mode == "fma") {
+    if (mode == "tensor-full" || mode == "tensor-thin" ||
+        mode == "tensor-edge" || mode == "tensor-control" || mode == "tensor-grid") {
+        run_tensor_gemm(mode);
+    } else if (mode == "fma") {
         constexpr int threads = 32768, iterations = 256;
         auto x = values(threads*4, 29);
         auto ref = x;
@@ -337,7 +454,7 @@ int main(int argc,char** argv) {
                  {"eight",[&]{softmax_eight_lanes<<<rows/16,128>>>(X.p,Y.p,rows);}},
                  {"warp32",[&]{softmax_warp32<<<rows/4,128>>>(X.p,Y.p,rows);}}},Y.p,ref);
     } else {
-        std::fprintf(stderr,"usage: kernel_lab gemm|transpose|reduction|graph-short|graph-skew|softmax|fma|hist-hot|hist-spread\n");
+        std::fprintf(stderr,"usage: kernel_lab gemm|transpose|reduction|graph-short|graph-skew|softmax|fma|hist-hot|hist-spread|tensor-full|tensor-thin|tensor-edge|tensor-control|tensor-grid\n");
         return 1;
     }
 }
