@@ -4379,6 +4379,17 @@ ncu --import mem4.ncu-rep --page raw --csv
 <p class="prose">打开基线报告，把目标 launch 加入 Compare → Add Baseline；切到变体的同一计算阶段，选 Compare → Source Comparison。左边缘的差异色带可以直接定位源码变更。在 SASS 的 Diff By 选 Opcode，先看加载、屏障或 shuffle 指令是否增减；切到 Full Instruction，再对照访问宽度、谓词、地址和寄存器。源码相同但布局参数改变时，仍要读该行两侧的计数。一条静态 LDS 可以因为 lane 地址不同而产生完全不同的 wavefront 数。<a href="https://docs.nvidia.com/nsight-compute/NsightCompute/#source-comparison">官方界面操作图</a></p>
 <p class="prose">遇到理论驻留率低，从 Tools 打开 Occupancy Calculator，使用本次启动的线程数、每线程寄存器和每块 shared 字节。只改一个输入，找到每 SM 可驻留块数从一块升到两块的边界；再以这个值为目标编译变体，回到 Launch Statistics 验证实际分配，去 Memory 查 local 流量。如果新增驻留的代价是频繁溢出，最后用 eligible warp、发射率和耗时决定取舍。</p>
 </section>
+<section class="topic" id="l18-sort-reports" data-track="Nsight Compute · 选择启动与阅读报告">
+<h3>在 49 次归并排序启动中决定先优化哪一类</h3>
+<p class="prose">打开上一节的 NVIDIA 归并排序报告，切到 Summary。一次排序包含多种工作：先在块内形成有序片段，再生成抽样排名、合并排名和索引，最后把两个有序输入中的小区间写到输出。表中按 kernel 名合并了报告的 49 个结果。先看总用时决定实验优先级，再回到同一个 launch 的 Details 查限制。</p>
+<table><thead><tr><th>计算阶段</th><th>次数</th><th>累计设备时间</th><th>单次范围</th></tr></thead><tbody><tr><td>块内 shared 排序</td><td>1</td><td>483.58 µs</td><td>483.58 µs</td></tr><tr><td>生成抽样排名</td><td>12</td><td>356.25 µs</td><td>25.79–34.02 µs</td></tr><tr><td>合并排名与索引</td><td>24</td><td>143.84 µs</td><td>3.14–9.09 µs</td></tr><tr><td>合并、写出基本区间</td><td>12</td><td>2,304.28 µs</td><td>190.37–194.91 µs</td></tr></tbody></table>
+<p class="prose">最长的单次启动是块内 shared 排序。累计用时最多的却是合并基本区间，占 2,304.28 / 3,287.95 ≈ 70.1%。作一个串行预算：若 12 次区间合并都缩短 10%，这份报告所列设备时间合计可少约 230.43 µs；若唯一的块内排序缩短 20%，合计少约 96.72 µs。报告中的设备时长加总适合比较候选项在采集工作中的份额。业务究竟缩短多少，还取决于这些调用在正常运行中是否重叠、是否阻塞消费者。</p>
+<p class="prose"><strong>沿同一张表走三条不同的诊断路径</strong></p>
+<p class="prose">选第一项块内 shared 排序。Waves Per SM 为 29.68，实测驻留率 97.98%，L1/TEX 吞吐达其持续峰值的 82.71%，DRAM 只有 31.77%。数据给出的方向是 SM 附近的管线。展开 shared 表与 Source 中按地址统计的实际、理想 wavefront；若某条 PC 贡献许多额外批次，就用该条指令涉及的 lane 地址手算 bank 映射。降低理论驻留门槛对这个已达到近满驻留的实现作用有限。</p>
+<p class="prose">选第一次合并排名与索引。只有 0.23 个波次，实测驻留率 22.09%，DRAM 和 SM 吞吐分别为 10.09%、11.92%。任务本身只有 3.14 µs。应先看排名数组有几项、一个线程或块负责几项，确认能否把独立的小任务批量提交。即使一次小启动完全省掉，对整次排序的影响也取决于调用次数及它是不是串行依赖的一环。</p>
+<p class="prose">再选第一次合并基本区间。它有 59.36 个波次，实测驻留率 93.18%，DRAM 吞吐 80.40%。先按合并元素数计算读取两个输入、写一份输出所需的最低逻辑字节，再到 Memory Workload 查实际 DRAM 读写和每条访问的 sectors/request。若已接近必要字节且真实负载是大范围持续访存，就比较可持续带宽；若为了查找分界额外读入许多索引，则可以从搜索或分块方式减少工作量。就这一项而言，继续增加可驻留 warp 很难补救重复读取。</p>
+<p class="prose">遇到低 SM 吞吐和低 DRAM 吞吐同时出现时，先检索结果中的网格规模与 Scheduler。上面的 3.14 µs 小任务只有 0.23 波，设备根本没有足够的块铺满；在大网格且活跃 warp 充足时，若 eligible 很少、加载的消费者集中出现 long scoreboard，才沿访存延迟查下去。两者的 SOL 百分比都可能很低，下一步操作完全不同。</p>
+</section>
 <section class="topic" id="l18-s033" data-track="Nsight Compute · 选择启动与阅读报告">
 <h3>Nsight Compute 的报告视图</h3>
 <p class="prose"><strong>Summary</strong> 用一行代表选定的 <a class="term" href="#Def187b310905daa3">launch</a> 或范围，按内核名称、实例、进程和持续时间 定位。Details 解释已采 section、展示图表和自动规则；Estimated Speedup 是候选假设。Timeline 显示已采到的随时间变化数据，例如 PM sampling。Source 可在源码、<a class="term" href="#Def1859a71ed1d92d">PTX</a> 和 <a class="term" href="#Def18f9532d9c165e">SASS</a> 之间查看可用映射，注意多个机器指令可能归于同一行，也可能经过编译器移动。用热点 PC 回到数据依赖，避免将相邻源码行的时间生硬相加。</p>
