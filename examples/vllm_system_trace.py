@@ -1,4 +1,4 @@
-"""Trace a two-request vLLM engine run. See the Systems lab in lesson 18."""
+"""Trace a two-request vLLM engine run. See the Systems lab in lesson 4."""
 import argparse
 import csv
 import os
@@ -13,7 +13,7 @@ from vllm import EngineArgs, LLMEngine, SamplingParams
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("model", help="local Llama-compatible checkpoint")
-    parser.add_argument("--budget", type=int, choices=(128, 512), default=128)
+    parser.add_argument("--budget", type=int, choices=(128, 192, 256, 320, 321, 512), default=128)
     parser.add_argument("--capture", action="store_true")
     parser.add_argument("--csv", default="requests.csv")
     args = parser.parse_args()
