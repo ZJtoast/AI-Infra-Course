@@ -387,6 +387,10 @@ class Document:
             im = e.find('img[@class="mx-print"]')
             self.image(im, parent)
             run(paragraph(parent, "Caption"), im.get("alt"))
+        elif cls == "counter-reader":
+            self.link(paragraph(parent),
+                      "https://zjtoast.github.io/AI-Infra-Course/handbook.html#l18-counter-catalog",
+                      "打开 GA100 硬件指标查询表")
         elif cls == "definitions":
             run(paragraph(parent, "Heading2"), text(e.find("summary")), bold=True)
             for dt in e.iter("dt"):

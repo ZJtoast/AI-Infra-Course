@@ -335,3 +335,17 @@ a.example-ref {color:#185ca4} a.line-ref {color:#a13232}
 
 .book-chapter[hidden] { display: none; }
 @media print { .book-chapter[hidden] { display: block; } .book-chapter > .adjacent { display: none; } }
+
+.counter-reader { background: #f4f6f0; border: 1px solid #c7d7cd; border-radius: 8px; padding: 1rem; margin-block: 1rem; }
+.counter-controls, .counter-pages { display: flex; align-items: center; gap: .8rem; flex-wrap: wrap; margin-bottom: .7rem; }
+.counter-reader input, .counter-reader select, .counter-reader button { font: inherit; max-width: 100%; }
+.counter-reader button { cursor: pointer; }
+.counter-reader button:disabled { cursor: default; }
+.counter-columns { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); gap: 1rem; }
+.counter-columns ul { list-style: none; margin: 0; padding: 0; }
+.counter-columns li button { background: transparent; border: 0; text-align: left; color: #175857; padding: .4rem; overflow-wrap: anywhere; }
+.counter-columns li button[aria-pressed="true"] { font-weight: bold; background: #dcebe5; }
+.counter-columns [data-counter-detail] { border-left: 1px solid #bdcfc5; padding-left: .9rem; overflow-wrap: anywhere; }
+.counter-columns code { white-space: normal; }
+@media (max-width:700px) { .counter-columns { grid-template-columns: 1fr; } .counter-columns [data-counter-detail] { border-left: 0; border-top: 1px solid #bdcfc5; padding: .6rem 0; } }
+@media print { .counter-reader { display:none; } }

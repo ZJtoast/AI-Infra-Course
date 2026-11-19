@@ -196,6 +196,12 @@ def reader(title, eyebrow, lead, download, aside, body, prefix):
         + link(prefix + "word/" + download + ".docx", "下载 Word ↓", "btn")
         + "</div>"
     )
+    if "data-ncu-catalog" in body:
+        extra_scripts = "".join(
+            f'<script defer src="{prefix}assets/{file}?v={digest(ROOT / "assets" / file)}"></script>'
+            for file in ("ncu-ga100.js", "ncu-counter-reader.js")
+        )
+        s = s.replace("</head>", extra_scripts + "</head>")
     return (
         s.replace("{{TITLE}}", escape(title) + " · AI Infra Course")
         .replace("{{HERO}}", hero)
