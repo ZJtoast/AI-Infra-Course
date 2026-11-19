@@ -46,6 +46,15 @@ def inspect(db, step):
         if api:
             print(f"    CPU: {api[0]}, correlation={correlation}, starts at +{(api[1]-start)/1000:.3f} us")
 
+    print("  Kernel families wholly contained in the step (count, sum in ms):")
+    groups = db.execute("""
+        SELECT s.value, COUNT(*), SUM(k.end-k.start) AS ns
+        FROM CUPTI_ACTIVITY_KIND_KERNEL k JOIN StringIds s ON s.id=k.shortName
+        WHERE k.start>=? AND k.end<=? GROUP BY s.value ORDER BY ns DESC LIMIT 5
+    """, (start, end))
+    for family, count, ns in groups:
+        print(f"    {family}: {count}, {ns/1e6:.3f} ms")
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)

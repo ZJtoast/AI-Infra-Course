@@ -209,9 +209,81 @@ __global__ void softmax_eight_lanes(const float* x, float* y, int rows) {
     for (int j = 0; j < 4; ++j) y[index+j*8] = values[j] / sum;
 }
 
+// Each thread evolves four independent FP32 values through the same recurrence.
+// The group size changes how many independent accumulators are live together.
+template<int group>
+__global__ void fma_chains(const float* x, float* y, int count, int iterations) {
+    int thread = blockIdx.x * blockDim.x + threadIdx.x;
+    if (thread >= count) return;
+    #pragma unroll 1
+    for (int first = 0; first < 4; first += group) {
+        float state[group];
+        #pragma unroll
+        for (int j = 0; j < group; ++j) state[j] = x[(first+j)*count + thread];
+        #pragma unroll 1
+        for (int i = 0; i < iterations; ++i) {
+            #pragma unroll
+            for (int j = 0; j < group; ++j) state[j] = fmaf(state[j], 1.000012f, 0.000317f);
+        }
+        #pragma unroll
+        for (int j = 0; j < group; ++j) y[(first+j)*count + thread] = state[j];
+    }
+}
+
+// One independent 32-bin histogram per block. The final consumer wants a
+// histogram per segment, so every block owns its slice in every variant.
+template<int variant>
+__global__ void segment_histogram(const int* keys, float* counts) {
+    constexpr int bins = 32, items = 1024;
+    int lane = threadIdx.x % 32;
+    float* output = counts + blockIdx.x*bins;
+    __shared__ float local[bins];
+    float* bins_out = variant == 0 ? output : local;
+    if (threadIdx.x < bins) bins_out[threadIdx.x] = 0.0f;
+    __syncthreads();
+    for (int i = threadIdx.x; i < items; i += blockDim.x) {
+        int key = keys[blockIdx.x*items+i];
+        if (variant == 2) {
+            unsigned peers = __match_any_sync(0xffffffff, key);
+            if (lane == __ffs(peers)-1) atomicAdd(bins_out+key, float(__popc(peers)));
+        } else {
+            atomicAdd(bins_out+key, 1.0f);
+        }
+    }
+    if (variant != 0) {
+        __syncthreads();
+        if (threadIdx.x < bins) output[threadIdx.x] = local[threadIdx.x];
+    }
+}
+
 int main(int argc,char** argv) {
     std::string mode=argc==2?argv[1]:"";
-    if(mode=="transpose" || mode=="gemm") {
+    if (mode == "fma") {
+        constexpr int threads = 32768, iterations = 256;
+        auto x = values(threads*4, 29);
+        auto ref = x;
+        for (float& v : ref)
+            for (int i = 0; i < iterations; ++i) v = std::fma(v, 1.000012f, 0.000317f);
+        Buffer<float> X(x.size()), Y(ref.size());
+        X.upload(x);
+        compare({{"one", [&]{ fma_chains<1><<<threads/128,128>>>(X.p,Y.p,threads,iterations); }},
+                 {"two", [&]{ fma_chains<2><<<threads/128,128>>>(X.p,Y.p,threads,iterations); }},
+                 {"four",[&]{ fma_chains<4><<<threads/128,128>>>(X.p,Y.p,threads,iterations); }}}, Y.p,ref);
+    } else if (mode == "hist-hot" || mode == "hist-spread") {
+        constexpr int blocks = 1024, items = 1024, bins = 32;
+        std::vector<int> keys(blocks*items);
+        std::vector<float> ref(blocks*bins);
+        for (int i = 0; i < int(keys.size()); ++i) {
+            keys[i] = mode == "hist-hot" ? (i/32)%bins : i%bins;
+            ++ref[(i/items)*bins+keys[i]];
+        }
+        Buffer<int> K(keys.size());
+        Buffer<float> Y(ref.size());
+        K.upload(keys);
+        compare({{"global", [&]{ segment_histogram<0><<<blocks,128>>>(K.p,Y.p); }},
+                 {"shared", [&]{ segment_histogram<1><<<blocks,128>>>(K.p,Y.p); }},
+                 {"grouped",[&]{ segment_histogram<2><<<blocks,128>>>(K.p,Y.p); }}},Y.p,ref);
+    } else if(mode=="transpose" || mode=="gemm") {
         int n=mode=="transpose"?2048:512;
         auto a=values(n*n,13); std::vector<float> ref(n*n);
         Buffer<float> A(n*n),Y(n*n); A.upload(a);
@@ -265,7 +337,7 @@ int main(int argc,char** argv) {
                  {"eight",[&]{softmax_eight_lanes<<<rows/16,128>>>(X.p,Y.p,rows);}},
                  {"warp32",[&]{softmax_warp32<<<rows/4,128>>>(X.p,Y.p,rows);}}},Y.p,ref);
     } else {
-        std::fprintf(stderr,"usage: kernel_lab gemm|transpose|reduction|graph-short|graph-skew|softmax\n");
+        std::fprintf(stderr,"usage: kernel_lab gemm|transpose|reduction|graph-short|graph-skew|softmax|fma|hist-hot|hist-spread\n");
         return 1;
     }
 }

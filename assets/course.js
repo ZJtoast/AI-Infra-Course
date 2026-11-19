@@ -382,7 +382,7 @@ document.addEventListener("click", async e => {
   let trigger, panel;
   function dismiss(restoreFocus = false) {
     if (!trigger) return;
-    panel.remove();
+    (panel.closest('tr.reading-detail-row') || panel).remove();
     trigger.setAttribute('aria-expanded', 'false');
     trigger.removeAttribute('aria-controls');
     if (restoreFocus) trigger.focus({preventScroll: true});
@@ -452,7 +452,18 @@ document.addEventListener("click", async e => {
       example.textContent = link.dataset.example;
       panel.append(example);
     }
-    link.closest('p').before(panel);
+    const row = link.closest('tr');
+    if (row) {
+      const expansion = document.createElement('tr');
+      expansion.className = 'reading-detail-row';
+      const cell = document.createElement('td');
+      cell.colSpan = Array.from(row.cells).reduce((count, column) => count + column.colSpan, 0);
+      cell.append(panel);
+      expansion.append(cell);
+      row.before(expansion);
+    } else {
+      (link.closest('p, li, figcaption') || link).before(panel);
+    }
     trigger.setAttribute('aria-expanded', 'true');
     trigger.setAttribute('aria-controls', panel.id);
     close.focus({preventScroll: true});

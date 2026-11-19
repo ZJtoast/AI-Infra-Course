@@ -3596,7 +3596,7 @@ def per_block_cast_to_fp8(x: torch.Tensor, use_ue8m0: bool, gran_k: int = 128) -
 <nav class="practice-route" aria-label="第 4 课练习顺序" id="Route18"><strong>本课练习顺序</strong><ol><li><a href="#Q18_04">普通题</a><span>先对齐请求时钟、采集窗口和目标 launch，再计算覆盖率、流量及吞吐分母。</span></li><li><a href="#Q18_14">进阶题</a><span>从多流并集与同步依赖追到逐层 Roofline 和发射限制，检验整机收益上界。</span></li><li><a href="#Q18_09">情景面试题</a><span>用可重复的负载区分线程阻塞、跨卡迟到与上游访存等待，并设计反证。</span></li></ol></nav>
 <section class="topic" id="l18-s005" data-track="Nsight Systems · 推理请求与采集">
 <h2>GPU 性能剖析实验</h2>
-<p class="prose">先沿 vLLM 的两个请求定位系统等待，再用独立 CUDA 对照实验学习如何改动热点代码。需要动手时，可直接从下面三个实验进入。</p><p class="prose"><a href="#l18-trace-lab">vLLM 两个请求的时间线</a>　<a href="#l18-ncu-guided">在 NCU 打开真实报告</a>　<a href="#l18-kernel-lab">六类 kernel 的对照实验</a></p>
+<p class="prose">先沿 vLLM 的两个请求定位系统等待，再用独立 CUDA 对照实验学习如何改动热点代码。需要动手时，可直接从下面三个实验进入。</p><p class="prose"><a href="#l18-trace-lab">vLLM 两个请求的时间线</a>　<a href="#l18-ncu-guided">在 NCU 打开真实报告</a>　<a href="#l18-kernel-lab">分步优化的 kernel 对照实验</a></p>
 <p class="prose">先用系统时间线找到耗时且能改变请求完成时间的内核，再用详细计数器分析它。若一开始就给所有内核采完整指标，采集成本会增大，还可能把大量时间花在原本就被其他工作遮住的内核上。</p>
 <p class="prose">假设输入相同，一个训练步从 20 ms 增至 30 ms。先选取两次运行中代表相同逻辑训练步的起止事件，在系统<a class="term" href="#Def181f3fb14715bc">时间线</a>上找到多出的 10 ms。如果增长发生在同一个 kernel 内，再检查其访存与指令发射指标。修改后用原负载和相同<a class="term" href="#Def188cb90c5e6bd0">计时边界</a>复测。</p>
 <p class="prose">在相同输入和同一进程<a class="term" href="#Def1898b6edc98c4d">预热</a>后，各保留一次 20 ms 与 30 ms 的训练步。若 nsys 显示首个 kernel 推迟约 10 ms，先追上游数据和 CPU；若起点一致而某个 <a class="term" href="#Def187b310905daa3">launch</a> 从 4 增到 14 ms，再针对这次 launch 查 ncu。两种情况在“训练步慢 10 ms”的折线图上一模一样。最后关闭两种 profiler 回放原范围，记录输出和每步有效 <a class="term" href="#Def18397a73c4e319">token</a> 数，确认移动的是生产目标。</p>
@@ -3756,7 +3756,7 @@ nsys-ui serving128.nsys-rep
 <section class="topic" id="l18-trace-lab" data-track="Nsight Systems · 推理请求与采集">
 <h3>vLLM 系统实测：长请求插入正在解码的批次</h3>
 <p class="prose">请求 A 的提示有 32 个 token，需要生成 8 个。引擎交付 A 的首词后，立即加入请求 B：320 个输入 token，生成 4 个。A 等下一个词，B 等第一个词，共享同一张 A800 80GB PCIe。现在改变每步可调度的 token 数，观察谁先拿到结果、谁多等了一步。</p>
-<p class="prose">本次使用 vLLM V1（提交 ee22f682a）、Llama-3-8B-Instruct-Gradient-1048k 的 BF16 权重、TP=1、单进程同步调度和 eager 执行。模型长度上限 512，预先给定 token ID，关闭前缀缓存，固定生成长度，每种配置先完成一次预热。事件的起点是驱动程序调用 add_request 前，交付点是 step 返回且驱动读到输出词。HTTP、分词和网络传输在本实验边界之外。</p>
+<p class="prose">本次使用 vLLM V1（运行日志版本 v0.32.1rc1.dev59+gee22f682a，对应 <a href="https://github.com/vllm-project/vllm/commit/ee22f682a">vllm-project/vllm 的实现</a>）、Llama-3-8B-Instruct-Gradient-1048k 的 BF16 权重、TP=1、单进程同步调度和 eager 执行。模型长度上限 512，预先给定 token ID，关闭前缀缓存，固定生成长度，每种配置先完成一次预热。事件的起点是驱动程序调用 add_request 前，交付点是 step 返回且驱动读到输出词。HTTP、分词和网络传输在本实验边界之外。</p>
 <p class="prose"><a href="examples/vllm_system_trace.py">下载推理与采集脚本</a></p>
 <p class="prose">按前节命令生成 serving128.nsys-rep 和 serving512.nsys-rep，在 Nsight Systems 中依次展开 Engine 所在线程的 NVTX、CUDA API 和 GPU stream。调度范围记录引擎为每个请求分配的 token，输出标记记录驱动实际拿到结果的时刻；设备流上的 kernel 和复制说明这两个事件之间执行了哪些工作。</p>
 <p class="prose"><strong>沿请求 B 读三个调度步</strong></p>
@@ -3786,6 +3786,18 @@ WHERE n.text = 'course/step/2';
 <table><thead><tr><th>第 2 步</th><th>窗口（µs）</th><th>kernel 与复制的并集（µs）</th><th>余下区间合计（µs）</th></tr></thead><tbody><tr><td>预算 128</td><td>18,531.645</td><td>15,892.375</td><td>2,639.270</td></tr><tr><td>预算 512</td><td>30,481.507</td><td>27,439.219</td><td>3,042.288</td></tr></tbody></table>
 <p class="prose">以预算 128 为例，前三段按时长依次是步开始至第一次 H2D 的 343.912 µs、最后一次设备活动至步结束的 207.598 µs，以及中间的 175.138 µs。中间一段的两个端点距步开始分别为 1,264.271 和 1,439.409 µs。点右侧的 <code class="inline-id">unrolled_elementwise_kernel</code>，由 correlation 9403 找到主机提交，它从 1,428.760 µs 才开始。于是这 175.138 µs 可以拆成提交前的 164.489 µs 和 API 开始到设备开工的 10.649 µs。先看提交线程在前一段做了什么，比先改这个逐元素 kernel 更能解释这段空档。</p>
 <p class="prose">把预算换成 512 重做一次。最长的一段变成设备末次活动至步结束的 602.541 µs，下一条要展开的是 Engine 的输出处理与交付标记。要归因到某个 Python 调用或线程调度事件，按下一节的配置补采 CPU 栈与线程状态。</p>
+</section>
+<section class="topic" id="l18-system-hotpath" data-track="Nsight Systems · 推理请求与采集">
+<h3>从 vLLM 的同一调度步选出值得优化的 GPU 工作</h3>
+<p class="prose">预算从 128 增到 512 后，请求 B 可以在第 2 步拿到首词，正在解码的 A 却在同一步多等了一段时间。沿这个窗口读 GPU 轨道，可以进一步判断增加的时间落在哪类计算上。在两份报告中框选 <code class="inline-id">course/step/2</code>，按设备事件的 kernel 名汇总并按区间内累计时长排序；脚本也会显示完全落在选区的前五类。这里的两个矩阵乘名称分别含有 256x128 和 128x128，表示所选实现的分块标记。用户矩阵的实际形状还要从算子输入或框架元数据确认。</p>
+<table><thead><tr><th>第 2 步的 BF16 矩阵乘</th><th>预算 128</th><th>预算 512</th><th>改变了什么</th></tr></thead><tbody>
+<tr><td>名称含 256x128、64x3 的实现</td><td>32 次，共 7.930 ms</td><td>96 次，共 22.801 ms</td><td>调用数增加 64，同一类的累计设备时间增加 14.871 ms。</td></tr>
+<tr><td>名称含 128x128、64x3 的实现</td><td>96 次，共 5.499 ms</td><td>32 次，共 1.809 ms</td><td>调用数减少 64，累计时间减少 3.690 ms。</td></tr></tbody></table>
+<p class="prose">这两类合计，调用数都是 128 次，累计设备时间却从 13.429 变为 24.610 ms，相差 11.181 ms。本步全部 kernel 的累计时间从 15.884 变为 27.432 ms，相差 11.548 ms。两类矩阵乘的净增量约占 96.8%。若只看总 launch 数从 409 降到 345，容易把下一轮实验放在提交开销上；若只看增长最快的一行，又会漏掉另一类同时减少的时间。</p>
+<p class="prose">把 256x128 类的累计时间再除以调用数，两份报告每次平均约 248 和 238 µs。这个类别的总时间增加，主要伴随其在本步出现得更频繁。要继续解释实现选择，展开 NVTX 中的 prefill 和 decode，再回到具体投影的输入 token 数、输入宽度及输出宽度。同一调度步为 B 处理的输入从 127 个增为 320 个；两个预算下，拿整个混合批次的耗时直接衡量单个矩阵乘效率，会把工作量变化也并进去。</p>
+<p class="prose"><strong>将一个观测转成两个不同的优化决策</strong></p>
+<p class="prose">如果业务在意 B 的首词，较大的批次一次做完了长提示，下一次对照应保留 B 的 320 个输入，同时测 A 的逐词间隔是否还能达标。如果业务主要在意正在对话的 A，就先尝试介于 128 与 512 的预算，将 B 拆为较小的 prefill 块，按原到达顺序重放。此时决定取舍的是两类请求的交付时刻。若要优化 BF16 GEMM 本身，则固定同一矩阵形状、布局和精度，把选中的一次调用提出来比较实现。两项实验各自固定了不同的变量。</p>
+<p class="prose">重新运行 <code class="inline-id">python read_vllm_trace.py serving128.sqlite 6</code>，观察 decode 阶段：两个名称含 64x64 的 BF16 实现分别出现 65、64 次，累计约 6.444、3.303 ms。第 2 步的热点排序不能直接代替第 6 步；为多种请求选热点时，分别保留 prefill、混合步和 decode 的代表样本，再按实际出现频率估算总收益。</p>
 </section>
 <section class="topic" id="l18-serving-path" data-track="Nsight Systems · 推理请求与采集">
 <h3>在线推理：从客户端首词延迟追到引擎和回传</h3>
@@ -4723,7 +4735,7 @@ bash profile_kernel_pair.sh transpose reports
 ncu-ui reports/transpose-transpose_tile32.ncu-rep
 ```
 ]]></listing>
-<p class="prose">在放有二进制文件的目录执行脚本。它按完整 kernel 名称分别筛选每个实现，跳过本实现的一次正确性校验和一次热身，采同一轮的首个计时启动；向量加法只采 steady 范围内的第一次启动。把 transpose 换成 gemm、reduction、graph-short、graph-skew、softmax 或 stride，就能抓到该组的三份报告。先用 --dry-run 检查命令，再选两份报告做基线对比。课程 A800 账户读取硬件计数器时收到 ERR_NVGPUCTRPERM；本课给出该卡无 profiler 的对照结果，并用 NVIDIA 已采好的报告示范硬件计数器的判读。</p>
+<p class="prose">在放有二进制文件的目录执行脚本。它按完整 kernel 名称分别筛选每个实现，跳过本实现的一次正确性校验和一次热身，采同一轮的首个计时启动；向量加法只采 steady 范围内的第一次启动。把 transpose 换成 gemm、reduction、graph-short、graph-skew、softmax、stride、fma、hist-hot 或 hist-spread，就能抓到该组的三份报告。先用 --dry-run 检查命令，再选两份报告做基线对比。课程 A800 账户读取硬件计数器时收到 ERR_NVGPUCTRPERM；本课给出该卡无 profiler 的对照结果，并用 NVIDIA 已采好的报告示范硬件计数器的判读。</p>
 <table><thead><tr><th>输入和有效输出</th><th>实现顺序</th><th>中位时间（µs/次）</th></tr></thead><tbody><tr><td>512 × 512 方阵乘，写出 262,144 项</td><td>逐线程点积 → 16 × 16 分块 → 每线程双列</td><td>100.762 → 65.792 → 57.446</td></tr><tr><td>2048 × 2048 转置，所有元素换行列</td><td>直接写 → shared 行距 32 → 行距 33</td><td>104.858 → 40.090 → 19.763</td></tr><tr><td>4096 段 × 256 项，每段输出一个和</td><td>块内树 → warp 收尾 → 两级 warp</td><td>10.291 → 7.270 → 6.810</td></tr><tr><td>32,768 顶点；先全短行，再混入长行</td><td>一行分别派 1、4、32 个 lane</td><td>短行 3.942 → 4.250 → 9.523；混合 12.800 → 7.885 → 10.138</td></tr><tr><td>32,768 行 × 32 列，每行独立归一化</td><td>一行分别派 1、8、32 个 lane</td><td>46.234 → 6.502 → 9.114</td></tr></tbody></table>
 <p class="prose"><strong>从编译资源判断下一次要量什么</strong></p>
 <table><thead><tr><th>同一 SM80 编译目标</th><th>每线程寄存器 / 每块静态 shared</th><th>据此选择对照</th></tr></thead><tbody><tr><td>GEMM 直接、分块、双列</td><td>均为 32 个寄存器；shared 分别为 0、2,048、3,072 B</td><td>本次双列版增加 shared 复用，同时未提高每线程寄存器分配；读每输出的加载数和发射情况。</td></tr><tr><td>转置直接、tile32、tile33</td><td>20、22、22 个寄存器；shared 为 0、4,096、4,224 B</td><td>后两版 shared 只差 128 B。查占用门槛，再到同一条 shared 加载比较额外 wavefront。</td></tr><tr><td>规约 tree、tail、warp</td><td>12、14、14 个寄存器；shared 为 1,024、1,024、32 B</td><td>tree 到 tail 的 shared 分配相同，变化在循环后半段；查动态 BAR 和 shared 指令。</td></tr><tr><td>CSR 每行 1、4、32 个 lane</td><td>三版均为 32 个寄存器，无静态 shared</td><td>分配量相同，先查有效 lane、间接加载和沿长行循环的次数。</td></tr><tr><td>Softmax 每行 1、8、32 个 lane</td><td>分别为 31、21、15 个寄存器，无静态 shared</td><td>整 warp 版寄存器最少，本组最快的却是八 lane 版。检查动态指令和每行的发射数。</td></tr></tbody></table>
@@ -4919,6 +4931,35 @@ int main(int argc, char** argv) {
 <p class="prose"><strong>从八 lane 版本找出每个线程保留的四个元素</strong></p>
 <p class="prose">在 Source 选 <code class="inline-id">softmax_eight_lanes</code>。下表从这次 SM80 二进制的行号映射中选出每种操作的一条指令。PC 是函数内的十六进制偏移；同一源行可能展开出多条指令。点行号可核对实际 CUDA 语句。</p>
 <table><thead><tr><th>CUDA 源码</th><th>函数内 PC · SM80 指令</th><th>数据和下一步读数</th></tr></thead><tbody><tr><td><a class="line-ref" href="https://github.com/ZJtoast/AI-Infra-Course/blob/db619352c412be8ad087bb9e0fcc5a64acf2fddf/examples/kernel_profile_lab.cu#L195" data-file="kernel_profile_lab.cu" data-comment="//" data-rows="[[195, &quot;        values[j] = x[index + j*8];&quot;, &quot;该循环被展开：四个载入地址各相差八个 FP32。&quot;]]" aria-expanded="false">195 行</a></td><td><code class="inline-id">0x00d0　LDG.E R4, [R2.64]</code></td><td>该循环被展开：四个载入地址各相差八个 FP32。</td></tr><tr><td><a class="line-ref" href="https://github.com/ZJtoast/AI-Infra-Course/blob/db619352c412be8ad087bb9e0fcc5a64acf2fddf/examples/kernel_profile_lab.cu#L196" data-file="kernel_profile_lab.cu" data-comment="//" data-rows="[[196, &quot;        maximum = fmaxf(maximum, values[j]);&quot;, &quot;先在一个 lane 内比较，缩减本线程持有的四个元素。&quot;]]" aria-expanded="false">196 行</a></td><td><code class="inline-id">0x0130　FMNMX R5, R4, -INF , !PT</code></td><td>先在一个 lane 内比较，缩减本线程持有的四个元素。</td></tr><tr><td><a class="line-ref" href="https://github.com/ZJtoast/AI-Infra-Course/blob/db619352c412be8ad087bb9e0fcc5a64acf2fddf/examples/kernel_profile_lab.cu#L203" data-file="kernel_profile_lab.cu" data-comment="//" data-rows="[[203, &quot;        values[j] = expf(values[j] - maximum);&quot;, &quot;各线程先累加自己的指数贡献，再交换组内部分和。&quot;]]" aria-expanded="false">203 行</a></td><td><code class="inline-id">0x01e0　FADD R4, R4, -R9.reuse</code></td><td>各线程先累加自己的指数贡献，再交换组内部分和。</td></tr><tr><td><a class="line-ref" href="https://github.com/ZJtoast/AI-Infra-Course/blob/db619352c412be8ad087bb9e0fcc5a64acf2fddf/examples/kernel_profile_lab.cu#L209" data-file="kernel_profile_lab.cu" data-comment="//" data-rows="[[209, &quot;    for (int j = 0; j &lt; 4; ++j) y[index+j*8] = values[j] / sum;&quot;, &quot;循环展开为四次存储；每次写回同一 lane 负责的一列。&quot;]]" aria-expanded="false">209 行</a></td><td><code class="inline-id">0x05d0　STG.E [R6.64], R11</code></td><td>检查四条存储的地址间隔和参与 lane 数，核对每行恰好写出 32 个结果。</td></tr></tbody></table>
+</section>
+<section class="topic" id="l18-kernel-fma" data-track="Nsight Compute · 分步优化与验收">
+<h3>计算密集型：同样的乘加，改变可并行的依赖链数</h3>
+<p class="prose">编译本课 CUDA 对照程序，运行 <code class="inline-id">./kernel_lab fma</code>。32,768 个线程各自负责四个初值，每个值都做 256 次同样的递推：先乘以 1.000012，再加 0.000317，乘加合成一次 FP32 FMA。所有版本读相同的初值，给每个值执行相同次数的递推，再与 CPU 上逐次调用 fma 的参考值比较。</p>
+<p class="prose"><strong>先按有用计算和逻辑字节建立量纲</strong></p>
+<p class="prose">一次启动更新 32,768 × 4 = 131,072 个值，总计 33,554,432 次 FMA。一次 FMA 做一乘一加，计为 67,108,864 FLOP。每个初值读 4 B，最终结果写 4 B，逻辑读写共 1,048,576 B。按输入、输出字节算的强度是 64 FLOP/B；中间状态留在寄存器里。要画 DRAM Roofline，再用报告中实际穿过显存接口的字节替换这个分母。</p>
+<p class="prose"><strong>一步、两步和四步并行如何保持输出不变</strong></p>
+<p class="prose">单链版本先对第一个值完成全部 256 次递推，再轮到第二个值。第 i+1 次乘加需要第 i 次刚写的结果，即使 GPU 有空闲 FP32 执行单元，本 warp 也无法提前发出这条依赖指令。双链版本同时保存两份状态，在第一份结果就绪前，可以对第二份发出独立乘加。四链版本一次交错四份状态，每一份的更新次序仍与基线相同。</p>
+<table><thead><tr><th>每线程同时维护</th><th>SM80 每线程寄存器</th><th>中位间隔</th><th>按有效 FLOP 折算</th></tr></thead><tbody><tr><td>1 条链</td><td>12</td><td>24.064 µs</td><td>2.79 TFLOP/s</td></tr><tr><td>2 条链</td><td>18</td><td>14.592 µs</td><td>4.60 TFLOP/s</td></tr><tr><td>4 条链</td><td>24</td><td>8.550 µs</td><td>7.85 TFLOP/s</td></tr></tbody></table>
+<p class="prose">以四链为例，67,108,864 / (8.5504 × 10⁻⁶) ≈ 7.85 × 10¹² FLOP/s。对比四链与单链时，运行时间缩为原来的约 35.5%。除了独立链，内层循环计数和分支也被同批的多次乘加分摊；读报告时把整数控制指令的动态数与 FFMA 的动态数分别归一到输出值，才能区分这两项变化。</p>
+<p class="prose"><strong>在 Source 找到依赖关系，给出下一项实验</strong></p>
+<p class="prose">在二进制的单链版，偏移 0x01f0 处的 <code class="inline-id">FFMA R7, R7, R6, …</code> 读写同一 R7。四链版在 0x0260、0x0270、0x0290、0x02a0 的 FFMA 分别更新 R17、R19、R13、R15。省略号代表立即数加项。打开 Register Dependencies 时先追同一链的两次写读，再看另一条链的寄存器。增加链数没有减少 256 次递推，却给调度器提供了可以穿插的工作。</p>
+<p class="prose">用 <code class="inline-id">bash profile_kernel_pair.sh fma reports</code> 生成三份报告。在 Details 先对齐 grid、block 与 FP32 工作量，再到 Scheduler 对比 eligible、issue active，到 Compute Workload 对比 FP32 管线，到 Source 对比循环分支和 FFMA。若链数增长伴随 eligible 与管线利用率上升，再结合每输出的周期下降，就支持“发射能更好地隐藏依赖延迟”。如果发射率已高且 FP32 接近可持续上限，就先减少有用工作或改算法。若寄存器增加后出现 LDL/STL 和局部空间流量，先回退链数再比较。</p>
+<p class="prose">试算一个后续变体：若在相同工作量下平均间隔为 8.0 µs，它比本组四链版快约 6.4%，绝对差只有 0.55 µs。此时先看重复运行的离散度和真实请求调用次数；即使单核变化可重复，也要乘上关键路径内的调用次数，才能估计业务收益。</p>
+</section>
+<section class="topic" id="l18-kernel-atomic" data-track="Nsight Compute · 分步优化与验收">
+<h3>直方图：同样的 32 个桶，同址争用与 warp 内合并</h3>
+<p class="prose">运行 <code class="inline-id">./kernel_lab hist-hot</code> 和 <code class="inline-id">./kernel_lab hist-spread</code>。每次启动用 1,024 个块；每块处理自己的 1,024 个键，输出独立的 32 桶计数。128 个线程分四个 warp，每线程处理 8 个键。所有段都逐桶核对参考整数计数，浮点原子加只累加最多 1,024 的整数，结果可精确表示。</p>
+<p class="prose"><strong>保持最终直方图相同，只改变地址抵达的次序</strong></p>
+<p class="prose">取一段中的前 32 个键。热点输入把它们全部映射到桶 0，下一组全部映射到桶 1，依次循环。分散输入则让这 32 个键依次映射到桶 0 至 31，下一组重复。两种输入的每段 32 个桶最终都为 32；顺序改变的只是某一时刻同一个 warp 同时更新多少个不同地址。</p>
+<p class="prose">第一版将原子加直接送到每块独占的全局输出段。第二版先清零 32 个 shared 桶，处理完同一批键后由前 32 个线程把计数连续写回。第三版保留第二版的 shared 布局，再用 match-any 找出 warp 内持有相同键的 lane；每组推举第一个 lane，把组的成员数一次加到对应桶。清零和必要的同步都在 kernel 内，三个版本的时长覆盖实际生成同一份输出的完整过程。</p>
+<table><thead><tr><th>每段的输入次序</th><th>直接原子加</th><th>shared 桶</th><th>按键合并后更新 shared</th></tr></thead><tbody><tr><td>一整个 warp 同一个键</td><td>34.714 µs</td><td>26.522 µs</td><td>6.195 µs</td></tr><tr><td>一个 warp 覆盖 32 个键</td><td>6.861 µs</td><td>5.683 µs</td><td>18.995 µs</td></tr></tbody></table>
+<p class="prose"><strong>把一轮 32 个键算到提交的地址</strong></p>
+<p class="prose">热点输入中，匹配掩码的 32 位全为 1，成员数为 32。组长将桶加 32，其他 31 个 lane 跳过原子更新。这轮从 32 份按 lane 发出的增量变成 1 份。分散输入中，每个 lane 的掩码只有自己的位为 1，每个成员数都是 1，32 个组长仍各更新一个桶，却都多做了匹配、找组长和计数。对整次启动，热点的 1,048,576 份增量可由 32,768 次组更新表达，分散输入仍有 1,048,576 次。</p>
+<p class="prose">这组手算按参与原子更新的 lane 计数。SIMT 指令按 warp 发射，一条带谓词的原子更新可只让一个 lane 生效。读 Source 时，对同一 PC 同时看执行次数、平均谓词有效线程和目标地址层级。热点输入中所有线程向同一个字做原子加，硬件必须保持每次更新的效果；shared 同址原子更新有竞争，和一群线程读取同一个 shared 字触发广播是两种行为。</p>
+<p class="prose"><strong>用两份 profile 选择策略</strong></p>
+<p class="prose">用 <code class="inline-id">bash profile_kernel_pair.sh hist-hot reports</code> 和 <code class="inline-id">bash profile_kernel_pair.sh hist-spread reports</code> 分别采集。先在 SASS 核对操作属于 global 还是 shared，再找匹配指令与谓词控制下的更新；若编译器发现返回值无人读取，机器码也可能采用归约形式的指令。将 shared 版本设为基线，分别查看两种分布下的动态指令、有效 lane、每千键耗时。</p>
+<p class="prose">在未知分布上，先从真实输入抽样统计每 warp 的不同键数。若大量 warp 只有一两个键，合并可能省去足够多的争用；若接近 32，直接 shared 更新可能更划算。另一种选择是把热点桶分成多个副本，让不同 warp 分别更新，最后再合并副本。这个方案增加 shared 用量、末尾归约和同步，比较时应包含三项开销。</p>
+<p class="prose">这项实验的输出按段独立。若真实算子要求全局唯一的 32 个桶，还要将 1,024 段的计数再次合并；应把这次归并纳入正确性和关键路径计时，再决定是否保留局部直方图。</p>
 </section>
 <section class="topic" id="l18-optimization-check" data-track="Nsight Compute · 分步优化与验收">
 <h3>验收一次优化：改掉哪种浪费，哪个请求更快</h3>
