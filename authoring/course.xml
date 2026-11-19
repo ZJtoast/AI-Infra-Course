@@ -3618,7 +3618,7 @@ def per_block_cast_to_fp8(x: torch.Tensor, use_ue8m0: bool, gran_k: int = 128) -
 </exercise>
 </section>
 <section class="topic" id="l18-s001" data-track="Nsight Systems · 推理请求与采集">
-<h2><strong>1　首 token 时延的四个时间戳</strong></h2>
+<h2><strong>首 token 时延的四个时间戳</strong></h2>
 <p class="prose">客户端计时从发送请求到收到首个有效输出。<strong>网关</strong>另行记录从收件到发出首个输出的时间。引擎记录的是自身生命周期。沿 request ID 找到引擎里的批次，才能把入口、调度器和 <a class="term" href="#Def188552a9d24381">GPU</a> 上的事件接起来。以下取两条输入长度、缓存状态与输出预算相同的请求，各自以到达网关为<a class="term" href="#Def18395429e083ca">零点</a>。</p>
 <p class="prose">教学请求的事件时间，单位为 ms</p>
 <div class="tablewrap"><table><thead><tr><th><strong>请求</strong></th><th><strong>进入引擎</strong></th><th><strong>获准执行</strong></th><th><strong>首 </strong><a class="term" href="#Def18397a73c4e319"><strong>token</strong></a><strong> 就绪</strong></th><th><strong>网关送出</strong></th></tr></thead><tbody><tr><td>基准</td><td>5</td><td>20</td><td>70</td><td>75</td></tr><tr><td>慢样本</td><td>5</td><td>85</td><td>135</td><td>140</td></tr></tbody></table></div>
@@ -3663,7 +3663,7 @@ def per_block_cast_to_fp8(x: torch.Tensor, use_ue8m0: bool, gran_k: int = 128) -
 </section>
 <section class="topic" id="l18-s007" data-track="Nsight Systems · 推理请求与采集">
 <h3>Nsight Systems 时间线</h3>
-<p class="prose">打开随课链接的 <code class="inline-id">baseline_nvtx</code>.nsys-rep，在 <a class="term" href="#Def18e50ad048c9c6">Nsight Systems</a> 的<a class="term" href="#Def181f3fb14715bc">时间线</a>找到 CPU 线程、<a class="term" href="#Def183a7e7b0ce664"><strong>NVTX</strong></a>、<a class="term" href="#Def18c6bc8e04694a">CUDA</a> <a class="term" href="#Def18763beedf4d8a">API</a>、<a class="term" href="#Def188552a9d24381">GPU</a> 的 stream 与 memcpy。横轴是同一份报告内的时间。从某次训练 Batch 放大，先圈一个完整区间，再顺着 Forward pass 下的 CPU 提交找到设备执行。鼠标选中 runtime 调用或 kernel，沿关联高亮另一端。记录进程、设备、stream、kernel 名称和序号，后面才能在 NCU 捕到同一类实例。</p>
+<p class="prose">打开下方 NVIDIA 训练教程提供的 <code class="inline-id">baseline_nvtx.nsys-rep</code>，在 <a class="term" href="#Def18e50ad048c9c6">Nsight Systems</a> 的<a class="term" href="#Def181f3fb14715bc">时间线</a>找到 CPU 线程、<a class="term" href="#Def183a7e7b0ce664"><strong>NVTX</strong></a>、<a class="term" href="#Def18c6bc8e04694a">CUDA</a> <a class="term" href="#Def18763beedf4d8a">API</a>、<a class="term" href="#Def188552a9d24381">GPU</a> 的 stream 与 memcpy。横轴是同一份报告内的时间。从某次训练 Batch 放大，先圈一个完整区间，再顺着 Forward pass 下的 CPU 提交找到设备执行。鼠标选中 runtime 调用或 kernel，沿关联高亮另一端。记录进程、设备、stream、kernel 名称和序号，后面才能在 NCU 捕到同一类实例。</p>
 <p class="prose">NVTX push/pop 随 CPU 线程嵌套。CPU 离开 Forward pass 时，已经提交的 kernel 可能还排在 GPU 上。同一 stream 的前后顺序、event wait、拷贝和主机同步共同构成依赖。CPU 上的 Data loading 跨 5 ms 只说明主线程在这段范围中；还要检查 GPU 是否同时执行上批工作，以及下批何时才能启动。</p>
 <p class="prose"><a href="https://github.com/NVIDIA/nsight-training/blob/b17c40eef23929d08ec42e66667b29ae336ea8ac/cuda/2021_gtc/x-ac-03-v1/task1/task/nsys/precollected_reports/baseline_nvtx.nsys-rep">NVIDIA 教学训练报告 · baseline_nvtx.nsys-rep</a></p>
 <p class="caption"><strong>代码 18-1　</strong>Data loading、Batch、Copy 与 Forward 的 NVTX 边界</p>
@@ -3716,7 +3716,7 @@ nsys export --help
 </section>
 <section class="topic" id="l18-s008" data-track="Nsight Systems · 推理请求与采集">
 <h3>NVTX 与稳态采集</h3>
-<p class="prose">将模型初始化和进程退出阶段排除在本次<a class="term" href="#Def18a1a871769569">稳态</a>采集区间之外。训练示例选择特定 epoch 触发 cudaProfilerStart/Stop，能把几十轮训练缩成一段可读报告。下列命令以本课附带的 <code class="inline-id">stride_lab.cu</code> 为例，使用有 NVIDIA <a class="term" href="#Def18c6bc8e04694a">CUDA</a> Toolkit、<a class="term" href="#Def18e50ad048c9c6">Nsight Systems</a>、<a class="term" href="#Def184dd93c27cbb8">Nsight Compute</a> 的 Linux CUDA 环境。命令均在源码所在目录运行。当前讲义中的公开报告可直接离线阅读。</p>
+<p class="prose">在 vLLM 引擎中先完成一次预热，再从 A 到达前开始采集，等两个请求都返回末词后停止。这样，模型装载不会淹没请求本身的时间线。下面的训练代码用同一对 CUDA API 选择第 2 个 epoch；随后再用 vLLM 驱动采集两种调度预算。</p>
 <p class="caption"><strong>代码 18-2　</strong>epoch 的应用侧采集开关</p>
 <listing src="https://github.com/NVIDIA/nsight-training/blob/b17c40eef23929d08ec42e66667b29ae336ea8ac/cuda/2021_gtc/x-ac-03-v1/task1/task/nsys/application/main_baseline_nvtx.py#L183-L191" title="nsight-training / main_baseline_nvtx.py    L183–191"><![CDATA[
 ```
@@ -3836,7 +3836,7 @@ python read_vllm_requests.py plain256.csv --a-gap-ms 25 --b-first-ms 46
 <table><thead><tr><th>在同一时间窗口记录</th><th>验算</th><th>诊断价值</th></tr></thead><tbody><tr><td>100 个请求中 90 个完成，72 个同时达到首词和逐词目标；窗口 6 s</td><td>完成吞吐 90/6 = 15 请求/s；达标吞吐 72/6 = 12 请求/s</td><td>同报窗口结束时的在途数。只观察完成者会漏掉已经积压的长请求。</td></tr><tr><td>短提示首词早，长提示首词晚，decode 中段也出现长停顿</td><td>按长度分层后把迟到请求映射到各自所在的调度 step</td><td>若一批长 prefill 穿插进 decode，检查分块大小和本步 token 预算。</td></tr><tr><td>框架内首词交付稳定，客户端实际收词忽快忽慢</td><td>在响应写入前后及客户端每次读到有效 token 时记时</td><td>同一批 token 合并发出时看 flush；服务端独自的首词分布无法覆盖这段。</td></tr></tbody></table>
 </section>
 <section class="topic" id="l18-s002" data-track="Nsight Systems · 推理请求与采集">
-<h2><strong>2　调度排队与 KV 页回收</strong></h2>
+<h2><strong>调度排队与 KV 页回收</strong></h2>
 <p class="prose">假设连续五轮调度都没有可分配的 <a class="term" href="#Def18221e82c84d42">KV</a> <a class="term" href="#Def18b39504bb5cc8">页</a>，有长请求在等外部 KV 传完才可释放预留页。把页分配、传输完成、回收和 admission 放上同一时间轴。若每次解封都紧随回收，继续查传输。若页仍充足，则查每轮 <a class="term" href="#Def18397a73c4e319">token</a> 预算、优先级和主机调度间隔。这里列出的是可验证的假设。</p>
 <p class="caption"><strong>代码 2　</strong>vLLM 从 prompt 长度扣除已缓存 token</p>
 <listing src="https://github.com/vllm-project/vllm/blob/93eeae695f5178eddff728fe50eb18e30c90c33a/vllm/v1/metrics/loggers.py#L1314-L1323" title="vllm / loggers.py    L1314–1323"><![CDATA[
@@ -4109,7 +4109,7 @@ nsys stats --report cuda_kern_exec_sum serving512.nsys-rep
 </exercise>
 </section>
 <section class="topic" id="l18-s003" data-track="Nsight Systems · 时间线与关键路径">
-<h2><strong>3　集合通信的到达偏斜</strong></h2>
+<h2><strong>集合通信的到达偏斜</strong></h2>
 <p class="prose">四个 <a class="term" href="#Def18c2aaec5fcdcc">rank</a> 都在 190 ms 完成同一<a class="term" href="#Def184bdd5e2818e1">通信组</a>上同一顺序号的 <a class="term" href="#Def18e787be444f1c">AllReduce</a>，进入操作的时间为 100、102、104、178 ms。rank 0 记录了最长区间，rank 3 <strong>最晚</strong>到场。先找 rank 3 在 178 ms 前等待的事件。最后 12 ms 是全员进入后的尾部，早到进程在此前也可能已推进部分通信。</p>
 <figure class="diagram"><a href="assets/figures/826ee3c1845a5c5077.png" target="_blank" rel="noopener" aria-label="打开原图"><img loading="lazy" src="assets/figures/826ee3c1845a5c5077.png" alt="课程示意图"/></a></figure>
 <p class="caption">图 4-1　蓝色为 rank 进入 collective 到完成的区间，四行共用同一时标。</p>
@@ -4202,7 +4202,7 @@ bool ProcessGroupNCCL::WorkNCCL::checkTimeout(
 <p class="prose">在同卡 GPU 核算表里可以把每条流分别统计；计算业务完成时间时，要合并重叠区间。对两卡同时工作的 5 ms，设备时间合计可以是 10 GPU·ms，请求只经过 5 ms。评估 overlap 时同时报告经过时间、两类活动相交时长和下游的启动时刻。</p>
 </section>
 <section class="topic" id="l18-s044" data-track="Nsight Systems · 时间线与关键路径">
-<h2><strong>9　关键路径与优化收益</strong></h2>
+<h2><strong>关键路径与优化收益</strong></h2>
 <p class="prose">在一次全员必须到齐的通信中，最早到达的 rank 会把其他人的迟到也记成自己的等待。把通信内核本身提速，只能压缩最后一人到达之后的时间；要消除到达差，应回查各 rank 在进入通信之前做了什么。</p>
 <p class="prose">四个 <a class="term" href="#Def18c2aaec5fcdcc">rank</a> 在 100、102、104、178 ms 到达同一次集合通信操作。若只把<strong>全员到达</strong>后的尾部从 12 ms 压到 6 ms，并保持到达时刻不动，最早入组者可见的时长从 90 降到 84 ms。若希望降到 30 ms，必须处理最后一个 rank 在入组前的依赖，然后重新测尾部。</p>
 <p class="prose">回到首 <a class="term" href="#Def18397a73c4e319">token</a> 告警。先对同一请求取事件差，再对同类请求取分布。固定模型版本、输入长度、命中状态和到达率，按同一个 <a class="term" href="#Def1896d09541493e">SLO</a> 比较达标任务成本。若只缩短一个离线 kernel，而线上仍在等占有 <a class="term" href="#Def18221e82c84d42">KV</a> <a class="term" href="#Def18b39504bb5cc8">页</a>的请求，告警的因果链还没有被切断。</p>
@@ -4216,8 +4216,8 @@ bool ProcessGroupNCCL::WorkNCCL::checkTimeout(
 <p class="prose"><a href="https://docs.nvidia.com/nsight-systems/AnalysisGuide/index.html">Systems 采集后分析 · 规则、报告、配方</a></p>
 <p class="prose">若自动规则提示很多短 kernel 带来 <a class="term" href="#Def187b310905daa3">launch</a> overhead，先从汇总表取次数与持续时间，再选一次相邻调用看两者之间有无 <a class="term" href="#Def188552a9d24381">GPU</a> 空档及 CPU 未及时提交。若设备一直有其他流填满，或短核在非关键分支，规则的局部提示仍可能成立，却未必能缩短服务。报告应留下规则名、命中实例和可推翻的时间线证据。</p>
 </section>
-<section class="topic" id="l18-s040" data-track="Nsight Systems · 时间线与关键路径">
-<h2><strong>5　设备告警与存储停顿</strong></h2>
+<section class="topic" id="l18-s040" data-track="系统扩展 · 多卡故障与运行成本">
+<h2><strong>设备告警与存储停顿</strong></h2>
 <p class="prose">存储停顿也能造成 GPU 利用率下降。若多个 rank 同时等下一批数据，设备告警未必是最早发生的异常。把数据准备完成时刻、GPU 最后一项工作与告警时间对齐，才能决定先查存储还是先查设备。</p>
 <p class="caption"><strong>代码 7　</strong>DCGM exporter 区分功率、累计能量和可选限频计时</p>
 <listing src="https://github.com/NVIDIA/dcgm-exporter/blob/4e663a526c4624ad0e18ad816f09b7be2c5348a7/etc/default-counters.csv#L24-L32" title="dcgm-exporter / default-counters.csv    L24–32"><![CDATA[
@@ -4261,8 +4261,8 @@ DCGM_FI_DEV_XID_ERROR, gauge, Value of the last XID error encountered.
 <p class="prose">字节校验能确认接收端拿到了发送端给出的内容。若上游已经算错并为错误结果算出合法校验和，传输检查仍可通过。固定权重、输入和随机状态，先控制低精度<a class="term" href="#Def188de0dcc95ca5">归约</a>顺序造成的自然差异，再沿层和 rank 比较中间<a class="term" href="#Def1845bb44d04ce3">张量</a>。</p>
 <p class="prose">若多个 rank 同时停在读 batch，先按样本块和节点对齐存储完成时刻；若只有一块 <a class="term" href="#Def188552a9d24381">GPU</a> 出现硬件告警，先按 UUID 对齐驱动日志与该 rank 的<a class="term" href="#Def181f3fb14715bc">时间线</a>。两种问题都会让其他 rank 的通信区间变长。区分“最早发生异常的组件”和“最后暴露等待的组件”，再选择换设备还是迁移数据路径。</p>
 </section>
-<section class="topic" id="l18-s041" data-track="Nsight Systems · 时间线与关键路径">
-<h2><strong>6　通信组重建与训练恢复点</strong></h2>
+<section class="topic" id="l18-s041" data-track="系统扩展 · 多卡故障与运行成本">
+<h2><strong>通信组重建与训练恢复点</strong></h2>
 <p class="caption"><strong>代码 9　</strong>带 abort 标志的收缩路径处理旧工作，再创建子通信器</p>
 <listing src="https://github.com/NVIDIA/nccl/blob/ad2d192c1f279aefcaf340f67e07880b65a1116b/src/init.cc#L3798-L3810" title="nccl / init.cc    L3798–3810"><![CDATA[
 ```
@@ -4306,8 +4306,8 @@ def _new_window(
 <p class="prose">若 30 秒是后台写盘时间、仅 4 秒阻塞，则 C 按有效停顿调整，并单列异步提交窗口与后台争用。恢复时还要计入发现、隔离、重新排队、加载和追赶。rack 同时失效会破坏独立故障假设，备用卡与最新完整检查点需跨越该<a class="term" href="#Def182c6d9e83e2d6">故障域</a>。</p>
 <p class="prose">排除失效 rank 后，旧通信操作的完成回调仍可能到达。新 communicator 的代次能阻止软件把旧通知计入新轮，但不能自动撤销已经发出的设备写入。按后端约定排空或隔离旧缓冲和窗口，确认旧读写停止，再交给新组<a class="term" href="#Def18f465e0254961">复用</a>；参数与优化器还要按全局范围从可恢复版本重建。</p>
 </section>
-<section class="topic" id="l18-s042" data-track="Nsight Systems · 时间线与关键路径">
-<h2><strong>7　每训练步的 GPU 成本</strong></h2>
+<section class="topic" id="l18-s042" data-track="系统扩展 · 多卡故障与运行成本">
+<h2><strong>每训练步的 GPU 成本</strong></h2>
 <p class="prose">同样是缩短一步训练，用八张卡跑一秒和用十六张卡跑半秒的 GPU 秒数相同。若新增设备还带来租金差异、空转或恢复耗时，墙钟时间的下降就不会等比例降低每个有效训练步的成本。</p>
 <p class="caption"><strong>代码 11　</strong>整步吞吐的时间包含等数据</p>
 <listing src="https://github.com/pytorch/torchtitan/blob/e8d94c2d2b421dd94fa37dbb374b40fd18a731fa/torchtitan/rl/controller/metrics.py#L116-L130" title="torchtitan / metrics.py    L116–130"><![CDATA[
@@ -4355,10 +4355,10 @@ def _new_window(
 <p class="prose">重算带来的额外指令会消耗设备时间，计入有用模型 FLOP 会抬高分子。<a class="term" href="#Def18bba03723d890">重放</a>同一段数据两次要付两次卡时，有效训练进度只计一次。对账时，在等存储的卡只要仍被分配，也占用卡时。</p>
 <p class="prose">MFU 的分子通常是约定的模型有效 FLOP，不一定包含<a class="term" href="#Def18fe112bc935e2">激活</a>重算和通信。若两个方案交付同样数量的有效 token，额外重算增多会增加实际执行工作，却不会提高定义好的模型 FLOP。记录有效 token 数、模型计数规则、硬件峰值、设备数与实际耗时，再另报每步 GPU·秒，才能区分算力利用率与资源账单。</p>
 </section>
-<section class="topic" id="l18-s043" data-track="Nsight Systems · 时间线与关键路径">
-<h2><strong>8　智能体任务的单位成功成本</strong></h2>
-<p class="prose">假设一小时总费用为 120 个计价单位，其中 <a class="term" href="#Def180247674f810d">prefill</a> 池 40、<a class="term" href="#Def18f28fe0b0f9e5">decode</a> 池 60、<a class="term" href="#Def18221e82c84d42">KV</a> 与工具 20。入口 200 个任务，180 个完成，150 个同时达到质量和延迟目标。每个完成任务均摊 0.667，每个达标任务均摊 0.8。若用了 20 <a class="term" href="#Def188552a9d24381">GPU</a> 小时，得到 7.5 个达标任务/GPU 小时。把 decode batch 加大后，若成本仍为 120 而达标任务降到 120，每个达标任务就涨到 1。</p>
-<p class="prose">先把三项费用相加：<span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mn>40</mn><mo>&#x0002B;</mo><mn>60</mn><mo>&#x0002B;</mo><mn>20</mn><mo>&#x0003D;</mo><mn>120</mn></mrow></math></span>。每个完成任务的均摊是 <span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mn>120</mn><mo>&#x0002F;</mo><mn>180</mn><mo>&#x02248;</mo><mn>0.667</mn></mrow></math></span>，每个达标任务的均摊是 <span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mn>120</mn><mo>&#x0002F;</mo><mn>150</mn><mo>&#x0003D;</mo><mn>0.8</mn></mrow></math></span>。换成单位设备时间的达标产出，分子改用任务数，得到 <span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mn>150</mn><mo>&#x0002F;</mo><mn>20</mn><mo>&#x0003D;</mo><mn>7.5</mn></mrow></math></span> 个达标任务/GPU 小时。入口的 200 个请求包括未完成者。</p>
+<section class="topic" id="l18-s043" data-track="系统扩展 · 多卡故障与运行成本">
+<h2><strong>智能体任务的单位成功成本</strong></h2>
+<p class="prose">假设一小时总费用为 120 个计价单位，其中 <a class="term" href="#Def180247674f810d">prefill</a> 池 40、<a class="term" href="#Def18f28fe0b0f9e5">decode</a> 池 60、<a class="term" href="#Def18221e82c84d42">KV</a> 与工具 20。入口 200 个任务，180 个完成，150 个同时达到质量和延迟目标。整个服务共占用 20 <a class="term" href="#Def188552a9d24381">GPU</a> 小时。</p>
+<p class="prose">先把三项费用相加：<span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mn>40</mn><mo>&#x0002B;</mo><mn>60</mn><mo>&#x0002B;</mo><mn>20</mn><mo>&#x0003D;</mo><mn>120</mn></mrow></math></span>。每个完成任务的均摊是 <span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mn>120</mn><mo>&#x0002F;</mo><mn>180</mn><mo>&#x02248;</mo><mn>0.667</mn></mrow></math></span>，每个达标任务的均摊是 <span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mn>120</mn><mo>&#x0002F;</mo><mn>150</mn><mo>&#x0003D;</mo><mn>0.8</mn></mrow></math></span>。换成单位设备时间的达标产出，分子改用任务数，得到 <span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mn>150</mn><mo>&#x0002F;</mo><mn>20</mn><mo>&#x0003D;</mo><mn>7.5</mn></mrow></math></span> 个达标任务/GPU 小时。如果加大解码批次后仍花 120，而按时给出合格答案的任务只剩 120 个，每个达标任务的成本就从 0.8 升到 1。</p>
 <figure class="diagram"><a href="assets/figures/5d85fb76bce79b5d9c.png" target="_blank" rel="noopener" aria-label="打开原图"><img loading="lazy" src="assets/figures/5d85fb76bce79b5d9c.png" alt="课程示意图"/></a></figure>
 <p class="caption">图 4-2　同一账期的资源费只合计一次，成功和达标分别计数。</p>
 <p class="prose">若还要报输入和输出单位价，先声明共享费用分摊。将 20 中的 8 归输入 KV，12 归输出和工具。1000 万输入、200 万最终输出 <a class="term" href="#Def18397a73c4e319">token</a>，每百万输入花 4.8，每百万输出花 36，两项乘回流量之和恰好是 120。被拒草稿、工具<strong>重试</strong>与闲置都会产生成本，分母只计最终交付 token。命中的缓存依然占容量，远程命中还要承担传输。</p>
@@ -4373,7 +4373,7 @@ def _new_window(
 </exercise>
 </section>
 <section class="topic" id="l18-s004" data-track="Nsight Compute · 选择启动与阅读报告">
-<h2><strong>4　算子定位与 Roofline 分析</strong></h2>
+<h2><strong>算子定位与 Roofline 分析</strong></h2>
 <p class="prose">用 <a class="term" href="#Def18e50ad048c9c6">Nsight Systems</a> 将 CPU 提交、<a class="term" href="#Def188552a9d24381">GPU</a> 流上的工作、事件依赖与通信放到同一<a class="term" href="#Def181f3fb14715bc">时间线</a>上。主机 <a class="term" href="#Def18763beedf4d8a">API</a> 返回时，设备可能尚未启动。假设计算从 0 到 8 ms，通信从 3 到 10 ms，下游等两者完成。路径长 10 ms，<a class="term" href="#Def186b4ca1a43b48">重叠</a> 5 ms。只把计算缩短 2 ms，若通信仍从 3 ms 开始，总历时仍为 10 ms。若通信依赖计算较早产出的一块数据，其起点可能随之变化。</p>
 <div class="state-deck matrix-mechanism"><h4>在相同通信条件下缩短计算</h4><details name="states-l18-s004" id="states-l18-s004-1" open=""><summary>计算 8 ms</summary><a href="assets/figures/overlap-compute-8.png" target="_blank" rel="noopener" class="state-image" aria-label="重叠执行时的下游就绪时间，打开大图"><img loading="lazy" src="assets/figures/overlap-compute-8.png" alt="基线中两段分别长 8、7 ms，重叠 [3,8) 共 5 ms，墙钟为 10 ms。"/></a><p class="state-note">基线中两段分别长 8、7 ms，重叠 [3,8) 共 5 ms，墙钟为 10 ms。</p></details><details name="states-l18-s004" id="states-l18-s004-2"><summary>计算 6 ms</summary><a href="assets/figures/overlap-compute-6.png" target="_blank" rel="noopener" class="state-image" aria-label="重叠执行时的下游就绪时间，打开大图"><img loading="lazy" src="assets/figures/overlap-compute-6.png" alt="计算提前至 6 ms 完成，重叠降至 3 ms，通信仍在 10 ms 完成。此次缩短计算没有改变下游就绪时刻。"/></a><p class="state-note">计算提前至 6 ms 完成，重叠降至 3 ms，通信仍在 10 ms 完成。此次缩短计算没有改变下游就绪时刻。</p></details></div>
 <p class="prose"><a href="https://docs.nvidia.com/nsight-systems/UserGuide/index.html">Nsight Systems 的范围标记与集中采集</a></p>
@@ -4504,7 +4504,7 @@ ncu --import mem4.ncu-rep --page raw --csv
 </section>
 <section class="topic" id="l18-counter-catalog" data-track="Nsight Compute · 选择启动与阅读报告">
 <h3>在 GA100 上从指标全名读出对象、操作和单位</h3>
-<p class="prose">在 Raw 页复制一个 metric，与这里的基础名称对齐。目录来自 CUDA 12.9 随附的 Nsight Compute 2025.2 对 GA100 的查询，共 3,047 项，含 2,868 个 Counter、154 个 Ratio 和 25 个 Throughput。查询列出芯片支持的名称；要看到某次 launch 的数值，需在采集时选中对应 section 或 metric。输入多个关键词可同时匹配，例如 lts、read、miss。</p>
+<p class="prose">在 Raw 页复制完整指标名，例如 dram__bytes_read.sum。下面会显示基础计数的中文含义，以及 .sum 对哪些实例求和。也可以用中文搜索“线程私有加载”。目录来自 CUDA 12.9 随附的 Nsight Compute 2025.2 对 GA100 的查询，共 3,047 项，含 2,868 个 Counter、154 个 Ratio 和 25 个 Throughput。查询列出芯片支持的名称；要看到某次 launch 的数值，需在采集时选中对应 section 或 metric。查 L2 读未命中时，可以用空格分开输入 lts read miss，同时匹配三个关键词。</p>
 <div data-ncu-catalog="" hidden="hidden" class="counter-reader">
 <div class="counter-controls"><label>查指标 <input type="search" value="dram__bytes" aria-label="按名称或硬件单元查指标"/></label><label>硬件单元 <select aria-label="选择硬件单元"><option value="">全部</option></select></label></div>
 <div class="counter-pages"><button type="button" data-counter-prev="">上一页</button><span role="status"></span><button type="button" data-counter-next="">下一页</button></div>
@@ -4564,7 +4564,7 @@ ncu --import sol_stride.ncu-rep --page raw --csv
 <p class="prose">看报告时先读 Scheduler Statistics。若有很多 active warp，却常常一个 eligible 都没有，下一步要看它们在等数据、前序计算，还是同块其他线程。若经常有好几个 eligible，调度器也一直在发指令，那些暂时没被选中的 warp 正在给后续周期准备工作。</p>
 <p class="prose">Launch Statistics 给出 block 大小、<a class="term" href="#Def180d6e4e28f51c">寄存器</a>和 shared memory。Occupancy 的理论上限用资源约束计算，实测 <strong>active</strong> <a class="term" href="#Def186aebaceb6afe">warp</a> 还受尾波和工作分配影响。一个 active warp 可以在等依赖或内存，eligible 表示本周期可被调度，issued 表示调度器实际发射。先看 Scheduler Statistics 的发射活跃程度，再在 Warp State Statistics 查等待类别；已有足够可发 warp 时，追求更高 occupancy 可能增添寄存器溢出与访存。</p>
 <figure class="study-figure"><a href="assets/figures/concept-warp-eligibility.png" target="_blank" rel="noopener" aria-label="同一调度器、同一周期的三组 warp，打开大图"><img loading="lazy" src="assets/figures/concept-warp-eligibility.png" alt="以同一 warp 编号纵向追踪驻留、就绪和发射集合，绿色箭头标出每一步仍满足条件的 warp。"/></a><figcaption>以同一 warp 编号纵向追踪驻留、就绪和发射集合，绿色箭头标出每一步仍满足条件的 warp。</figcaption></figure>
-<p class="prose">教学例：每 <a class="term" href="#Def18b5df4538d2b1">SM</a> 最多 64 个 warp，256 线程一块即 8 个 warp。<a class="term" href="#Def189a324576344e">共享内存</a>只容 3 块时，上限为 <span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><mfrac><mrow><mn>24</mn></mrow><mrow><mn>64</mn></mrow></mfrac><mo>=</mo><mn>37.5</mn></math></span>%。若同一网格的 eligible 很低而 long scoreboard 较高，可检查等待全局或纹理访存的依赖链、缓存行为及可并行工作。LG Throttle 更接近本地/全局内存指令队列压力。两类指标含义不同，需结合源码指令、同一位置的采样和访存数据再选择改法。</p>
+<p class="prose">举例来说，每 <a class="term" href="#Def18b5df4538d2b1">SM</a> 最多 64 个 warp，256 线程一块即 8 个 warp。<a class="term" href="#Def189a324576344e">共享内存</a>只容 3 块时，上限为 <span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><mfrac><mrow><mn>24</mn></mrow><mrow><mn>64</mn></mrow></mfrac><mo>=</mo><mn>37.5</mn></math></span>%。若同一网格的 eligible 很低而 long scoreboard 较高，可检查等待全局或纹理访存的依赖链、缓存行为及可并行工作。LG Throttle 更接近本地/全局内存指令队列压力。两类指标含义不同，需结合源码指令、同一位置的采样和访存数据再选择改法。</p>
 <p class="prose">若每 SM 理论可驻 8 块，整个 grid 却只有 4 块，大多数 SM 没有分到任何工作；继续削减共享内存增加<a class="term" href="#Def18c0c8484528dc">驻留</a>上限也不能制造新块。先比较 grid 总块数、SM 数和波次数，再看活跃 SM 内 warp 是否就绪。前一组数据用于判断有多少 SM 分到了块；后一项用于判断已分到块的 SM 能否发射下一条指令。</p>
 <exercise id="Q18_19" kind="进阶题 11" title="驻留 warp 和可发射 warp" next="Q18_20">
 <p><strong>情境　</strong>一个 SM 理论最多容纳 64 个 warp，每块有 256 线程、32 线程/warp。旧内核因共享内存最多驻留 3 块；新配置理论可驻 8 块。实测新配置的 active warps 上升，而平均 eligible 仍接近旧值，issued 也几乎不变。</p>
@@ -4772,7 +4772,7 @@ ncu --import sol_stride.ncu-rep --page raw --csv
 <tr><td>0x00c0 · LDG.E</td><td>从第二个输入数组读取另一个数。</td><td>这一次的目标是 R3。</td></tr>
 <tr><td>0x00e0 · FADD</td><td>用 R4 和 R3 做加法，结果写入 R9。</td><td>两个输入都就绪，这条指令才可发射。</td></tr>
 <tr><td>0x00f0 · STG.E</td><td>把 R9 写入输出数组。</td><td>输出依赖加法结果，不能抢在加法之前写。</td></tr></tbody></table>
-<p class="prose">在<a href="#l18-sm80-source-lab">本课的源码与 SASS 对照</a>里选择 stride_add，点 0x00e0 核对 CUDA 表达式。GPU 可以先发起两次独立加载，让内存系统去取数。当 warp 走到 FADD，硬件会检查目标寄存器的写入是否完成。记录这些依赖的机制叫 <strong>scoreboard</strong>。若还有一次加载未完成，warp 会停在 FADD 前；抽样器看到的正是这个位置。即使加载指令本身几乎没留下等待样本，取数仍可能是症结。</p>
+<p class="prose">点开<a href="#l18-sm80-source-lab" data-sass-kernel="stride_add" data-sass-pc="0x00e0">stride_add 的 0x00e0</a>，可以直接对照这条加法和 CUDA 表达式。GPU 可以先发起两次独立加载，让内存系统去取数。当 warp 走到 FADD，硬件会检查目标寄存器的写入是否完成。记录这些依赖的机制叫 <strong>scoreboard</strong>。若还有一次加载未完成，warp 会停在 FADD 前；抽样器看到的正是这个位置。即使加载指令本身几乎没留下等待样本，取数仍可能是症结。</p>
 <p class="prose">再到 Warp State Statistics。stride=4 的 Warp Cycles Per Issued Instruction 是 201.62 个周期，Long Scoreboard 约 167.78 个周期。这里沿一个 warp 看两次发射之间平均经过多久，其中约 167.78 ÷ 201.62 = 83.2% 是这类依赖等待。另一个数 302 ÷ 327 = 92.4%，回答的是“这些未发射样本有多少落在 FADD 地址”。前者按等待原因分，后者按指令位置分，两个分母各有用途。</p>
 <table><thead><tr><th>相邻线程的元素跨度</th><th>每个全局加载请求的扇区</th><th>Long Scoreboard 周期 / 发射</th><th>FADD 处未发射样本 / 全部同类样本</th><th>独立计时</th></tr></thead><tbody>
 <tr><td>4</td><td>16</td><td>167.78</td><td>302 / 327</td><td>5.427 µs</td></tr>
@@ -4802,7 +4802,7 @@ ncu-ui stride-src.ncu-rep
 </section>
 <section class="topic" id="l18-sm80-source-lab" data-track="Nsight Compute · 指令、访存与性能上界">
 <h3>在实际编译的 kernel 中练习从 PC 追操作数和源行</h3>
-<p class="prose">选择一个实现，再用函数内偏移、操作码、寄存器或源码行筛选。列表来自课程程序的 SM80 二进制，覆盖 25 个计算入口及其指令映射；同一入口可用于不同输入分布。点 PC 查看该指令、编译器记录的源行及操作数的读法。寄存器编号只在当前编译的当前函数内有意义。</p>
+<p class="prose">选择一个实现，再用函数内偏移、操作码、寄存器或源码行筛选。列表来自课程程序的 SM80 二进制，覆盖 28 个计算入口及其指令映射；同一入口可用于不同输入分布。点 PC 查看该指令、编译器记录的源行及操作数的读法。寄存器编号只在当前编译的当前函数内有意义。</p>
 <div data-sass-lab="" class="sass-reader counter-reader" hidden="hidden"><div class="counter-controls"><label>kernel <select aria-label="选择 kernel 汇编"></select></label><label>指令、寄存器或 PC <input type="search" aria-label="筛选汇编指令"/></label></div><div class="counter-pages"><button type="button" data-sass-prev="">上一页</button><span role="status"></span><button type="button" data-sass-next="">下一页</button></div><div data-sass-detail="" aria-live="polite"></div><table><thead><tr><th>PC</th><th>SM80 SASS</th></tr></thead><tbody></tbody></table></div>
 <p class="prose"><strong>第一遍只读一条值依赖</strong></p>
 <p class="prose">默认显示 <code class="inline-id">stride_add</code> 的 FADD。0x00e0 处，FADD 将 R4 和 R3 相加，把和写到 R9。输入 R4，找到此前写 R4 的 LDG；再搜 R3，找到另一条 LDG。加载使用的地址寄存器与返回数据有时复用同一个编号，按指令的读写方向区别它们。最后搜 R9，能看到这条和交给 STG。步长改变时仍执行相同机器码，变化来自各 lane 实际带入的地址。推测位置在 FADD 等待时，要到动态报告检查 PC 样本和加载事务。</p>
@@ -4864,13 +4864,13 @@ bash profile_kernel_pair.sh --sudo transpose reports
 ncu-ui reports/transpose-transpose_tile32.ncu-rep
 ```
 ]]></listing>
-<p class="prose">在放有二进制文件的目录执行脚本。它按完整 kernel 名称分别筛选每个实现，跳过本实现的一次正确性校验和一次热身，采同一轮的首个计时启动；向量加法只采 steady 范围内的第一次启动。把 transpose 换成 gemm、reduction、graph-short、graph-skew、softmax、stride、fma、hist-hot 或 hist-spread，就能抓到该组的三份报告。先用 --dry-run 检查命令，再选两份报告做基线对比。课程服务器为 NCU 开放了 sudo 采集权限。下面各算子的计数来自 A800 PCIe 上用 Nsight Compute 2025.2 实际采集的一次匹配启动。算子表里的运行时间另用 CUDA event 计时，两组实验都使用 A800 PCIe。</p>
+<p class="prose">在放有二进制文件的目录执行脚本。它按完整 kernel 名称分别筛选每个实现，跳过本实现的一次正确性校验和一次热身，采同一轮的首个计时启动；向量加法只采 steady 范围内的第一次启动。把 transpose 换成 gemm、reduction、graph-short、graph-skew、softmax、stride、fma、hist-hot 或 hist-spread，就能抓到该组的三份报告。寄存器实验用 registers，各种 Tensor Core 形状见后面的矩阵乘实验。先用 --dry-run 检查命令，再选两份报告做基线对比。课程服务器为 NCU 开放了 sudo 采集权限。下面各算子的计数来自 A800 PCIe 上用 Nsight Compute 2025.2 实际采集的一次匹配启动。算子表里的运行时间另用 CUDA event 计时，两组实验都使用 A800 PCIe。</p>
 <table><thead><tr><th>输入和有效输出</th><th>实现顺序</th><th>中位时间（µs/次）</th></tr></thead><tbody><tr><td>512 × 512 方阵乘，写出 262,144 项</td><td>逐线程点积 → 16 × 16 分块 → 每线程双列</td><td>100.762 → 65.792 → 57.446</td></tr><tr><td>2048 × 2048 转置，所有元素换行列</td><td>直接写 → shared 行距 32 → 行距 33</td><td>104.858 → 40.090 → 19.763</td></tr><tr><td>4096 段 × 256 项，每段输出一个和</td><td>块内树 → warp 收尾 → 两级 warp</td><td>10.291 → 7.270 → 6.810</td></tr><tr><td>32,768 顶点；先全短行，再混入长行</td><td>一行分别派 1、4、32 个 lane</td><td>短行 3.942 → 4.250 → 9.523；混合 12.800 → 7.885 → 10.138</td></tr><tr><td>32,768 行 × 32 列，每行独立归一化</td><td>一行分别派 1、8、32 个 lane</td><td>46.234 → 6.502 → 9.114</td></tr></tbody></table>
 <p class="prose"><strong>从编译资源判断下一次要量什么</strong></p>
 <table><thead><tr><th>同一 SM80 编译目标</th><th>每线程寄存器 / 每块静态 shared</th><th>据此选择对照</th></tr></thead><tbody><tr><td>GEMM 直接、分块、双列</td><td>均为 32 个寄存器；shared 分别为 0、2,048、3,072 B</td><td>本次双列版增加 shared 复用，同时未提高每线程寄存器分配；读每输出的加载数和发射情况。</td></tr><tr><td>转置直接、tile32、tile33</td><td>20、22、22 个寄存器；shared 为 0、4,096、4,224 B</td><td>后两版 shared 只差 128 B。查占用门槛，再到同一条 shared 加载比较额外 wavefront。</td></tr><tr><td>规约 tree、tail、warp</td><td>12、14、14 个寄存器；shared 为 1,024、1,024、32 B</td><td>tree 到 tail 的 shared 分配相同，变化在循环后半段；查动态 BAR 和 shared 指令。</td></tr><tr><td>CSR 每行 1、4、32 个 lane</td><td>三版均为 32 个寄存器，无静态 shared</td><td>分配量相同，先查有效 lane、间接加载和沿长行循环的次数。</td></tr><tr><td>Softmax 每行 1、8、32 个 lane</td><td>分别为 31、21、15 个寄存器，无静态 shared</td><td>整 warp 版寄存器最少，本组最快的却是八 lane 版。检查动态指令和每行的发射数。</td></tr></tbody></table>
 <p class="prose">以上是 <code class="inline-id">nvcc -O3 -lineinfo -arch=sm_80 -Xptxas=-v</code> 的编译结果。编译器报告的 barrier 资源数量描述需要分配的资源；同一屏障在循环里可执行很多次。动态次数请读 NCU 的 Source 或指令执行计数。</p>
 <p class="prose"><strong>从报告中取出分子、分母和对应指令</strong></p>
-<p class="prose">在课程服务器运行示例时给采集脚本加 --sudo。脚本先用当前账号从设备镜像找函数符号，再由 sudo 启动指定的 ncu。编译、用 ncu --import 导出指标、用 ncu-ui 打开报告均使用普通账号。采集十五组输入和实现组合，每组三份报告；另外给四种输入各采一份 cuBLAS 报告。</p>
+<p class="prose">在课程服务器运行示例时给采集脚本加 --sudo。脚本先用当前账号从设备镜像找函数符号，再由 sudo 启动指定的 ncu。编译、用 ncu --import 导出指标、用 ncu-ui 打开报告均使用普通账号。本课对十六组输入和实现组合各采三份报告，另对四种矩阵形状各采一份 cuBLAS 报告。</p>
 <p class="prose">打开 transpose_direct 与 transpose_tile32 两份报告，在基线菜单把 direct 加为 baseline。进 Memory Workload Analysis，展开 L1/TEX 的 Global Store。在 Raw 搜索 l1tex__t_requests_pipe_lsu_mem_global_op_st.sum，再搜索 l1tex__t_sectors_pipe_lsu_mem_global_op_st.sum。前者是发出的全局存储请求数，后者数这些请求触及的 32 B 扇区。把同一份报告的扇区总数除以请求总数，得到该启动平均每个请求占用的扇区。本例两个实现各发出 131,072 个存储请求；数值差异要沿扇区列往下查。</p>
 <p class="prose">在 Source 切换到 SASS，打开 Instructions Executed 和 Predicated-On Thread Instructions Executed。前者按 warp 数一条指令发射了几次，后者累加实际参与该指令的线程数。把后者除以前者，就能定位哪些源语句只剩少数 lane 工作。时间取自单独执行的重复计时，硬件计数取自受控回放；比较两种实现时，分别在各自的实验里计算变化。</p>
 </section>
@@ -5165,6 +5165,36 @@ ncu --import reports/blas-edge.ncu-rep --page source --print-source sass
 <p class="prose"><strong>把依赖链与循环控制的收益分开</strong></p>
 <p class="prose">用 Raw 核对三版每次都发射 1,048,576 条 warp FFMA，32 个 lane 全参加，共 33,554,432 次线程乘加。Source 的寄存器依赖显示四链版可以交错更新四个不同的目标寄存器。Scheduler Statistics 中每调度器每活跃周期的 eligible warp 从 0.32 升到 0.38、0.55，发射活跃比例从 31.32% 升到 35.65%、47.71%。这组数把“独立乘加可以提前发射”与实际发射机会联系起来。</p>
 <p class="prose">三版 achieved occupancy 都在 14.5% 左右。四链版还把循环控制摊到更多乘加上，总 warp 指令从 4,258,816 降到 2,673,664，再降到 1,878,016。单链与四链的 24.064 和 8.550 µs 同时反映了依赖距离和控制开销的改变。要单独估计依赖距离的贡献，可以保持相同展开次数与循环控制，只改变四次更新共用一个目的寄存器还是分用四个，再核对动态指令数。</p>
+</section>
+<section class="topic" id="l18-register-spills" data-track="Nsight Compute · 分步优化与验收">
+<h3>寄存器装不下时，循环多做了多少次读写</h3>
+<p class="prose">有 64 个通道，每个通道有 16,384 个位置。线程 0 负责每个通道的位置 0，线程 1 负责每个通道的位置 1，依次类推。每个值连续做 32 次乘加，每次都用刚算出的结果。一个通道的值与其他通道无关。问题在于，一个线程同时保留 64 个中间值时，GPU 把这些值放在哪里。</p>
+<p class="prose">先看最小的一份计算。设某个通道的初值是 2，程序每轮都把当前值乘以 1.000012，再加 0.000317；这两个常数按 FP32 传给融合乘加指令。第一轮在实数算术下是 2.000341，第二轮继续用第一轮舍入后的 FP32 结果。数组里其余位置也各自重复 32 轮。总工作量是 64 × 16,384 × 32 = 33,554,432 次线程乘加，三个版本都逐元素对照 CPU 参考结果。</p>
+<figure class="study-figure"><a href="assets/figures/register-spill-tiles.png" target="_blank" rel="noopener"><img loading="lazy" src="assets/figures/register-spill-tiles.png" alt="同一线程一次保留六十四个状态，或每次只保留八个状态并分八组完成"/></a><figcaption>改变同一时刻要保存的中间值个数，每个输出仍按原顺序更新 32 轮</figcaption></figure>
+<p class="prose"><strong>先固定寄存器上限，改变同时存活的值</strong></p>
+<p class="prose">第一版给每线程设置 32 个寄存器的编译上限，却要求 64 个通道同时跨过循环。以后还要用的中间值放不下，编译器会把一部分暂存在属于该线程的 local 地址空间，用到时再读回来。这称为<strong>寄存器溢出（spill）</strong>。第二版保持相同上限，每次只读入 8 个通道，做完 32 轮就写出，再处理下一组。第三版仍同时保留 64 个通道，让编译器自行分配寄存器。三版都发 128 个块，每块 128 个线程。</p>
+<table><thead><tr><th>同时处理的通道与上限</th><th>实际寄存器 / 线程</th><th>编译器报告的 spill store / load</th><th>动态 local 写 / 读扇区</th><th>五轮独立计时中位数</th></tr></thead><tbody>
+<tr><td>64 个，限制 32</td><td>32</td><td>828 B / 832 B</td><td>3,852,096 / 3,854,336</td><td>78.080 µs</td></tr>
+<tr><td>8 个，限制 32</td><td>32</td><td>0 / 0</td><td>0 / 0</td><td>12.390 µs</td></tr>
+<tr><td>64 个，自由分配</td><td>80</td><td>0 / 0</td><td>0 / 0</td><td>11.264 µs</td></tr></tbody></table>
+<p class="prose">左边的字节来自 ptxas 编译日志，右边的扇区来自 A800 上一次被选中的启动。第一版的每线程栈帧是 416 B，同一位置可在循环中写入、读出很多次。要算执行时的数据量，读动态计数：两栏合计 7,706,432 个扇区，按 32 B 一个扇区，约 235.18 MiB。这是 L1TEX 处理的线程私有地址访问量。直接用 DRAM 读出的字节数看不见大部分开销：三版 DRAM 读取都在 4.2 MB 左右，暂存的位置可以在缓存中反复访问。</p>
+<p class="prose"><strong>从 Source 页追一对真实的暂存与读回指令</strong></p>
+<p class="prose">在 <code class="inline-id">channels_limited&lt;64&gt;</code> 的 Source 页切到 SASS。点开<a href="#l18-sm80-source-lab" data-sass-kernel="channels_limited_64" data-sass-pc="0x10d0">0x10d0 的 STL</a>，可以看到 R11 被写到当前线程的栈地址 [R1+0x140]。紧接着的<a href="#l18-sm80-source-lab" data-sass-kernel="channels_limited_64" data-sass-pc="0x10e0">0x10e0 的 LDL.LU</a>把另一个栈位置 [R1+0x88] 的值读回 R11。两个偏移不同：编译器腾出了这个寄存器，让它接着保存另一个值。两条指令的源行都指向第 387 行的内层 for 循环。看下面的循环体，每轮乘加都要用到上一轮留下的通道值。</p>
+<p class="prose">在这次启动里，整段 SASS 的 LDL 和 STL 各执行 939,520 次，计数单位为 warp 指令。换成每次处理 8 个通道后，两项都变为零。三版的 warp FFMA 都是 1,048,576 次。每次 32 个线程参加，乘以 32 恰好回到开头的 33,554,432 次。由此能解释，第一步提速 78.080 ÷ 12.390 ≈ 6.30 倍，省下的是乘加周围反复出现的存取。</p>
+<p class="prose"><strong>对照占用率，再决定是否继续压低寄存器数</strong></p>
+<p class="prose">三版 achieved occupancy 分别为 7.69%、7.51%、7.23%，最快的一版恰好最低。网格只有 128 个块；同一块硬件即使能再容纳几个块，程序也得有更多块可供调度。与此同时，每调度器每个活跃周期平均可发射的 warp 从 0.11 提高到 0.27 和 0.33。这里应优先保证内层循环的状态就近保存在寄存器里。把网格增大后，驻留限制和延迟隐藏的利弊可能改变，需用新形状重测。</p>
+<listing><![CDATA[
+```bash
+# 生成含源行信息的 SM80 二进制，并保存每个 kernel 的编译资源报告
+nvcc -O3 -lineinfo -arch=sm_80 -Xptxas=-v kernel_profile_lab.cu -o kernel_lab 2> build.log
+# 两次运行均选设备 1，分别独立计时和采集硬件计数
+./kernel_lab registers 1
+bash profile_kernel_pair.sh --sudo registers reports 1
+# 用普通账号打开有 spill 的基线
+ncu-ui reports/registers-channels_limited64.ncu-rep
+```
+]]></listing>
+<p class="prose">复现时，在 Raw 分别查 <code class="inline-id">l1tex__t_sectors_pipe_lsu_mem_local_op_st.sum</code> 和 <code class="inline-id">l1tex__t_sectors_pipe_lsu_mem_local_op_ld.sum</code>。local 是线程私有的地址空间；代码中用运行时下标访问的私有数组也可能放在这里。本例的依据有三项：ptxas 明确报告 spill、SASS 在循环内执行 LDL 和 STL、改变寄存器压力后两类读写消失。<a href="https://docs.nvidia.com/cuda/archive/12.9.1/cuda-c-programming-guide/index.html#local-memory">CUDA 指南中的 local memory</a></p>
 </section>
 <section class="topic" id="l18-kernel-atomic" data-track="Nsight Compute · 分步优化与验收">
 <h3>直方图：同样的 32 个桶，同址争用与 warp 内合并</h3>

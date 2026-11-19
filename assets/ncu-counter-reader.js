@@ -13,18 +13,20 @@
   const pageSize = 8;
   const device = {dram:"显存接口",fbpa:"显存分区",lts:"L2 缓存切片",l1tex:"L1 / 纹理 / shared 路径",sm:"流多处理器",smsp:"SM 内的调度分区",gpu:"整块设备",pcie:"PCIe 接口",nvlrx:"NVLink 接收端",nvltx:"NVLink 发送端",tpc:"纹理处理簇",gpc:"图形处理簇",gcc:"常量缓存",idc:"指令数据缓存",sys:"系统时钟域",gr:"图形与计算引擎",fe:"前端"};
   const units = {sector:"sector（缓存事务以 32 B 为一段）",request:"请求",inst:"指令",cycle:"周期",byte:"字节",warp:"warp",thread:"线程",block:"线程块",ns:"纳秒",ops:"操作","%":"百分比","inst/warp":"指令/warp","thread/warp":"线程/warp","inst/cycle":"指令/周期","byte/sector":"字节/sector","cycle/warp":"周期/warp",tag:"缓存标签"};
-  const rules = [
-    ["srcunit_l1","请求来自 L1"],["srcunit_tex","请求来自纹理单元"],["srcunit_ltcfabric","请求来自 L2 互连"],["srcnode_gpc","请求来自 GPC 节点"],
-    ["aperture_device","地址指向本设备显存"],["aperture_sysmem","地址指向系统内存"],["aperture_peer","地址指向对端设备"],
-    ["op_atom_dot_cas","原子比较交换"],["op_atom_dot_alu","原子算术或逻辑更新"],["op_read","读"],["op_write","写"],["op_ld","加载"],["op_st","存储"],["op_red","归约更新"],["op_membar","内存屏障"],
-    ["evict_first","优先逐出"],["evict_last","尽量保留"],["evict_normal","普通逐出策略"],["lookup_hit","本级查找命中"],["lookup_miss","本级查找未命中"],
-    ["mem_shared","shared 地址空间"],["mem_global","global 地址空间"],["mem_local","线程私有 local 地址空间"],["mem_texture","纹理地址空间"],["mem_surface","surface 地址空间"],
-    ["pipe_lsu","经加载 / 存储管线"],["pipe_tensor","经 Tensor 管线"],["pipe_tex","经纹理管线"],["pipe_fp64","经双精度管线"],
-    ["pred_on","只计谓词为真的线程"],["src_bf16","BF16 输入"],["dst_fp32","FP32 累加或输出"],["sparsity_on","启用结构化稀疏"],["sparsity_off","稠密计算"]
-  ];
+  const suffixes = {
+    sum:"所有相应硬件实例的计数相加", avg:"对相应硬件实例取平均",
+    max:"取硬件实例中的最大值", min:"取硬件实例中的最小值",
+    pct:"比值以百分数显示", ratio:"按比值显示", per_second:"折算为每秒的量",
+    per_cycle_active:"除以该单元活跃的周期数", per_cycle_elapsed:"除以经过的周期数",
+    pct_of_peak_sustained_active:"以活跃周期内可持续达到的峰值为分母，结果用百分数显示",
+    pct_of_peak_sustained_elapsed:"以整个测量时间内可持续达到的峰值为分母，结果用百分数显示"
+  };
+  function fullMetric() {
+    return search.value.trim().toLowerCase().match(/^([a-z0-9]+__[a-z0-9_]+)((?:\.[a-z0-9_]+)+)$/);
+  }
   const stall = {
     long_scoreboard:"等待经 L1TEX 路径返回的依赖。选消费寄存器的 PC，向前追生产它的加载，再看 sector 及有效 lane。",
-    short_scoreboard:"等待较短的数据依赖。按生产者区分 shared 加载或特殊数学操作，再检查 wavefront 或独立计算链。",
+    short_scoreboard:"这个名称指向 MIO 操作的依赖。先从等待读数的指令找到产生结果的指令，再分开查 shared 加载、特殊数学运算或动态跳转。",
     not_selected:"warp 已可发射，调度器本周期选了其他 warp；用 issue active 判断发射槽是否已得到利用。",
     barrier:"warp 已到线程块屏障，需要同块其他 warp 到齐。比较屏障前工作量和动态同步次数。",
     membar:"warp 在等待内存顺序约束完成。定位屏障作用域与跨线程数据依赖。",
@@ -50,28 +52,39 @@
   };
   function para(text) { const el=document.createElement("p"); el.textContent=text; return el; }
   function show(row) {
-    const [name,unit,type]=row;
+    const [name,unit,type,meaning]=row;
     const [unitName,body]=name.split("__");
     const title=document.createElement("code"); title.textContent=name;
-    const tags=rules.filter(([token])=>("_"+body+"_").includes("_"+token+"_")).map(x=>x[1]);
     const reason=Object.keys(stall).find(s=>body.includes("stalled_"+s));
     const text=reason ? stall[reason] : guidance[unitName];
     const kind={Counter:"计数器",Ratio:"比值",Throughput:"综合吞吐"}[type];
-    const pieces=[title,para([device[unitName],kind,units[unit]||unit||"单位随具体派生形式读取"].join(" · "))];
-    if(tags.length)pieces.push(para("计入范围："+tags.join("，")+"。"));
+    const pieces=[title,para([device[unitName],kind,"基础单位：" + (units[unit]||unit||"见派生指标")].join(" · "))];
+    pieces.push(para(meaning));
+    const full = fullMetric();
+    if (full && full[1] === name) {
+      const parts = full[2].slice(1).split(".");
+      pieces.push(para(full[0]));
+      for (const part of parts) {
+        if (suffixes[part]) pieces.push(para("." + part + "　" + suffixes[part]));
+      }
+    }
     if(text)pieces.push(para(text));
     const cli=document.createElement("code");
     cli.textContent="ncu --query-metrics --chips ga100 --query-metrics-mode suffix --metrics "+name;
-    pieces.push(para("用本机工具查看完整定义、单位与可用后缀"),cli);
+    pieces.push(para("可在本机查询该指标的可用后缀"),cli);
     detail.replaceChildren(...pieces);
     for(const button of list.querySelectorAll("button")) button.setAttribute("aria-pressed",String(button.textContent===name));
   }
   let page=0;
   function render() {
-    const words=search.value.toLowerCase().trim().split(/\s+/).filter(Boolean);
-    const rows=metrics.filter(([id])=>{
+    const full = fullMetric();
+    const words = search.value.toLowerCase().trim().split(/\s+/).filter(Boolean);
+    const rows=metrics.filter(([id, , , meaning])=>{
       const unit=id.split("__")[0];
-      return (!select.value || select.value===unit) && words.every(word=>(id+" "+device[unit]).includes(word));
+      if (select.value && select.value !== unit) return false;
+      if (full) return id === full[1];
+      const haystack = (id + " " + device[unit] + " " + meaning).toLowerCase();
+      return words.every(word => haystack.includes(word));
     });
     const slice=rows.slice(page*pageSize,(page+1)*pageSize);
     list.replaceChildren();

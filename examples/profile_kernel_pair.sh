@@ -10,12 +10,20 @@ while [[ $# -gt 0 ]]; do
         *) break ;;
     esac
 done
-if [[ $# != 2 ]]; then
-    echo "usage: bash profile_kernel_pair.sh [--dry-run] [--sudo] gemm|transpose|reduction|graph-short|graph-skew|softmax|stride|fma|hist-hot|hist-spread|tensor-full|tensor-thin|tensor-edge|tensor-control|tensor-grid OUTPUT_DIR" >&2
+if [[ $# -lt 2 || $# -gt 3 ]]; then
+    echo "usage: bash profile_kernel_pair.sh [--dry-run] [--sudo] gemm|transpose|reduction|graph-short|graph-skew|softmax|stride|fma|hist-hot|hist-spread|tensor-full|tensor-thin|tensor-edge|tensor-control|tensor-grid|registers OUTPUT_DIR [CUDA_DEVICE]" >&2
     exit 2
 fi
 mode=$1
 out=$2
+device_args=()
+if [[ $# == 3 ]]; then
+    if [[ ! $3 =~ ^[0-9]+$ || $mode == stride ]]; then
+        echo "CUDA_DEVICE must be a nonnegative device index for a kernel_lab workload" >&2
+        exit 2
+    fi
+    device_args=("$3")
+fi
 binary=./kernel_lab
 workload=$mode
 skip=2
@@ -28,6 +36,7 @@ case $mode in
     softmax) kernels=(softmax_serial softmax_eight_lanes softmax_warp32) ;;
     tensor-full|tensor-thin|tensor-edge|tensor-control) kernels=(half_scalar_gemm 'warp_tile_gemm<1>' 'warp_tile_gemm<2>') ;;
     tensor-grid) kernels=('warp_tile_gemm<1>' 'warp_tile_gemm<1>' 'warp_tile_gemm<1>'); warp_counts=(1 2 4) ;;
+    registers) kernels=('channels_limited<64>' 'channels_limited<8>' channels_free) ;;
     fma) kernels=('fma_chains<1>' 'fma_chains<2>' 'fma_chains<4>') ;;
     hist-hot|hist-spread) kernels=('segment_histogram<0>' 'segment_histogram<1>' 'segment_histogram<2>') ;;
     stride)
@@ -55,6 +64,10 @@ while IFS= read -r symbol; do
     symbols["$name"]=$symbol
 done < <(printf '%s\n' "$image" | sed -n 's/^[[:space:]]*Function \([^:]*\):$/\1/p')
 if ! $dry_run; then mkdir -p -- "$out"; fi
+local_metrics=""
+if [[ $mode == registers ]]; then
+    local_metrics=",l1tex__t_sectors_pipe_lsu_mem_local_op_ld.sum,l1tex__t_sectors_pipe_lsu_mem_local_op_st.sum,l1tex__t_requests_pipe_lsu_mem_local_op_ld.sum,l1tex__t_requests_pipe_lsu_mem_local_op_st.sum"
+fi
 profiler=(ncu)
 if $use_sudo; then
     # Give sudo the resolved tool path so a profiling-only sudoers entry works.
@@ -76,8 +89,8 @@ for i in "${!kernels[@]}"; do
     if [[ -z $symbol ]]; then echo "device function not found: $kernel in $binary" >&2; exit 1; fi
     cmd=("${profiler[@]}" --kernel-name-base mangled -k "regex:^${symbol}$" "${filters[@]}"
          --launch-skip "$skip" --launch-count 1 --import-source yes "${sections[@]}"
-         --metrics dram__bytes_read.sum,dram__bytes_write.sum,l1tex__t_sectors_pipe_lsu_mem_global_op_ld.sum,l1tex__t_requests_pipe_lsu_mem_global_op_ld.sum,l1tex__t_sectors_pipe_lsu_mem_global_op_st.sum,l1tex__t_requests_pipe_lsu_mem_global_op_st.sum,sm__inst_executed_pipe_tensor.sum,sm__pipe_tensor_cycles_active.avg.pct_of_peak_sustained_elapsed,smsp__warps_eligible.avg.per_cycle_active,smsp__issue_active.avg.pct_of_peak_sustained_active
-         -o "$report" "$binary" "$workload")
+         --metrics dram__bytes_read.sum,dram__bytes_write.sum,l1tex__t_sectors_pipe_lsu_mem_global_op_ld.sum,l1tex__t_requests_pipe_lsu_mem_global_op_ld.sum,l1tex__t_sectors_pipe_lsu_mem_global_op_st.sum,l1tex__t_requests_pipe_lsu_mem_global_op_st.sum,sm__inst_executed_pipe_tensor.sum,sm__pipe_tensor_cycles_active.avg.pct_of_peak_sustained_elapsed,smsp__warps_eligible.avg.per_cycle_active,smsp__issue_active.avg.pct_of_peak_sustained_active"${local_metrics}"
+         -o "$report" "$binary" "$workload" "${device_args[@]}")
     if $dry_run; then printf '%q ' "${cmd[@]}"; printf '\n'; else
         if [[ -e "$report.ncu-rep" ]]; then echo "report already exists: $report.ncu-rep" >&2; exit 1; fi
         "${cmd[@]}"

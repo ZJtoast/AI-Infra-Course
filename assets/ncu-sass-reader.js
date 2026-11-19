@@ -11,6 +11,8 @@
   const details = lab.querySelector("[data-sass-detail]");
   const families={
     LDG:"从全局地址加载，目的寄存器在前，地址在方括号中。追等待时沿目的寄存器寻找后续消费者。",
+    LDL:"从当前线程的 local 地址读回寄存器。若编译器报告有 spill loads，可与同一栈位置的写入及循环次数对照。",
+    STL:"把寄存器写入当前线程的 local 地址。检查写入的值在后续何处读回，并对照编译器的 spill stores。",
     STG:"将寄存器写回全局地址。先按 lane 计算地址间隔，再比较 global store 的 sectors/request。",
     LDS:"从 shared 加载到寄存器。地址分布与访问宽度共同决定理想 wavefront 数，超出的批次可提示 bank 冲突。",
     STS:"将线程的源值写入 shared。检查其他 warp 在读取该位置前是否已经经过必要的块同步。",
@@ -101,5 +103,15 @@
   }
   for(const el of [filter,select])el.addEventListener("input",()=>{page=0;render()});
   prev.addEventListener("click",()=>{page--;render()});next.addEventListener("click",()=>{page++;render()});
+  document.addEventListener("click", event => {
+    const link = event.target.closest("a[data-sass-kernel][data-sass-pc]");
+    if (!link || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    const {sassKernel, sassPc} = link.dataset;
+    if (!programs[sassKernel]?.some(row => hex(row[0]) === sassPc)) return;
+    select.value = sassKernel;
+    filter.value = sassPc;
+    page = 0;
+    render();
+  });
   render();lab.hidden=false;
 })();

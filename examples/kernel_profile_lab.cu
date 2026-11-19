@@ -370,11 +370,76 @@ static void run_tensor_gemm(const std::string& mode) {
 #endif
 }
 
+// One thread owns the same position in each of 64 channel planes.
+// Keep either all its channel values, or only one tile, live across the recurrence.
+template<int tile>
+__device__ __forceinline__ void advance_channels(const float* input, float* output,
+                                                 int positions, int iterations) {
+    int pos = blockIdx.x * blockDim.x + threadIdx.x;
+    if (pos >= positions) return;
+    #pragma unroll 1
+    for (int first = 0; first < 64; first += tile) {
+        float state[tile];
+        #pragma unroll
+        for (int j = 0; j < tile; ++j)
+            state[j] = input[(first + j) * positions + pos];
+        #pragma unroll 1
+        for (int k = 0; k < iterations; ++k) {
+            #pragma unroll
+            for (int j = 0; j < tile; ++j)
+                state[j] = fmaf(state[j], 1.000012f, 0.000317f);
+        }
+        #pragma unroll
+        for (int j = 0; j < tile; ++j)
+            output[(first + j) * positions + pos] = state[j];
+    }
+}
+
+template<int tile>
+__global__ void __maxnreg__(32) channels_limited(const float* input, float* output,
+                                                  int positions, int iterations) {
+    advance_channels<tile>(input, output, positions, iterations);
+}
+
+__global__ void channels_free(const float* input, float* output, int positions, int iterations) {
+    advance_channels<64>(input, output, positions, iterations);
+}
+
+static void run_register_study() {
+    constexpr int positions = 16384, iterations = 32, threads = 128;
+    auto input = values(64 * positions, 29);
+    auto reference = input;
+    for (float& value : reference)
+        for (int k = 0; k < iterations; ++k)
+            value = std::fma(value, 1.000012f, 0.000317f);
+    Buffer<float> x(input.size()), y(input.size());
+    x.upload(input);
+    const int blocks = positions / threads;
+    compare({
+        {"limited64", [&]{ channels_limited<64><<<blocks, threads>>>(x.p, y.p, positions, iterations); }},
+        {"limited8",  [&]{ channels_limited<8><<<blocks, threads>>>(x.p, y.p, positions, iterations); }},
+        {"free64",    [&]{ channels_free<<<blocks, threads>>>(x.p, y.p, positions, iterations); }}
+    }, y.p, reference);
+}
+
 int main(int argc,char** argv) {
-    std::string mode=argc==2?argv[1]:"";
+    std::string mode = (argc == 2 || argc == 3) ? argv[1] : "";
+    if (argc == 3) {
+        char* end = nullptr;
+        long device = std::strtol(argv[2], &end, 10);
+        int count = 0;
+        check(cudaGetDeviceCount(&count));
+        if (end == argv[2] || *end || device < 0 || device >= count) {
+            std::fprintf(stderr, "unknown CUDA device: %s\n", argv[2]);
+            return 1;
+        }
+        check(cudaSetDevice(static_cast<int>(device)));
+    }
     if (mode == "tensor-full" || mode == "tensor-thin" ||
         mode == "tensor-edge" || mode == "tensor-control" || mode == "tensor-grid") {
         run_tensor_gemm(mode);
+    } else if (mode == "registers") {
+        run_register_study();
     } else if (mode == "fma") {
         constexpr int threads = 32768, iterations = 256;
         auto x = values(threads*4, 29);
@@ -454,7 +519,7 @@ int main(int argc,char** argv) {
                  {"eight",[&]{softmax_eight_lanes<<<rows/16,128>>>(X.p,Y.p,rows);}},
                  {"warp32",[&]{softmax_warp32<<<rows/4,128>>>(X.p,Y.p,rows);}}},Y.p,ref);
     } else {
-        std::fprintf(stderr,"usage: kernel_lab gemm|transpose|reduction|graph-short|graph-skew|softmax|fma|hist-hot|hist-spread|tensor-full|tensor-thin|tensor-edge|tensor-control|tensor-grid\n");
+        std::fprintf(stderr,"usage: kernel_lab gemm|transpose|reduction|graph-short|graph-skew|softmax|fma|hist-hot|hist-spread|tensor-full|tensor-thin|tensor-edge|tensor-control|tensor-grid|registers [device]\n");
         return 1;
     }
 }
