@@ -101,5 +101,13 @@
   }
   for(const control of [select,search])control.addEventListener("input",()=>{page=0;render()});
   prev.addEventListener("click",()=>{page--;render()});next.addEventListener("click",()=>{page++;render()});
+  document.addEventListener("click", event => {
+    const link = event.target.closest("a[data-ncu-metric]");
+    if (!link || event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+    select.value = "";
+    search.value = link.dataset.ncuMetric;
+    page = 0;
+    render();
+  });
   render();root.hidden=false;
 })();

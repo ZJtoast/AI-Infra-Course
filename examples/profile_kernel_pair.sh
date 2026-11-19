@@ -18,8 +18,8 @@ mode=$1
 out=$2
 device_args=()
 if [[ $# == 3 ]]; then
-    if [[ ! $3 =~ ^[0-9]+$ || $mode == stride ]]; then
-        echo "CUDA_DEVICE must be a nonnegative device index for a kernel_lab workload" >&2
+    if [[ ! $3 =~ ^[0-9]+$ ]]; then
+        echo "CUDA_DEVICE must be a nonnegative device index" >&2
         exit 2
     fi
     device_args=("$3")

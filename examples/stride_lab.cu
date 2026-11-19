@@ -33,9 +33,20 @@ __global__ void stride_add(const float* x, const float* y, float* z,
 }
 
 int main(int argc, char** argv) {
-    if (argc != 2 || (std::strcmp(argv[1], "1") && std::strcmp(argv[1], "2") && std::strcmp(argv[1], "4"))) {
-        std::fprintf(stderr, "usage: stride_lab 1|2|4\n");
+    if ((argc != 2 && argc != 3) || (std::strcmp(argv[1], "1") && std::strcmp(argv[1], "2") && std::strcmp(argv[1], "4"))) {
+        std::fprintf(stderr, "usage: stride_lab 1|2|4 [CUDA_DEVICE]\n");
         return EXIT_FAILURE;
+    }
+    if (argc == 3) {
+        char* end = nullptr;
+        long device = std::strtol(argv[2], &end, 10);
+        int devices = 0;
+        CHECK(cudaGetDeviceCount(&devices));
+        if (end == argv[2] || *end || device < 0 || device >= devices) {
+            std::fprintf(stderr, "unknown CUDA device: %s\n", argv[2]);
+            return EXIT_FAILURE;
+        }
+        CHECK(cudaSetDevice(static_cast<int>(device)));
     }
     constexpr int n = 1 << 18;
     constexpr int threads = 256;

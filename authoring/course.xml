@@ -4392,21 +4392,23 @@ def _new_window(
 <section class="topic" id="l18-s013" data-track="Nsight Compute · 选择启动与阅读报告">
 <h3>Nsight Compute 的内核筛选</h3>
 <p class="prose">一次推理可能调用几百次同名矩阵乘。第一个调用可能在热身，第二个在给长提示做预填充，末尾那个只在处理一个新词。先用请求或引擎步的 NVTX 范围缩小候选，再按函数名和第几次启动筛选。打开报告后核对 grid、block 和输入形状；这一步决定你比较的是哪两次计算。</p>
-<p class="prose">在 <a class="term" href="#Def18e50ad048c9c6">Nsight Systems</a> 中记下目标内核、grid、block、dtype、<a class="term" href="#Def180890b549e548">shape</a>、<strong>调用阶段</strong>及相邻 <a class="term" href="#Def187b310905daa3">launch</a>。NCU 收集单个 kernel 的执行性质。先跑 basic，核对报告中的 launch 配置；再只开能回答当前问题的 section。命令示例分别输出两份同工作量的内存分析报告。较新的安装可能使用不同集合或报告默认扩展名，用本机帮助确认。</p>
+<p class="prose">在 <a class="term" href="#Def18e50ad048c9c6">Nsight Systems</a> 中记下目标内核、grid、block、dtype、<a class="term" href="#Def180890b549e548">shape</a>、<strong>调用阶段</strong>及相邻 <a class="term" href="#Def187b310905daa3">launch</a>。NCU 收集单个 kernel 的执行性质。先跑 basic，核对报告中的 launch 配置；再只开能回答当前问题的 section。下载<a href="examples/stride_lab.cu">实验源文件</a>并进入它所在的目录。用 nvidia-smi 查看设备编号，下面以 GPU=1 为例。程序的第一个参数选择元素步长，第二个参数选择 CUDA 设备。三次采集分别留下启动概况、步长 1 和步长 4 的访存报告。</p>
 <p class="prose"><strong>终端 · 锁定一次</strong><a class="term" href="#Def18a1a871769569"><strong>稳态</strong></a><strong> launch</strong></p>
 <listing><![CDATA[
 ```
+GPU=1
+nvcc -O3 -lineinfo -arch=sm_80 stride_lab.cu -o stride_lab
 ncu --version
 ncu --list-sections
 ncu --query-metrics
-ncu --nvtx --nvtx-include 'steady/' -k regex:stride_add --launch-count 1 --set basic -o base.ncu-rep ./stride_lab 1
-ncu --nvtx --nvtx-include 'steady/' -k regex:stride_add --launch-count 1 --section MemoryWorkloadAnalysis -o mem1.ncu-rep ./stride_lab 1
-ncu --nvtx --nvtx-include 'steady/' -k regex:stride_add --launch-count 1 --section MemoryWorkloadAnalysis -o mem4.ncu-rep ./stride_lab 4
+sudo -- "$(command -v ncu)" --nvtx --nvtx-include 'steady/' -k regex:stride_add --launch-count 1 --set basic -o base.ncu-rep ./stride_lab 1 "$GPU"
+sudo -- "$(command -v ncu)" --nvtx --nvtx-include 'steady/' -k regex:stride_add --launch-count 1 --section MemoryWorkloadAnalysis -o mem1.ncu-rep ./stride_lab 1 "$GPU"
+sudo -- "$(command -v ncu)" --nvtx --nvtx-include 'steady/' -k regex:stride_add --launch-count 1 --section MemoryWorkloadAnalysis -o mem4.ncu-rep ./stride_lab 4 "$GPU"
 ```
 ]]></listing>
-<p class="prose">steady/ 针对 push/pop <a class="term" href="#Def182438b33e4222">NVTX 范围</a>；最后的斜杠属于 <a class="term" href="#Def183a7e7b0ce664">NVTX</a> 表达式。过滤后可能还有多个实例，用 launch-skip / launch-count 并再次核对配置和序号。看到零个 kernel，先放宽范围和名字过滤，分别加回；看到多个同名实例，先比 shape 和调用顺序。若工具提示 <code class="inline-id">ERR_NVGPUCTRPERM</code>，采集缺少所需计数器权限，仍可离线打开现有报告。</p>
+<p class="prose">steady/ 针对 push/pop <a class="term" href="#Def182438b33e4222">NVTX 范围</a>；最后的斜杠属于 <a class="term" href="#Def183a7e7b0ce664">NVTX</a> 表达式。过滤后可能还有多个实例，用 launch-skip / launch-count 并再次核对配置和序号。看到零个 kernel，先放宽范围和名字过滤，分别加回；看到多个同名实例，先比 shape 和调用顺序。若工具提示 <code class="inline-id">ERR_NVGPUCTRPERM</code>，核对采集命令是否通过课程服务器授权的 sudo ncu 启动。打开报告和导出数据时用普通账号。</p>
 <p class="prose"><a href="https://docs.nvidia.com/nsight-compute/NsightComputeCli/index.html">官方 CLI · 过滤、section 与 replay</a></p>
-<p class="prose">过滤 kernel 名称后若在一轮出现三次，先在 Systems 记录目标的 NVTX、序号、输入形状与 grid，再用 Compute 限制捕获范围。若两版优化改变了 launch 数，序号不再一一对应，应改用消费的<a class="term" href="#Def1845bb44d04ce3">张量</a>或阶段作为标记。最终打开报告核对实际选中实例，用内核名、启动序号和工作负载确认两次比较的是对应实例。</p>
+<p class="prose">两版实现的调用序号有时会错开。例如旧版把偏置单独相加，新版在矩阵乘里顺手加完，后面的启动就都提前一位。此时按输出张量和 NVTX 阶段配对，再核对两版各自的启动配置。</p>
 <exercise id="Q18_15" kind="普通题 08" title="如何选中同一阶段的内核实例" next="Q18_26">
 <p><strong>情境　</strong>两个报告中同名 attention kernel 分别来自 <a class="term" href="#Def180247674f810d">prefill</a> 的 512 行 <a class="term" href="#Def183b7755ef3059">query</a>、<a class="term" href="#Def18f28fe0b0f9e5">decode</a> 的 1 行 query，且 grid 不同。你要评估新版对稳态单词 decode 的影响，已有报告只能用来辨认名字。两版都能加 NVTX 范围并固定相同输入。</p>
 <p id="prompt-Q18_15"><strong>问题　</strong>写出从一次代表性请求到可比较的两份 ncu 报告的步骤，具体标出阶段、输入、设备和实例。若新版优化本身改变了 block 大小，是否必须将它强改回旧值？</p>
@@ -4531,8 +4533,9 @@ ncu --import mem4.ncu-rep --page raw --csv
 ```
 ncu --version
 ncu --list-sections
-ncu --query-metrics-mode suffix --metrics sm__throughput --chip ga100
-ncu --nvtx --nvtx-include 'steady/' --section SpeedOfLight --launch-count 1 -k regex:stride_add -o sol_stride.ncu-rep ./stride_lab 1
+GPU=1
+ncu --query-metrics --query-metrics-mode suffix --metrics sm__throughput --chips ga100
+sudo -- "$(command -v ncu)" --nvtx --nvtx-include 'steady/' --section SpeedOfLight --launch-count 1 -k regex:stride_add -o sol_stride.ncu-rep ./stride_lab 1 "$GPU"
 ncu --import sol_stride.ncu-rep --page details
 ncu --import sol_stride.ncu-rep --page raw --csv
 ```
@@ -4646,8 +4649,12 @@ ncu --import sol_stride.ncu-rep --page raw --csv
 <p class="prose">一个线程从数组读数时，会先向片上的存储系统发请求。这批数据可能已经留在 L1 或 L2；只有需要从更远处取回时，才会产生相应的显存读取。报告把各层分开计数。沿同一批地址从近到远读，才能分清一次优化省掉的是重复的加载指令，还是实际从显存搬进来的字节。</p>
 <p class="prose">例如<a href="#l18-kernel-gemm">本课的 FP32 矩阵乘</a>加上 shared tile 后，全局加载请求从 8,388,608 个降到 524,288 个。两次 DRAM 读取却都约 2.1 MB。原来相同的矩阵元素已能在片上反复命中；现在一个块只需共同取一次，省掉了大量重复请求。只看 DRAM 一栏会漏掉这次改动。</p>
 <p class="prose">MemoryWorkloadAnalysis 的图可以按访存请求经过的层级，从 <a class="term" href="#Def18b5df4538d2b1">SM</a> 追踪到 L1/TEX、<a class="term" href="#Def1849c44fcbbd54">L2</a>、<a class="term" href="#Def1886a02b7b9c8b">DRAM</a> 查看，表按层拆出请求、<a class="term" href="#Def189e5a7e6a9f21">sector</a>、命中与带宽。读写分开，atomic、local、constant、texture 和 shared 也有不同路径。先按有效输出元素归一化，再比事务覆盖浪费与缓存<a class="term" href="#Def18f465e0254961">复用</a>。local memory 是线程私有<a class="term" href="#Def18a3ed8d00f746">地址空间</a>，可能来自<a class="term" href="#Def180d6e4e28f51c">寄存器</a>溢出，实际可通过缓存再访问<a class="term" href="#Def18a9ee0ebd3974">显存</a>。</p>
-<p class="prose">shared memory 高冲突时回到单条指令的 <a class="term" href="#Def18674c7f084ebc">lane</a>→<a class="term" href="#Def185570496ecf0f">bank</a> 映射。例如 32 个 lane 读 <a class="term" href="#Def1828c554f6c5e8">FP32</a> 的不同地址，行跨度 32 时可能全部落同一 bank；加一列 padding 后 bank 依次错开。同址广播的行为与不同地址落同 bank 不同。若 padding 后冲突指标降而时间不动，检查被改访问在指令混合中占比，以及新增 shared 是否降低<a class="term" href="#Def18c0c8484528dc">驻留</a>。</p>
-<p class="prose">32 个 lane 若都读同一个 shared 字，和各读同一个 bank 中 32 个不同字，在 bank 编号图上都能画成一列。前者对支持的读取可广播，后者会产生冲突。分析时同时列字地址与 bank 编号；向二维数组行尾 padding 解决的是不同地址的<a class="term" href="#Def18d9a4c6de44fe">步长</a>冲突，对同一字的广播无须付出额外 shared 容量。</p>
+<p class="prose">在 Source 选一条读 shared 的 LDS 指令。先列四个线程实际读的字地址，再算它们落入哪个 bank。在这个例子里，每个字是一个 FP32，bank 编号取字地址除以 32 的余数。下表选 lane 0、1、2 和 31，地址都从字 0 起算。</p>
+<table><thead><tr><th>一个 warp 读什么</th><th>四个 lane 的字地址</th><th>对应 bank</th><th>硬件如何服务这次读取</th></tr></thead><tbody>
+<tr><td>同一个字</td><td>0，0，0，0</td><td>0，0，0，0</td><td>读一次，广播给各 lane</td></tr>
+<tr><td>每行 32 个字，读第 0 列</td><td>0，32，64，992</td><td>0，0，0，0</td><td>同一 bank 要依次服务 32 个不同字</td></tr>
+<tr><td>每行 33 个字，读第 0 列</td><td>0，33，66，1023</td><td>0，1，2，31</td><td>32 个 bank 各承担一个字</td></tr></tbody></table>
+<p class="prose">在转置程序里，第 33 列只改变相邻两行在 shared 中的地址距离。沿同一条 LDS 比较 actual 和 ideal wavefront，便能看到多出来的服务批次是否消失。再看整个转置的独立计时，检查省下这些批次能节约多少时间。<a href="#l18-kernel-transpose">转置的三版实现与实测结果</a></p>
 <exercise id="Q18_20" kind="进阶题 12" title="共享内存的 bank 冲突" next="Q18_24">
 <p><strong>情境　</strong><a class="term" href="#Def189a324576344e">共享内存</a>有 32 个 bank、每个字 4 B。数组以 FP32 <a class="term" href="#Def18250aedc7b19c">行主序</a>存储，首字位于 bank 0。32 个 lane 分别从第 l 行第 c 列读一个字，地址彼此不同。先取行宽 32，再试 33，最后试 34；只分析这条标量 <a class="term" href="#Def186aebaceb6afe">warp</a> 访问。</p>
 <p id="prompt-Q18_20"><strong>问题　</strong>写出 bank 编号并为三种行宽分别给出命中的不同 bank 数及每个被访问的 bank 需服务多少个不同字地址。假设 padding 增大了每块 shared，用哪些数据验证值不值得？</p>
@@ -4787,8 +4794,9 @@ ncu --import sol_stride.ncu-rep --page raw --csv
 <p class="prose">在报告的 Source 页使用左右分栏，左边选择 CUDA-C，右边选择 SASS。点源语句后，右栏会高亮编译器映射到它的指令。若只有机器码，用源文件定位功能指向同一次编译的源码；采集机保留源码时，可在编译加 <code class="inline-id">-lineinfo</code>，在 NCU 命令加 <code class="inline-id">--import-source yes</code>。PTX 是编译中间表示，实际执行的机器指令看 SASS。</p>
 <listing><![CDATA[
 ```
+GPU=1
 nvcc -O3 -lineinfo -arch=sm_80 stride_lab.cu -o stride_lab
-ncu --nvtx --nvtx-include 'steady/' -k regex:stride_add --launch-count 1 --import-source yes --section SchedulerStats --section WarpStateStats --section SourceCounters -o stride-src ./stride_lab 4
+sudo -- "$(command -v ncu)" --nvtx --nvtx-include 'steady/' -k regex:stride_add --launch-count 1 --import-source yes --section SchedulerStats --section WarpStateStats --section SourceCounters -o stride-src ./stride_lab 4 "$GPU"
 ncu --import stride-src.ncu-rep --page source --print-source sass
 cuobjdump --dump-sass ./stride_lab
 ncu-ui stride-src.ncu-rep
@@ -4826,14 +4834,14 @@ ncu-ui stride-src.ncu-rep
 <p class="prose">自定义 section 将常用 metric 收进同一组，NvRules 可将经验写成可审查规则；Python Report Interface 可以离线读取已采报告。自动化脚本应保存原始数值、单位、架构、次数和输入，不仅存“通过”。可用外部 CUPTI 收集器有时会与 Nsight 的采集冲突，性能库同时占用计数器时应拆成独立运行。</p>
 <p class="prose"><a href="https://docs.nvidia.com/nsight-compute/NsightCompute/index.html">Compute GUI · 页面、交互调试与基线比较</a></p>
 <p class="prose"><a href="https://docs.nvidia.com/nsight-compute/ProfilingGuide/index.html">Compute · section、指标、采样、重放与支持范围</a></p>
-<p class="prose">把一次报告设成 baseline 只是保存比较基准，不会让另一次的频率、输入或缓存自动一致。以同一 workload 各跑多次正常计时形成波动范围，再看 profiler 提供的机制差异。自定义规则若只凭一个高阈值触发，给它一个不会受该机制影响的反例，检查是否仍触发，才能知道该规则的适用边界。</p>
+<p class="prose">读基线差值时先看绝对数。假设同一条指令的额外 wavefront 从 32 降到 1，差值为 −31。若另一栏显示 N/A，则在两份报告的 Raw 页搜索相同的完整指标名。缺采的一侧可以按相同条件补采，随后用相同输入独立计时。</p>
 </section>
 <section class="topic" id="l18-s024" data-track="Nsight Compute · 指令、访存与性能上界">
 <h3>采集扰动与 A/B 实验</h3>
 <p class="prose">性能计数器要靠硬件读取，同一轮执行只能同时采到一部分。你在 GUI 勾选更多 section 后，NCU 可能多跑几遍同一个 kernel，然后把各遍得到的计数放进一份报告。用这些数解释指令和访存；要比较用户实际等多久，再关掉 profiler，以相同输入重复计时。</p>
-<p class="prose">一遍执行能同时读取的硬件计数器有限。kernel <strong>replay</strong> 可能为不同 passes 保存与还原写入数据，缓存控制、时钟策略和 <a class="term" href="#Def187b310905daa3">launch</a> 串行化也会改变环境。随机输入、原子执行顺序、多进程和必须同时前进的 collective 特别容易失配。先缩小 section 集，在可确定<a class="term" href="#Def1838287231976d">重放</a>的单核上回答局部问题。必须保留跨核依赖时，按本版工具支持的 application/range replay 及同步要求设计；并行通信端到端优先回到 Systems。</p>
+<p class="prose">以一条原地更新数组的 kernel 为例。如果直接跑两遍，第二遍会读到第一遍改过的数据。使用 kernel replay 分遍采集时，工具可以保存并恢复被写过的内存，使下一遍从相同的数据出发。缓存里还留着哪些行，是另一个条件。要复现上一条 kernel 带来的缓存命中，可以选 application replay，从头执行包括上游计算在内的程序。</p>
 <p class="prose">把无 profiler 的程序交替运行 <span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><mtext>A/B</mtext></math></span>，固定到达和 warmup，分别报告中位数、样本量、长尾分位及测量窗口；记录编译参数与数值容差。再用短 nsys 确认<a class="term" href="#Def187f8faf02bd76">关键路径</a>缩短，用最少的 ncu section 解释原因。一个占 20% 串行时间的 kernel 即便提速 2 倍，端到端理想加速也只有 <span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><mfrac><mrow><mn>1</mn></mrow><mrow><mn>0.8</mn><mo>+</mo><mn>0.1</mn></mrow></mfrac><mo>≈</mo><mn>1.11</mn></math></span> 倍；若原本被隐藏，关键路径甚至可能不动。</p>
-<p class="prose">生产中第 2 次 launch 若<a class="term" href="#Def18f465e0254961">复用</a>第 1 次留在 <a class="term" href="#Def1849c44fcbbd54">L2</a> 的数据，单独抓第 2 次重放所见的缓存状态可能不同。记录 replay 模式、缓存控制和范围，必要时采包含前置操作的代表性范围，并用未剖析的成对计时作参照。多次重放可收集更多计数器，各次重放时的并发和缓存状态可能变化。</p>
+<p class="prose">下一节用同一个可执行文件做两次采集，沿加载请求、L2 查找和显存接口，对照前一次启动留下的数据。</p>
 <exercise id="Q18_21" kind="普通题 10" title="多遍重放耗时能否代表生产内核耗时" next="Q18_16">
 <p><strong>情境　</strong>为一次 launch 选了多个 ncu section。工具报告要分 6 次 pass 收集，外部秒表记录整个带 profiler 的进程运行 120 ms。基准目标是得到生产条件下此 kernel 的 <a class="term" href="#Def188552a9d24381">GPU</a> 时长，以及它的访存机制。</p>
 <p id="prompt-Q18_21"><strong>问题　</strong>同事把 <span class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><mfrac><mrow><mn>120</mn></mrow><mrow><mn>6</mn></mrow></mfrac><mo>=</mo><mn>20</mn><mi mathvariant="normal">m</mi><mi mathvariant="normal">s</mi></math></span> 填进性能表。指出至少两种混入口径的时间，分别设计一次正常设备计时和一次计数器采集，并说明如何保证测到同类 launch。</p>
@@ -4851,9 +4859,35 @@ ncu-ui stride-src.ncu-rep
 </answer>
 </exercise>
 </section>
+<section class="topic" id="l18-cache-replay" data-track="Nsight Compute · 指令、访存与性能上界">
+<h3>从加载请求到显存：同一条指令的冷、热缓存读数</h3>
+<p class="prose">相邻线程各做一次 <code class="inline-id">z[i] = x[i] + y[i]</code>。两个输入各有 262,144 个 FP32 数，所以从程序看，一次启动读取 2 × 262,144 × 4 = 2,097,152 B，正好 2 MiB。实际有多少字节要从显存取回，取决于执行前已有多少数据留在芯片上。</p>
+<p class="prose">用<a href="examples/stride_lab.cu">跨步向量加法程序</a>，把步长设为 1。程序在同一流上先用相同数组预热四次，接着进入名为 steady 的范围，再执行四十次加法。这次只看范围内的第一次。采两份报告，一份让 NCU 在测量前清缓存（all），一份让预热留下的数据继续留在缓存里（none）。两次都用 application replay，每遍从头运行程序，重新做四次预热。</p>
+<listing><![CDATA[
+```bash
+# GPU 是本次复现选用的 CUDA 设备编号
+GPU=1
+nvcc -O3 -lineinfo -arch=sm_80 stride_lab.cu -o stride_lab
+metrics=l1tex__t_requests_pipe_lsu_mem_global_op_ld.sum,l1tex__t_sectors_pipe_lsu_mem_global_op_ld.sum
+metrics+=,lts__t_sectors_srcunit_tex_op_read.sum,lts__t_sectors_srcunit_tex_op_read_lookup_hit.sum,dram__bytes_read.sum
+for policy in all none; do
+    sudo -- "$(command -v ncu)" --replay-mode application --cache-control "$policy" \
+        --nvtx --nvtx-include 'steady/' -k regex:stride_add --launch-count 1 \
+        --metrics "$metrics" -o "stride-$policy" ./stride_lab 1 "$GPU"
+done
+ncu --import stride-none.ncu-rep --page raw --csv --print-units base --metrics "$metrics"
+```
+]]></listing>
+<p class="prose">在 ncu-ui 打开两份报告。在 Summary 选 stride_add，对照 Device、Grid Size、Block Size：本次两份报告都是 A800 的设备 1，1,024 个块，每块 256 个线程。换到 Raw，搜索命令中的完整指标名。下面前三行跟着加载从线程走到 L2，末行是显存接口的字节数。</p>
+<table><thead><tr><th>读数与单位</th><th>清缓存（all）</th><th>保留缓存（none）</th></tr></thead><tbody><tr><td><a href="#l18-counter-catalog" data-ncu-metric="l1tex__t_requests_pipe_lsu_mem_global_op_ld.sum">全局加载请求数</a></td><td>16,384</td><td>16,384</td></tr><tr><td><a href="#l18-counter-catalog" data-ncu-metric="l1tex__t_sectors_pipe_lsu_mem_global_op_ld.sum">加载涉及的 32 B 扇区数</a></td><td>65,536</td><td>65,536</td></tr><tr><td>L2 来自 TEX 路径的读扇区：<a href="#l18-counter-catalog" data-ncu-metric="lts__t_sectors_srcunit_tex_op_read_lookup_hit.sum">命中</a> / <a href="#l18-counter-catalog" data-ncu-metric="lts__t_sectors_srcunit_tex_op_read.sum">查找总数</a></td><td>0 / 65,536</td><td>64,544 / 65,536</td></tr><tr><td><a href="#l18-counter-catalog" data-ncu-metric="dram__bytes_read.sum">从 DRAM 读出的字节数</a></td><td>2,100,096 B</td><td>128 B</td></tr></tbody></table>
+<p class="prose">先读前两行。32 个线程组成一个满 warp，从 x 连续读 128 B，再从 y 读 128 B。每次这样的加载覆盖四个 32 B 扇区。两列用 65,536 ÷ 16,384 都得到 4，可见保留缓存后，程序仍用相同的地址排列读完了两个向量。</p>
+<p class="prose">差别出现在 L2。清缓存后，所查的扇区全部未命中，显存接口读到约 2 MiB。保留缓存时，64,544 ÷ 65,536 ≈ 98.49% 的读扇区在 L2 命中，显存接口只记录了 128 B。L2 两列限定为 TEX 来源的读操作，DRAM 一行则统计整个接口。这份报告合并了三遍应用运行的计数，不能把两行相减来追踪某个未命中扇区的去向。</p>
+<p class="prose">如果要改相邻线程的地址排列，先比较每个请求触及的扇区数。如果上线后是几个算子接力读同一个张量，就保留这些生产和消费步骤，再测 L2 命中与显存字节。要验收提速，还需在原工作负载上独立计时。这里两次运行使用同一个可执行文件，改变的是采集时的缓存条件。</p>
+<p class="prose"><a href="https://docs.nvidia.com/nsight-compute/ProfilingGuide/index.html#cache-control">NVIDIA 对缓存控制与重放的说明</a></p>
+</section>
 <section class="topic" id="l18-kernel-lab" data-track="Nsight Compute · 分步优化与验收">
 <h3>对照实验的输入、报告与计时边界</h3>
-<p class="prose">同一个 CUDA 文件包含矩阵乘、转置、分段规约、稀疏图邻居求和和逐行 softmax。另一个向量加法程序专门改变访存步长。下列五组对照均在单张 A800 80GB PCIe 上以 CUDA 12.9、SM80、FP32 运行。每个实现先与 CPU 逐元素比较，再轮换先后次序计时五轮。每轮用 CUDA event 夹住同一流内的 20 次启动，取每次平均间隔，再取五轮中位数；输入可留在缓存中。</p>
+<p class="prose">同一个 CUDA 文件包含矩阵乘、转置、分段规约、稀疏图邻居求和和逐行 softmax。另一个向量加法程序专门改变访存步长。下表五类算子的特征值、矩阵元素和累加结果采用 FP32，图索引用整数。测试使用单张 A800 80GB PCIe，编译器为 CUDA 12.9，目标为 SM80。每个实现先与 CPU 逐元素比较，再轮换先后次序计时五轮。每轮用 CUDA event 夹住同一流内的 20 次启动，取每次平均间隔，再取五轮中位数；输入可留在缓存中。</p>
 <p class="prose"><a href="examples/kernel_profile_lab.cu">下载 CUDA 对照程序</a>　<a href="examples/profile_kernel_pair.sh">下载按算子采集的脚本</a>　<a href="examples/stride_lab.cu">下载跨步向量加法</a></p>
 <listing><![CDATA[
 ```
@@ -4864,7 +4898,7 @@ bash profile_kernel_pair.sh --sudo transpose reports
 ncu-ui reports/transpose-transpose_tile32.ncu-rep
 ```
 ]]></listing>
-<p class="prose">在放有二进制文件的目录执行脚本。它按完整 kernel 名称分别筛选每个实现，跳过本实现的一次正确性校验和一次热身，采同一轮的首个计时启动；向量加法只采 steady 范围内的第一次启动。把 transpose 换成 gemm、reduction、graph-short、graph-skew、softmax、stride、fma、hist-hot 或 hist-spread，就能抓到该组的三份报告。寄存器实验用 registers，各种 Tensor Core 形状见后面的矩阵乘实验。先用 --dry-run 检查命令，再选两份报告做基线对比。课程服务器为 NCU 开放了 sudo 采集权限。下面各算子的计数来自 A800 PCIe 上用 Nsight Compute 2025.2 实际采集的一次匹配启动。算子表里的运行时间另用 CUDA event 计时，两组实验都使用 A800 PCIe。</p>
+<p class="prose">在放有二进制文件的目录执行脚本。它按完整 kernel 名称分别筛选每个实现，跳过本实现的一次正确性校验和一次热身，采同一轮的首个计时启动；向量加法只采 steady 范围内的第一次启动。将 transpose 改为 gemm、reduction、graph-short、graph-skew、softmax、fma、hist-hot 或 hist-spread 可采相应的三份报告。选 stride 时先编译旁边的 stride_lab.cu，脚本会调用独立的 stride_lab 程序。两种程序和采集脚本都支持末尾传入 CUDA 设备编号。寄存器实验用 registers，各种 Tensor Core 形状见后面的矩阵乘实验。先用 --dry-run 检查命令，再选两份报告做基线对比。课程服务器为 NCU 开放了 sudo 采集权限。下面各算子的计数来自 A800 PCIe 上用 Nsight Compute 2025.2 实际采集的一次匹配启动。算子表里的运行时间另用 CUDA event 计时，两组实验都使用 A800 PCIe。</p>
 <table><thead><tr><th>输入和有效输出</th><th>实现顺序</th><th>中位时间（µs/次）</th></tr></thead><tbody><tr><td>512 × 512 方阵乘，写出 262,144 项</td><td>逐线程点积 → 16 × 16 分块 → 每线程双列</td><td>100.762 → 65.792 → 57.446</td></tr><tr><td>2048 × 2048 转置，所有元素换行列</td><td>直接写 → shared 行距 32 → 行距 33</td><td>104.858 → 40.090 → 19.763</td></tr><tr><td>4096 段 × 256 项，每段输出一个和</td><td>块内树 → warp 收尾 → 两级 warp</td><td>10.291 → 7.270 → 6.810</td></tr><tr><td>32,768 顶点；先全短行，再混入长行</td><td>一行分别派 1、4、32 个 lane</td><td>短行 3.942 → 4.250 → 9.523；混合 12.800 → 7.885 → 10.138</td></tr><tr><td>32,768 行 × 32 列，每行独立归一化</td><td>一行分别派 1、8、32 个 lane</td><td>46.234 → 6.502 → 9.114</td></tr></tbody></table>
 <p class="prose"><strong>从编译资源判断下一次要量什么</strong></p>
 <table><thead><tr><th>同一 SM80 编译目标</th><th>每线程寄存器 / 每块静态 shared</th><th>据此选择对照</th></tr></thead><tbody><tr><td>GEMM 直接、分块、双列</td><td>均为 32 个寄存器；shared 分别为 0、2,048、3,072 B</td><td>本次双列版增加 shared 复用，同时未提高每线程寄存器分配；读每输出的加载数和发射情况。</td></tr><tr><td>转置直接、tile32、tile33</td><td>20、22、22 个寄存器；shared 为 0、4,096、4,224 B</td><td>后两版 shared 只差 128 B。查占用门槛，再到同一条 shared 加载比较额外 wavefront。</td></tr><tr><td>规约 tree、tail、warp</td><td>12、14、14 个寄存器；shared 为 1,024、1,024、32 B</td><td>tree 到 tail 的 shared 分配相同，变化在循环后半段；查动态 BAR 和 shared 指令。</td></tr><tr><td>CSR 每行 1、4、32 个 lane</td><td>三版均为 32 个寄存器，无静态 shared</td><td>分配量相同，先查有效 lane、间接加载和沿长行循环的次数。</td></tr><tr><td>Softmax 每行 1、8、32 个 lane</td><td>分别为 31、21、15 个寄存器，无静态 shared</td><td>整 warp 版寄存器最少，本组最快的却是八 lane 版。检查动态指令和每行的发射数。</td></tr></tbody></table>
@@ -4926,9 +4960,20 @@ __global__ void stride_add(const float* x, const float* y, float* z,
 ```
 
 int main(int argc, char** argv) {
-    if (argc != 2 || (std::strcmp(argv[1], "1") && std::strcmp(argv[1], "2") && std::strcmp(argv[1], "4"))) {
-        std::fprintf(stderr, "usage: stride_lab 1|2|4\n");
+    if ((argc != 2 && argc != 3) || (std::strcmp(argv[1], "1") && std::strcmp(argv[1], "2") && std::strcmp(argv[1], "4"))) {
+        std::fprintf(stderr, "usage: stride_lab 1|2|4 [CUDA_DEVICE]\n");
         return EXIT_FAILURE;
+    }
+    if (argc == 3) {
+        char* end = nullptr;
+        long device = std::strtol(argv[2], &end, 10);
+        int devices = 0;
+        CHECK(cudaGetDeviceCount(&devices));
+        if (end == argv[2] || *end || device < 0 || device >= devices) {
+            std::fprintf(stderr, "unknown CUDA device: %s\n", argv[2]);
+            return EXIT_FAILURE;
+        }
+        CHECK(cudaSetDevice(static_cast<int>(device)));
     }
     constexpr int n = 1 << 18;
     constexpr int threads = 256;
@@ -5001,7 +5046,7 @@ int main(int argc, char** argv) {
 <p class="prose"><strong>用两次加载和一次写回复算跨度</strong></p>
 <p class="prose">同一批 262,144 个有效输出，每项读取两个 FP32、写一个 FP32。满 warp 有 32 个 lane，因此每条数组流发出 262,144/32 = 8,192 个请求，两条加载流合计 16,384 个。三种跨度的报告都给出相同的请求数。</p>
 <table><thead><tr><th>相邻 lane 的元素跨度</th><th>每个加载请求的扇区</th><th>每个写请求的扇区</th><th>DRAM 读取 / 有效输出</th></tr></thead><tbody><tr><td>1</td><td>65,536 / 16,384 = 4</td><td>32,768 / 8,192 = 4</td><td>约 8.01 B</td></tr><tr><td>2</td><td>131,072 / 16,384 = 8</td><td>65,536 / 8,192 = 8</td><td>约 16.01 B</td></tr><tr><td>4</td><td>262,144 / 16,384 = 16</td><td>131,072 / 8,192 = 16</td><td>约 32.01 B</td></tr></tbody></table>
-<p class="prose">在 Raw 取 dram__bytes_read.sum，步长 4 的记录为 8,391,296 B。除以 262,144 个输出得 32.01 B，而数学上两次读取只需要 8 B。这里 L1 请求变散与显存读取同步增长。后续可试把两条输入流改成紧凑存储；若真实业务每次都要打包，再按同样输入把打包成本加回去。</p>
+<p class="prose">在 Raw 取 dram__bytes_read.sum，步长 4 的记录为 8,391,296 B。除以 262,144 个输出得 32.01 B，而数学上两次读取只需要 8 B。这组报告使用 NCU 默认的缓存清理设置，散开的地址在这次采集中也带来了更多显存读取。<a href="#l18-cache-replay">保留预热数据的对照</a>展示了相同地址排列下显存读数怎样变化。后续可试把两条输入流改成紧凑存储；若真实业务每次都要打包，再按同样输入把打包成本加回去。</p>
 </section>
 <section class="topic" id="l18-kernel-transpose" data-track="Nsight Compute · 分步优化与验收">
 <h3>转置与跨步读取：区分 global 事务和 shared bank</h3>
@@ -5059,7 +5104,7 @@ bash profile_kernel_pair.sh --sudo tensor-full reports
 <p class="prose"><strong>确认精度和执行管线</strong></p>
 <p class="prose">打开本课的 <a href="#l18-sm80-source-lab">SM80 汇编对照</a>。选 <code class="inline-id">half_scalar_gemm</code> 搜 FFMA：输入来自半精度数组，内积仍用标量浮点管线。切到 <code class="inline-id">warp_tile_gemm_1</code> 搜 HMMA，函数内偏移 0x05f0 处的 <code class="inline-id">HMMA.16816.F32</code> 使用矩阵寄存器片段，结果累加到 FP32 寄存器组。一次高级 WMMA 调用可展开成多条 SASS 指令，实际执行次数又受外层 K 循环、输出 tile 数和分支影响。只数编译列表中出现几次 HMMA，无法换算这次 launch 的总运算量。</p>
 <p class="prose">对自己的报告，先在 Source 点内层矩阵乘，确认对应 PC；再在 Details 展开 Compute Workload Analysis，核对 Tensor 管线确实在运行。GA100 可以查询 <code class="inline-id">sm__inst_executed_pipe_tensor</code>（warp 层面执行的 Tensor 管线指令）、<code class="inline-id">sm__pipe_tensor_cycles_active</code>（Tensor 管线活跃的周期）和 <code class="inline-id">sm__ops_path_tensor_src_fp16_dst_fp32</code>（FP16 输入、FP32 结果所对应的数学操作）。这三项分开回答发了多少指令、管线活跃了多久、完成了多少硬件数学操作。使用本次请求真正需要的 M、N、K 另算有效 FLOP，才能和业务工作量对齐。<a href="https://docs.nvidia.com/cuda/archive/12.9.1/cuda-c-programming-guide/index.html#warp-matrix-functions">CUDA 12.9 的 warp 矩阵操作与对齐条件</a></p>
-<p class="prose">单独采薄矩阵的分块实验时，运行 <code class="inline-id">bash profile_kernel_pair.sh tensor-grid reports</code>。三种配置共用同一个设备符号；脚本跳过本轮三个校验启动，并按每组一次预热、二十次计时的顺序，分别选择各组第一次计时启动。先在 Launch Statistics 核对 block 大小依次为 32、64、128 个线程，再比较采集值。</p>
+<p class="prose">单独采薄矩阵的分块实验时，运行 <code class="inline-id">bash profile_kernel_pair.sh --sudo tensor-grid reports</code>。三种配置共用同一个设备符号；脚本跳过本轮三个校验启动，并按每组一次预热、二十次计时的顺序，分别选择各组第一次计时启动。先在 Launch Statistics 核对 block 大小依次为 32、64、128 个线程，再比较采集值。</p>
 <p class="prose"><strong>核对库调用的布局</strong></p>
 <p class="prose">cuBLAS 的经典 GEMM 接口按列解释矩阵。把本例行主序的同一片内存按列看过去，A、B、C 分别成为各自的转置；于是目标从 C=A·B 写成 C 的转置等于 B 的转置乘 A 的转置。程序先传 B 的指针，再传 A，库看到的输出形状为 N×M。主维长度使用各自的物理行距；即使只有 17 行真实数据，也要用补齐后缓冲区实际采用的 stride。单元测试若只使用相同常量的方阵，会掩盖输入交换错误，本实验刻意让两个输入使用不同的行列模式。<a href="https://docs.nvidia.com/cuda/archive/12.9.1/cublas/index.html#cublasgemmex">cuBLAS 混合精度 GEMM 接口</a></p>
 <p class="prose"><strong>在同一组输出上核对标量指令和矩阵指令</strong></p>
@@ -5160,7 +5205,7 @@ ncu --import reports/blas-edge.ncu-rep --page source --print-source sass
 <p class="prose">以四链为例，67,108,864 / (8.5504 × 10⁻⁶) ≈ 7.85 × 10¹² FLOP/s。对比四链与单链时，运行时间缩为原来的约 35.5%。除了独立链，内层循环计数和分支也被同批的多次乘加分摊；读报告时把整数控制指令的动态数与 FFMA 的动态数分别归一到输出值，才能区分这两项变化。</p>
 <p class="prose"><strong>在 Source 找到依赖关系，给出下一项实验</strong></p>
 <p class="prose">在二进制的单链版，偏移 0x01f0 处的 <code class="inline-id">FFMA R7, R7, R6, …</code> 读写同一 R7。四链版在 0x0260、0x0270、0x0290、0x02a0 的 FFMA 分别更新 R17、R19、R13、R15。省略号代表立即数加项。打开 Register Dependencies 时先追同一链的两次写读，再看另一条链的寄存器。增加链数没有减少 256 次递推，却给调度器提供了可以穿插的工作。</p>
-<p class="prose">用 <code class="inline-id">bash profile_kernel_pair.sh fma reports</code> 生成三份报告。在 Details 先对齐 grid、block 与 FP32 工作量，再到 Scheduler 对比 eligible、issue active，到 Compute Workload 对比 FP32 管线，到 Source 对比循环分支和 FFMA。若链数增长伴随 eligible 与管线利用率上升，再结合每输出的周期下降，就支持“发射能更好地隐藏依赖延迟”。如果发射率已高且 FP32 接近可持续上限，就先减少有用工作或改算法。若寄存器增加后出现 LDL/STL 和局部空间流量，先回退链数再比较。</p>
+<p class="prose">用 <code class="inline-id">bash profile_kernel_pair.sh --sudo fma reports</code> 生成三份报告。在 Details 先对齐 grid、block 与 FP32 工作量，再到 Scheduler 对比 eligible、issue active，到 Compute Workload 对比 FP32 管线，到 Source 对比循环分支和 FFMA。若链数增长伴随 eligible 与管线利用率上升，再结合每输出的周期下降，就支持“发射能更好地隐藏依赖延迟”。如果发射率已高且 FP32 接近可持续上限，就先减少有用工作或改算法。若寄存器增加后出现 LDL/STL 和局部空间流量，先回退链数再比较。</p>
 <p class="prose">试算一个后续变体：若在相同工作量下平均间隔为 8.0 µs，它比本组四链版快约 6.4%，绝对差只有 0.55 µs。此时先看重复运行的离散度和真实请求调用次数；即使单核变化可重复，也要乘上关键路径内的调用次数，才能估计业务收益。</p>
 <p class="prose"><strong>把依赖链与循环控制的收益分开</strong></p>
 <p class="prose">用 Raw 核对三版每次都发射 1,048,576 条 warp FFMA，32 个 lane 全参加，共 33,554,432 次线程乘加。Source 的寄存器依赖显示四链版可以交错更新四个不同的目标寄存器。Scheduler Statistics 中每调度器每活跃周期的 eligible warp 从 0.32 升到 0.38、0.55，发射活跃比例从 31.32% 升到 35.65%、47.71%。这组数把“独立乘加可以提前发射”与实际发射机会联系起来。</p>
@@ -5179,7 +5224,7 @@ ncu --import reports/blas-edge.ncu-rep --page source --print-source sass
 <tr><td>64 个，自由分配</td><td>80</td><td>0 / 0</td><td>0 / 0</td><td>11.264 µs</td></tr></tbody></table>
 <p class="prose">左边的字节来自 ptxas 编译日志，右边的扇区来自 A800 上一次被选中的启动。第一版的每线程栈帧是 416 B，同一位置可在循环中写入、读出很多次。要算执行时的数据量，读动态计数：两栏合计 7,706,432 个扇区，按 32 B 一个扇区，约 235.18 MiB。这是 L1TEX 处理的线程私有地址访问量。直接用 DRAM 读出的字节数看不见大部分开销：三版 DRAM 读取都在 4.2 MB 左右，暂存的位置可以在缓存中反复访问。</p>
 <p class="prose"><strong>从 Source 页追一对真实的暂存与读回指令</strong></p>
-<p class="prose">在 <code class="inline-id">channels_limited&lt;64&gt;</code> 的 Source 页切到 SASS。点开<a href="#l18-sm80-source-lab" data-sass-kernel="channels_limited_64" data-sass-pc="0x10d0">0x10d0 的 STL</a>，可以看到 R11 被写到当前线程的栈地址 [R1+0x140]。紧接着的<a href="#l18-sm80-source-lab" data-sass-kernel="channels_limited_64" data-sass-pc="0x10e0">0x10e0 的 LDL.LU</a>把另一个栈位置 [R1+0x88] 的值读回 R11。两个偏移不同：编译器腾出了这个寄存器，让它接着保存另一个值。两条指令的源行都指向第 387 行的内层 for 循环。看下面的循环体，每轮乘加都要用到上一轮留下的通道值。</p>
+<p class="prose">在 <code class="inline-id">channels_limited&lt;64&gt;</code> 的 Source 页切到 SASS。点开<a href="#l18-sm80-source-lab" data-sass-kernel="channels_limited_64" data-sass-pc="0x10d0">0x10d0 的 STL</a>，可以看到 R11 被写到当前线程的栈地址 [R1+0x140]。紧接着的<a href="#l18-sm80-source-lab" data-sass-kernel="channels_limited_64" data-sass-pc="0x10e0">0x10e0 的 LDL.LU</a>把另一个栈位置 [R1+0x88] 的值读回 R11。两个偏移不同：编译器腾出了这个寄存器，让它接着保存另一个值。两条指令的源行都指向<a class="line-ref" href="https://github.com/ZJtoast/AI-Infra-Course/blob/5d45a91452fefa91b03b868ad3fb754f7dcaa1c6/examples/kernel_profile_lab.cu#L387" aria-expanded="false" data-file="examples/kernel_profile_lab.cu" data-comment="//" data-rows="[[387, &quot;        for (int k = 0; k &lt; iterations; ++k) {&quot;, &quot;每轮更新这一组通道，下一轮继续使用本轮的乘加结果。&quot;]]">第 387 行</a>的内层 for 循环。看下面的循环体，每轮乘加都要用到上一轮留下的通道值。</p>
 <p class="prose">在这次启动里，整段 SASS 的 LDL 和 STL 各执行 939,520 次，计数单位为 warp 指令。换成每次处理 8 个通道后，两项都变为零。三版的 warp FFMA 都是 1,048,576 次。每次 32 个线程参加，乘以 32 恰好回到开头的 33,554,432 次。由此能解释，第一步提速 78.080 ÷ 12.390 ≈ 6.30 倍，省下的是乘加周围反复出现的存取。</p>
 <p class="prose"><strong>对照占用率，再决定是否继续压低寄存器数</strong></p>
 <p class="prose">三版 achieved occupancy 分别为 7.69%、7.51%、7.23%，最快的一版恰好最低。网格只有 128 个块；同一块硬件即使能再容纳几个块，程序也得有更多块可供调度。与此同时，每调度器每个活跃周期平均可发射的 warp 从 0.11 提高到 0.27 和 0.33。这里应优先保证内层循环的状态就近保存在寄存器里。把网格增大后，驻留限制和延迟隐藏的利弊可能改变，需用新形状重测。</p>
@@ -5207,7 +5252,7 @@ ncu-ui reports/registers-channels_limited64.ncu-rep
 <p class="prose">热点输入中，匹配掩码的 32 位全为 1，成员数为 32。组长将桶加 32，其他 31 个 lane 跳过原子更新。这轮从 32 份按 lane 发出的增量变成 1 份。分散输入中，每个 lane 的掩码只有自己的位为 1，每个成员数都是 1，32 个组长仍各更新一个桶，却都多做了匹配、找组长和计数。对整次启动，热点的 1,048,576 份增量可由 32,768 次组更新表达，分散输入仍有 1,048,576 次。</p>
 <p class="prose">这组手算按参与原子更新的 lane 计数。SIMT 指令按 warp 发射，一条带谓词的原子更新可只让一个 lane 生效。读 Source 时，对同一 PC 同时看执行次数、平均谓词有效线程和目标地址层级。热点输入中所有线程向同一个字做原子加，硬件必须保持每次更新的效果；shared 同址原子更新有竞争，和一群线程读取同一个 shared 字触发广播是两种行为。</p>
 <p class="prose"><strong>用两份 profile 选择策略</strong></p>
-<p class="prose">用 <code class="inline-id">bash profile_kernel_pair.sh hist-hot reports</code> 和 <code class="inline-id">bash profile_kernel_pair.sh hist-spread reports</code> 分别采集。先在 SASS 核对操作属于 global 还是 shared，再找匹配指令与谓词控制下的更新；若编译器发现返回值无人读取，机器码也可能采用归约形式的指令。将 shared 版本设为基线，分别查看两种分布下的动态指令、有效 lane、每千键耗时。</p>
+<p class="prose">用 <code class="inline-id">bash profile_kernel_pair.sh --sudo hist-hot reports</code> 和 <code class="inline-id">bash profile_kernel_pair.sh --sudo hist-spread reports</code> 分别采集。先在 SASS 核对操作属于 global 还是 shared，再找匹配指令与谓词控制下的更新；若编译器发现返回值无人读取，机器码也可能采用归约形式的指令。将 shared 版本设为基线，分别查看两种分布下的动态指令、有效 lane、每千键耗时。</p>
 <p class="prose">在未知分布上，先从真实输入抽样统计每 warp 的不同键数。若大量 warp 只有一两个键，合并可能省去足够多的争用；若接近 32，直接 shared 更新可能更划算。另一种选择是把热点桶分成多个副本，让不同 warp 分别更新，最后再合并副本。这个方案增加 shared 用量、末尾归约和同步，比较时应包含三项开销。</p>
 <p class="prose">这项实验的输出按段独立。若真实算子要求全局唯一的 32 个桶，还要将 1,024 段的计数再次合并；应把这次归并纳入正确性和关键路径计时，再决定是否保留局部直方图。</p>
 <p class="prose"><strong>沿相同输入顺序数原子更新的重试</strong></p>

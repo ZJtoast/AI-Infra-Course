@@ -1,10 +1,17 @@
 __pycache__/
 /RULES.md
 
-# Keep profiler captures and per-run timing outside the published course.
-/examples/*.nsys-rep
-/examples/*.ncu-rep
-/examples/*.sqlite
-/examples/*timeline.json.gz
-/examples/*-times.csv
-/examples/*-events.csv
+# Profiler reports, per-run timing and request timelines stay outside Git.
+*.nsys-rep
+*.ncu-rep
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+*timeline.json.gz
+*-times.csv
+*-events.csv
+plain*.csv
+trace*.csv
+/examples/**/*.csv
+/examples/**/reports/
+/reports/
