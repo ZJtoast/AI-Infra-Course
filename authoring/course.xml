@@ -3782,8 +3782,8 @@ WHERE n.text = 'course/step/2';
 <p class="prose">在这对请求上，加大预算让 B 的首词提前约 23.09 ms，代价是 A 的这一个出词间隔拉长约 12.33 ms。若业务承诺正在对话的用户能平滑出词，就要关注 A 的这个间隔；若优先缓解长提示的首词等待，就要关注 B。服务级验收还要在相同到达率、提示长度分布和并发下记录逐请求 TTFT、逐词间隔及达标吞吐。</p>
 <p class="prose"><a href="https://docs.vllm.ai/en/stable/configuration/optimization/">vLLM 调度预算与分块预填充</a>　<a href="https://docs.vllm.ai/en/stable/contributing/profiling/">vLLM 官方剖析说明</a>　<a href="https://docs.nvidia.com/nsight-systems/UserGuide/">Systems 时间线与事件关联</a></p>
 <p class="prose"><strong>复算第 2 步里最长的三段设备空档</strong></p>
-<p class="prose">下载<a href="examples/read_vllm_trace.py">时间线读取脚本</a>，用 nsys export --type sqlite 把自己采集的报告导出为 SQLite 文件，再执行 <code class="inline-id">python read_vllm_trace.py serving128.sqlite 2</code>。最后一个参数选择引擎步。脚本把与这一步相交的 kernel 和复制裁到窗口边界，合并重叠区间，再列出未被两类活动覆盖的最长三段。SQLite 事件使用纳秒，脚本将结果换算成微秒。</p>
-<table><thead><tr><th>第 2 步</th><th>窗口（µs）</th><th>kernel 与复制的并集（µs）</th><th>余下区间合计（µs）</th></tr></thead><tbody><tr><td>预算 128</td><td>18,531.645</td><td>15,892.375</td><td>2,639.270</td></tr><tr><td>预算 512</td><td>30,481.507</td><td>27,439.219</td><td>3,042.288</td></tr></tbody></table>
+<p class="prose">下载<a href="examples/read_vllm_trace.py">时间线读取脚本</a>，用 nsys export --type sqlite 把自己采集的报告导出为 SQLite 文件，再执行 <code class="inline-id">python read_vllm_trace.py serving128.sqlite 2</code>。最后一个参数选择引擎步。脚本把与这一步相交的 kernel、复制与显存填充裁到窗口边界，合并重叠区间，再列出未被这三类活动覆盖的最长三段。SQLite 事件使用纳秒，脚本将结果换算成微秒。</p>
+<table><thead><tr><th>第 2 步</th><th>窗口（µs）</th><th>kernel、复制与填充的并集（µs）</th><th>余下区间合计（µs）</th></tr></thead><tbody><tr><td>预算 128</td><td>18,531.645</td><td>15,940.279</td><td>2,591.366</td></tr><tr><td>预算 512</td><td>30,481.507</td><td>27,530.739</td><td>2,950.768</td></tr></tbody></table>
 <p class="prose">以预算 128 为例，前三段按时长依次是步开始至第一次 H2D 的 343.912 µs、最后一次设备活动至步结束的 207.598 µs，以及中间的 175.138 µs。中间一段的两个端点距步开始分别为 1,264.271 和 1,439.409 µs。点右侧的 <code class="inline-id">unrolled_elementwise_kernel</code>，由 correlation 9403 找到主机提交，它从 1,428.760 µs 才开始。于是这 175.138 µs 可以拆成提交前的 164.489 µs 和 API 开始到设备开工的 10.649 µs。先看提交线程在前一段做了什么，比先改这个逐元素 kernel 更能解释这段空档。</p>
 <p class="prose">把预算换成 512 重做一次。最长的一段变成设备末次活动至步结束的 602.541 µs，下一条要展开的是 Engine 的输出处理与交付标记。要归因到某个 Python 调用或线程调度事件，按下一节的配置补采 CPU 栈与线程状态。</p>
 </section>
@@ -4009,6 +4009,16 @@ SELECT SUM(covered) AS kernel_busy_ns FROM parts;
 <p><strong>推导　</strong>从原同步入口开始计时。先等 12 再做 4，终点是 16。先做 4 再等剩下的 8，终点是 12。<br/>将同步保留在首次真正读取结果之前，并核对目标 stream 上的全部前置操作。复验时同时检查输出和读取方等待和执行的总时长，避免把 CPU 等待缩短误报成 GEMM 自身加速。</p>
 </answer>
 </exercise>
+</section>
+<section class="topic" id="l18-host-wait" data-track="Nsight Systems · 时间线与关键路径">
+<h3>主机同步与设备工作重叠时，怎样读出真正的等待</h3>
+<p class="prose">在两次 vLLM 采集的第 2 步，CPU 线程都调用了一次 <code class="inline-id">cudaEventSynchronize</code>。点开 CUDA API 轨道上的这一项，缩放到其起止范围，再看下方同一张卡的计算流与内存活动。这项 API 返回意味着所等事件已经完成；它的主机持续时间包含设备向该事件推进的过程。</p>
+<table><thead><tr><th>每步预算</th><th>主机调用区间（距步开始）</th><th>CPU 等待</th><th>同一窗口里设备活动的并集</th><th>余下的窗口</th></tr></thead><tbody><tr><td>128</td><td>13.841 至 18.378 ms</td><td>4.537 ms</td><td>4.351 ms</td><td>约 0.186 ms</td></tr><tr><td>512</td><td>13.953 至 29.941 ms</td><td>15.988 ms</td><td>15.623 ms</td><td>约 0.365 ms</td></tr></tbody></table>
+<p class="prose">以预算 512 为例，把每个设备事件裁到 [13.953, 29.941] ms，合并重叠段，得到约 15.623 ms。它覆盖主机等待的约 97.7%。若把主机的 15.988 ms 和设备的 15.623 ms 相加，同一段墙钟时间就被重复计算了。想减少首词等待，先查事件之前的输入量与设备工作；想让主机有机会多提交任务，需另外确认有独立任务可做，且它们的输出缓冲、次序和生命周期允许异步推进。</p>
+<p class="prose">对照第 2 步内的嵌套范围也能看到同样的现象。预算 512 时，get_output 约持续 30.071 ms，scheduler 本身约为 0.140 ms，后续 process_outputs 约为 0.317 ms。get_output 覆盖了引擎内部的执行；只把它当成 Python 输出格式化，会把其中的设备计算也归到 CPU。沿嵌套关系降一级，随后检查该范围中的 API 与 GPU 活动，才能决定是改调度、执行还是交付。</p>
+<p class="prose"><strong>微小复制的带宽容易误导</strong></p>
+<p class="prose">预算 128 的第 2 步有五次 H2D，共 80 B，设备端记录约 5.47 µs；另有两次 D2H，共 24 B。将极小负载的字节数除以这些时间，会得到很低的带宽。每次复制都有固定开销，设备为这几十字节工作的时间和链路处理大块数据的持续能力是两个不同的量。先查这些微小传输是否各自在关键路径上等待，是否能共用一次元数据提交；把优化前后真正省掉的等待时间与提交次数对齐。</p>
+<p class="prose">相邻计算之间还可能有显存填充。预算 128 的该步含 32 次设备 memset，合计 47.904 µs；预算 512 含 64 次，合计 91.520 µs。把它们漏掉，会将真实内存活动画成空白。时间线读取脚本在数据库存在 MEMSET 事件表时会一起合并，复制和计算的重叠也只计一次。实际服务若有其他进程或其他设备，还要把归属范围限定到正在分析的请求和设备。</p>
 </section>
 <section class="topic" id="l18-s030" data-track="Nsight Systems · 时间线与关键路径">
 <h3>CUDA、内存与 GPU 指标</h3>

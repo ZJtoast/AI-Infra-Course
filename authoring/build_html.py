@@ -231,7 +231,7 @@ def build(chapters, out):
                 link(
                     prefix + chapter_url(chapters[j]), arrow + chapters[j].get("title")
                 )
-                for j, arrow in [(i - 1, "← "), (i + 1, "→ ")]
+                for j, arrow in [(i - 1, "← " if i == 1 else "← 上一课　"), (i + 1, "下一课　")]
                 if 0 <= j < len(chapters)
             )
             + "</div>"
