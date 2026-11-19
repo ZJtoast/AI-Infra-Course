@@ -4693,6 +4693,18 @@ ncu-ui stride-src.ncu-rep
 <figure class="study-figure"><a href="assets/figures/ncu-profiler-report-pages-register-dependencies-table.png" target="_blank" rel="noopener"><img loading="lazy" src="assets/figures/ncu-profiler-report-pages-register-dependencies-table.png" alt="Nsight Compute 原图中的选定指令、输入输出寄存器及相邻依赖位置"/></a><figcaption>官方依赖视图。先选消费指令，再从输入依赖定位写入寄存器的指令　<a href="https://docs.nvidia.com/nsight-compute/NsightCompute/#register-dependencies">NVIDIA 原图</a></figcaption></figure>
 <p class="prose">源码定位不到时，依次核对 build 是否包含行号、打开的二进制是否与报告相同、源文件是否被移动或修改。循环展开和内联会把一行映射到多个地址；在相同函数实例内按地址看动态执行次数和源计数，再归到循环或调用点。优化构建可以保留行号，全调试构建会改变寄存器分配与指令序列。</p>
 </section>
+<section class="topic" id="l18-sm80-source-lab" data-track="Nsight Compute · 指令、访存与性能上界">
+<h3>在实际编译的 kernel 中练习从 PC 追操作数和源行</h3>
+<p class="prose">选择一个实现，再用函数内偏移、操作码、寄存器或源码行筛选。列表来自课程程序的 SM80 二进制，覆盖 22 个计算入口及其指令映射；同一入口可用于不同输入分布。点 PC 查看该指令、编译器记录的源行及操作数的读法。寄存器编号只在当前编译的当前函数内有意义。</p>
+<div data-sass-lab="" class="sass-reader counter-reader" hidden="hidden"><div class="counter-controls"><label>kernel <select aria-label="选择 kernel 汇编"></select></label><label>指令、寄存器或 PC <input type="search" aria-label="筛选汇编指令"/></label></div><div class="counter-pages"><button type="button" data-sass-prev="">上一页</button><span role="status"></span><button type="button" data-sass-next="">下一页</button></div><div data-sass-detail="" aria-live="polite"></div><table><thead><tr><th>PC</th><th>SM80 SASS</th></tr></thead><tbody></tbody></table></div>
+<p class="prose"><strong>第一遍只读一条值依赖</strong></p>
+<p class="prose">默认显示 <code class="inline-id">stride_add</code> 的 FADD。0x00e0 处，FADD 将 R4 和 R3 相加，把和写到 R9。输入 R4，找到此前写 R4 的 LDG；再搜 R3，找到另一条 LDG。加载使用的地址寄存器与返回数据有时复用同一个编号，按指令的读写方向区别它们。最后搜 R9，能看到这条和交给 STG。步长改变时仍执行相同机器码，变化来自各 lane 实际带入的地址。推测位置在 FADD 等待时，要到动态报告检查 PC 样本和加载事务。</p>
+<p class="prose"><strong>第二遍比较同一源码的两个特化</strong></p>
+<p class="prose">选 <code class="inline-id">transpose_tile_32</code>，搜 LDS，记录第一条从 shared 读取的指令、操作数和源码。切换到 <code class="inline-id">transpose_tile_33</code>，保留同一过滤条件。两边的源码都把 tile 的两个方向交换了；将常量 pitch 从 32 改为 33 后，相邻 lane 的地址不再全部映到同一 bank。寄存器编号或 PC 可以改变，比较的是同一功能的 shared 加载。打开各自 NCU 报告，核对实际与理想 wavefront、有效 lane 和耗时。</p>
+<p class="prose"><strong>第三遍区分指令数、执行次数和实际参与数</strong></p>
+<p class="prose">选 <code class="inline-id">fma_chains_4</code>，搜 FFMA，可看到四个不同状态的更新。静态列出的四条指令位于循环内，需结合循环次数、每条执行它的 warp 数和有效线程数，才能换算为每次启动的浮点工作量。再选 <code class="inline-id">segment_histogram_2</code> 搜 MATCH.ANY。热点键和分散键执行同一份代码，匹配结果决定后续有多少 lane 真正做原子更新。在 Source 对比这条更新指令的动态计数、谓词有效线程和目标地址，再解释两个输入为什么快慢相反。</p>
+<p class="prose">要在自己的编译环境复现，保留带 -lineinfo 的优化二进制，使用 <code class="inline-id">cuobjdump -xelf all kernel_lab</code> 提取目标架构的 cubin，再用 <code class="inline-id">nvdisasm -g -c 文件名.cubin</code> 输出 PC 与源行。数学内建函数展开后，行号可能指向 CUDA 头文件；先看输入是怎样从调用方传过来的，再检查这条库路径在实际输入下执行了多少次。<a href="https://docs.nvidia.com/cuda/cuda-binary-utilities/index.html">NVIDIA 反汇编与指令表</a></p>
+</section>
 <section class="topic" id="l18-s037" data-track="Nsight Compute · 指令、访存与性能上界">
 <h3>PM Sampling、互连与高级采集模式</h3>
 <p class="prose">长内核可能先密集加载，再集中计算，最后只剩少数线程收尾。整段平均值会把三个阶段混在一起。周期采样保留随时间变化的信息，但相邻样本的分辨率和多次重放的对齐仍限制解释范围。</p>

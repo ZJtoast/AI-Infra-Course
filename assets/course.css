@@ -349,3 +349,9 @@ a.example-ref {color:#185ca4} a.line-ref {color:#a13232}
 .counter-columns code { white-space: normal; }
 @media (max-width:700px) { .counter-columns { grid-template-columns: 1fr; } .counter-columns [data-counter-detail] { border-left: 0; border-top: 1px solid #bdcfc5; padding: .6rem 0; } }
 @media print { .counter-reader { display:none; } }
+
+.sass-reader table { margin: .7rem 0 0; }
+.sass-reader [data-sass-detail] { background: #fffdf7; padding: .7rem 1rem; overflow-wrap: anywhere; }
+.sass-reader [data-sass-detail] > * { display:block; margin-block:.3rem; white-space: normal; }
+.sass-reader td code { white-space:normal; }
+.sass-reader td button[aria-pressed="true"] { font-weight:bold; background:#dcebe5; }

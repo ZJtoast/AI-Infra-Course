@@ -387,6 +387,10 @@ class Document:
             im = e.find('img[@class="mx-print"]')
             self.image(im, parent)
             run(paragraph(parent, "Caption"), im.get("alt"))
+        elif e.get("data-sass-lab") is not None:
+            self.link(paragraph(parent),
+                      "https://zjtoast.github.io/AI-Infra-Course/handbook.html#l18-sm80-source-lab",
+                      "打开 SM80 指令与源码对照")
         elif cls == "counter-reader":
             self.link(paragraph(parent),
                       "https://zjtoast.github.io/AI-Infra-Course/handbook.html#l18-counter-catalog",
