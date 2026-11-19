@@ -131,6 +131,84 @@ static std::vector<float> values(int n,int period) {
     for(int i=0;i<n;++i) v[i]=float(i%period-period/2);
     return v;
 }
+// Each thread uses the same A element for two independent output columns.
+__global__ void gemm_two_columns(const float* a, const float* b, float* c, int n) {
+    __shared__ float left[16][16], right[16][32];
+    int x = threadIdx.x, y = threadIdx.y;
+    int row = blockIdx.y * 16 + y, col = blockIdx.x * 32 + x;
+    float sum0 = 0, sum1 = 0;
+    for (int base = 0; base < n; base += 16) {
+        left[y][x] = a[row*n + base+x];
+        right[y][x] = b[(base+y)*n + col];
+        right[y][x+16] = b[(base+y)*n + col+16];
+        __syncthreads();
+        #pragma unroll
+        for (int k = 0; k < 16; ++k) {
+            float av = left[y][k];
+            sum0 = fmaf(av, right[k][x], sum0);
+            sum1 = fmaf(av, right[k][x+16], sum1);
+        }
+        __syncthreads();
+    }
+    c[row*n + col] = sum0;
+    c[row*n + col+16] = sum1;
+}
+
+__global__ void reduce_warp_tail(const float* x, float* out) {
+    __shared__ float part[256];
+    int t = threadIdx.x;
+    part[t] = x[blockIdx.x * 256 + t];
+    __syncthreads();
+    for (int distance = 128; distance >= 32; distance /= 2) {
+        if (t < distance) part[t] += part[t+distance];
+        __syncthreads();
+    }
+    if (t < 32) {
+        float sum = warp_sum(part[t]);
+        if (!t) out[blockIdx.x] = sum;
+    }
+}
+
+__global__ void csr_four_lanes(const int* offset, const int* col, const float* x,
+                               float* y, int rows) {
+    int thread = blockIdx.x * blockDim.x + threadIdx.x;
+    int row = thread / 4, lane = thread % 4;
+    float sum = 0;
+    if (row < rows) {
+        for (int edge = offset[row] + lane; edge < offset[row+1]; edge += 4)
+            sum += x[col[edge]];
+    }
+    // All lanes reach both shuffles. 'width=4' partitions each warp into eight groups.
+    for (int delta = 2; delta > 0; delta /= 2)
+        sum += __shfl_down_sync(0xffffffff, sum, delta, 4);
+    if (row < rows && lane == 0) y[row] = sum;
+}
+
+__global__ void softmax_eight_lanes(const float* x, float* y, int rows) {
+    int thread = blockIdx.x * blockDim.x + threadIdx.x;
+    int row = thread / 8, lane = thread % 8;
+    // Fixed lab launch has exactly rows*8 threads and rows is divisible by 32.
+    int index = row*32 + lane;
+    float values[4], maximum = -INFINITY;
+    #pragma unroll
+    for (int j = 0; j < 4; ++j) {
+        values[j] = x[index + j*8];
+        maximum = fmaxf(maximum, values[j]);
+    }
+    for (int delta = 4; delta > 0; delta /= 2)
+        maximum = fmaxf(maximum, __shfl_xor_sync(0xffffffff, maximum, delta, 8));
+    float sum = 0;
+    #pragma unroll
+    for (int j = 0; j < 4; ++j) {
+        values[j] = expf(values[j] - maximum);
+        sum += values[j];
+    }
+    for (int delta = 4; delta > 0; delta /= 2)
+        sum += __shfl_xor_sync(0xffffffff, sum, delta, 8);
+    #pragma unroll
+    for (int j = 0; j < 4; ++j) y[index+j*8] = values[j] / sum;
+}
+
 int main(int argc,char** argv) {
     std::string mode=argc==2?argv[1]:"";
     if(mode=="transpose" || mode=="gemm") {
@@ -149,13 +227,15 @@ int main(int argc,char** argv) {
                 ref[i*n+j]+=a[i*n+k]*b[k*n+j];
             dim3 grid(n/16,n/16),block(16,16);
             compare({{"direct",[&]{gemm_direct<<<grid,block>>>(A.p,B.p,Y.p,n);}},
-                     {"tile",[&]{gemm_tile<<<grid,block>>>(A.p,B.p,Y.p,n);}}},Y.p,ref);
+                     {"tile",[&]{gemm_tile<<<grid,block>>>(A.p,B.p,Y.p,n);}},
+                     {"reg2",[&]{gemm_two_columns<<<dim3(n/32,n/16),block>>>(A.p,B.p,Y.p,n);}}},Y.p,ref);
         }
     } else if(mode=="reduction") {
         int blocks=4096; auto x=values(blocks*256,23); std::vector<float> ref(blocks);
         for(int i=0;i<blocks*256;++i) ref[i/256]+=x[i];
         Buffer<float> X(x.size()),Y(blocks); X.upload(x);
         compare({{"tree",[&]{reduce_tree<<<blocks,256>>>(X.p,Y.p);}},
+                 {"tail",[&]{reduce_warp_tail<<<blocks,256>>>(X.p,Y.p);}},
                  {"warp",[&]{reduce_warp<<<blocks,256>>>(X.p,Y.p);}}},Y.p,ref);
     } else if(mode=="graph-short" || mode=="graph-skew") {
         int rows=32768; std::vector<int> off(rows+1),col;
@@ -170,6 +250,7 @@ int main(int argc,char** argv) {
         Buffer<int> O(off.size()),C(col.size()); Buffer<float> X(rows),Y(rows);
         O.upload(off); C.upload(col); X.upload(x);
         compare({{"thread",[&]{csr_thread<<<rows/128,128>>>(O.p,C.p,X.p,Y.p,rows);}},
+                 {"four",[&]{csr_four_lanes<<<rows/32,128>>>(O.p,C.p,X.p,Y.p,rows);}},
                  {"warp",[&]{csr_warp<<<rows/4,128>>>(O.p,C.p,X.p,Y.p,rows);}}},Y.p,ref);
     } else if(mode=="softmax") {
         int rows=32768,cols=32; auto x=values(rows*cols,19); std::vector<float> ref(x.size());
@@ -181,6 +262,7 @@ int main(int argc,char** argv) {
         }
         Buffer<float> X(x.size()),Y(x.size()); X.upload(x);
         compare({{"serial",[&]{softmax_serial<<<rows/128,128>>>(X.p,Y.p,rows,cols);}},
+                 {"eight",[&]{softmax_eight_lanes<<<rows/16,128>>>(X.p,Y.p,rows);}},
                  {"warp32",[&]{softmax_warp32<<<rows/4,128>>>(X.p,Y.p,rows);}}},Y.p,ref);
     } else {
         std::fprintf(stderr,"usage: kernel_lab gemm|transpose|reduction|graph-short|graph-skew|softmax\n");

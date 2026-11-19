@@ -33,8 +33,8 @@ __global__ void stride_add(const float* x, const float* y, float* z,
 }
 
 int main(int argc, char** argv) {
-    if (argc != 2 || (std::strcmp(argv[1], "1") && std::strcmp(argv[1], "4"))) {
-        std::fprintf(stderr, "usage: stride_lab 1|4\n");
+    if (argc != 2 || (std::strcmp(argv[1], "1") && std::strcmp(argv[1], "2") && std::strcmp(argv[1], "4"))) {
+        std::fprintf(stderr, "usage: stride_lab 1|2|4\n");
         return EXIT_FAILURE;
     }
     constexpr int n = 1 << 18;

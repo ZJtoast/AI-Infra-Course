@@ -153,7 +153,7 @@ def contents(ch, prefix):
     for q in copy.xpath(".//exercise"):
         # Replacements stay in the original section next to the material they test.
         replacement = html.fragment_fromstring(
-            practice(q, names, "Route" + ch.get("slug")[:2])
+            practice(q, names, ch.find("nav[@class='practice-route']").get("id"))
         )
         q.getparent().replace(q, replacement)
     for sec in topics(copy):
@@ -239,6 +239,15 @@ def build(chapters, out):
             contents(ch, prefix) + adjacent,
             prefix,
         )
+        legacy = ch.get("legacy-slug")
+        if legacy:
+            dest = slug + ".html"
+            files["lessons/" + legacy + ".html"] = (
+                '<!doctype html><html lang="zh-CN"><meta charset="utf-8">'
+                f'<title>{escape(title)}</title>'
+                f'<script>location.replace("{dest}" + location.search + location.hash)</script>'
+                f'<a href="{dest}">{escape(title)}</a></html>'
+            )
         index.append(
             {
                 "n": i,
@@ -256,17 +265,25 @@ def build(chapters, out):
         )
         if i:
             groups.setdefault(group, []).append(ch)
+            neighbors = "".join(
+                link("#ch-" + chapters[j].get("slug")[:2], label + chapters[j].get("title"))
+                for j, label in ((i - 1, "← 上一课　"), (i + 1, "下一课　"))
+                if 0 < j < len(chapters)
+            )
             book.append(
+                f'<section class="book-chapter" data-chapter="{slug[:2]}">'
                 f'<header class="chapterhead" id="ch-{slug[:2]}"><div class="eyebrow">第 {slug[:2]} 课</div><h2>{escape(title)}</h2></header>'
                 + contents(ch, "")
+                + f'<nav class="adjacent" aria-label="分课阅读">{neighbors}</nav></section>'
             )
             chapnav.append(
-                f'<details class="chap"><summary>{slug[:2]}　{escape(title)}</summary>{nav}</details>'
+                f'<details class="chap" data-chapter="{slug[:2]}"><summary>{slug[:2]}　{escape(title)}</summary>'
+                + link("#ch-" + slug[:2], "阅读本课") + nav + "</details>"
             )
     files["handbook.html"] = reader(
         "知识点导航",
         "全课程合订本",
-        "展开对应课程，选择知识点即可跳到正文。每节末尾可以返回该条目录项。",
+        "从目录选择课程或知识点。读到课末可翻到下一课。",
         "ai-infra-course-handbook",
         '<div class="booknav">' + "".join(chapnav) + "</div>",
         "".join(book),

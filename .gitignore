@@ -1,2 +1,10 @@
 __pycache__/
 /RULES.md
+
+# Keep profiler captures and per-run timing outside the published course.
+/examples/*.nsys-rep
+/examples/*.ncu-rep
+/examples/*.sqlite
+/examples/*timeline.json.gz
+/examples/*-times.csv
+/examples/*-events.csv

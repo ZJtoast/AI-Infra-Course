@@ -83,6 +83,27 @@ if (draftFields.length) {
     printSolutions = [];
   });
 }
+function initBookChapters() {
+  const chapters = Array.from(document.querySelectorAll("article > .book-chapter"));
+  if (!chapters.length) return;
+  const menus = Array.from(document.querySelectorAll(".booknav > .chap"));
+  function displayChapter() {
+    let id;
+    try { id = decodeURIComponent(location.hash.slice(1)); } catch { id = ""; }
+    const target = document.getElementById(id);
+    const owner = target?.closest("[data-chapter]");
+    const current = owner?.dataset.chapter || chapters[0].dataset.chapter;
+    const switched = chapters.find(ch => ch.dataset.chapter === current)?.hidden;
+    for (const ch of chapters) ch.hidden = ch.dataset.chapter !== current;
+    for (const menu of menus) menu.open = menu.dataset.chapter === current;
+    if (target && owner && (switched || target.closest("article"))) {
+      target.scrollIntoView({block: "start", behavior: "instant"});
+    }
+  }
+  displayChapter();
+  window.addEventListener("hashchange", displayChapter);
+}
+initBookChapters();
 function initReaderSidebar() {
   const layout = document.querySelector(".reader .layout");
   if (!layout) return;

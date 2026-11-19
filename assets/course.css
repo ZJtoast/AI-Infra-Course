@@ -332,3 +332,6 @@ a.example-ref {color:#185ca4} a.line-ref {color:#a13232}
 .code button[aria-pressed="true"]{background:#365a54;border-color:#a9e1d0}
 .code.show-reading-notes .cl[data-reading-note]::after{content:"  " attr(data-reading-note);color:#a2b9a0}
 @media print{.code.show-reading-notes .cl[data-reading-note]::after{color:#3c6143}}
+
+.book-chapter[hidden] { display: none; }
+@media print { .book-chapter[hidden] { display: block; } .book-chapter > .adjacent { display: none; } }
