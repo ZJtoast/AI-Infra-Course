@@ -226,6 +226,6 @@ def css():
         )
 
     on_paper = "".join(
-        f".reading-statement .tok-{role}{{color:#{pair[1]}}}" for role, pair in COLORS.items()
+        f".reading-statement .tok-{role}{{color:#{pair[1]};color:light-dark(#{pair[1]},#{pair[0]})}}" for role, pair in COLORS.items()
     )
     return rules(0) + on_paper + "@media print{" + rules(1) + "}"

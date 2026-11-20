@@ -286,7 +286,7 @@ def build(chapters, out):
                 + f'<nav class="adjacent" aria-label="分课阅读">{neighbors}</nav></section>'
             )
             chapnav.append(
-                f'<details class="chap" data-chapter="{slug[:2]}"><summary>{slug[:2]}　{escape(title)}</summary>'
+                f'<details class="chap" data-chapter="{slug[:2]}"><summary><span class="chapter-number">{slug[:2]}</span><span>{escape(title)}</span></summary>'
                 + link("#ch-" + slug[:2], "阅读本课") + nav + "</details>"
             )
     files["handbook.html"] = reader(
@@ -336,8 +336,12 @@ def build(chapters, out):
         shutil.copytree(ROOT / "examples", out / "examples", dirs_exist_ok=True)
     for name, data in GENERATED.items():
         write(out / "assets/figures" / name, data)
+    appearance = (HERE / "appearance.html").read_text("utf8").strip()
     for name, page in files.items():
-        for asset in ("course.css", "course.js", "index-data.js"):
+        page = page.replace("{{APPEARANCE}}", appearance)
+        if name in ("roadmap.html", "handbook.html"):
+            page = page.replace(f'<a href="{name}">', f'<a aria-current="page" href="{name}">', 1)
+        for asset in ("course.css", "course.js", "appearance.js", "index-data.js"):
             page = re.sub(
                 re.escape("assets/" + asset) + r"\?v=\w+",
                 "assets/" + asset + "?v=" + digest(out / "assets" / asset),

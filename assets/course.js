@@ -139,8 +139,8 @@ function initReaderSidebar() {
   function measure() {
     const viewport = document.documentElement.clientWidth;
     const max = compact.matches
-      ? Math.min(520, viewport - 36)
-      : Math.min(560, layout.clientWidth * 0.52, layout.clientWidth - 360);
+      ? Math.min(340, viewport - 36)
+      : Math.min(340, layout.clientWidth * 0.38, layout.clientWidth - 360);
     limits.max = Math.max(0, Math.floor(max));
     limits.min = Math.min(180, limits.max);
     divider.setAttribute("aria-valuemin", String(limits.min));
@@ -148,7 +148,8 @@ function initReaderSidebar() {
     const top = Math.ceil(header.getBoundingClientRect().height);
     layout.style.setProperty("--toc-top", top + "px");
     document.documentElement.style.setProperty("--reader-scroll-top", top + 12 + "px");
-    applyWidth(preferred || (compact.matches ? viewport * 0.84 : layout.clientWidth * 0.26));
+    const defaultWidth = compact.matches ? Math.min(292, viewport * 0.80) : Math.max(212, Math.min(248, layout.clientWidth * 0.20));
+    applyWidth(preferred || defaultWidth);
   }
   function display(open, persist = false) {
     shown = open;
