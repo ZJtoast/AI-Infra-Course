@@ -1,6 +1,6 @@
 # AI Infra Course
 
-**AI 基础设施课程**　·　19 课　·　200 道练习
+**AI 基础设施课程**　·　19 课　·　203 道练习
 
 　　学习路线从 Transformer 单层计算量与显存分析开始，经 GPU 访存、分块算子和注意力进入训练或推理方向。每一站可直接打开合订本中的指定小节和验算题，再按掌握情况继续。分课讲义也可单独阅读，每课的「本课练习顺序」汇集普通题、进阶题和情景面试题。
 
@@ -14,8 +14,8 @@
 | :---: | :--- | :--- | :---: |
 | 01 | [Transformer 单层计算量与显存分析](https://zjtoast.github.io/AI-Infra-Course/lessons/01-transformer-compute-and-memory.html) | QKV 投影、浮点运算量与 KV 缓存 | [Word](word/01-transformer-compute-and-memory.docx) |
 | 02 | [GPU 微架构与 Tensor Core](https://zjtoast.github.io/AI-Infra-Course/lessons/02-gpu-microarchitecture-and-tensor-cores.html) | SM、存储层次、Tensor Core | [Word](word/02-gpu-microarchitecture-and-tensor-cores.docx) |
-| 03 | [CUDA、PTX 与分块算子编程](https://zjtoast.github.io/AI-Infra-Course/lessons/03-cuda-ptx-and-tiled-kernels.html) | CUDA、PTX、Triton、TileLang | [Word](word/03-cuda-ptx-and-tiled-kernels.docx) |
-| 04 | [GPU 性能剖析与瓶颈诊断](https://zjtoast.github.io/AI-Infra-Course/lessons/04-gpu-profiling-and-performance-analysis.html) | Nsight Systems、Nsight Compute、SOL、Roofline | [Word](word/04-gpu-profiling-and-performance-analysis.docx) |
+| 03 | [GPU 算子编程：从 CUDA 分块到 DeepGEMM](https://zjtoast.github.io/AI-Infra-Course/lessons/03-cuda-ptx-and-tiled-kernels.html) | CUDA 与分块算子、通用及分代 PTX、SM90 与 SM100 的 DeepGEMM | [Word](word/03-cuda-ptx-and-tiled-kernels.docx) |
+| 04 | [GPU 性能剖析与瓶颈诊断](https://zjtoast.github.io/AI-Infra-Course/lessons/04-gpu-profiling-and-performance-analysis.html) | Nsight Compute 内核分析、Nsight Systems 请求时间线 | [Word](word/04-gpu-profiling-and-performance-analysis.docx) |
 | 05 | [Attention 算子与编译执行](https://zjtoast.github.io/AI-Infra-Course/lessons/05-attention-kernels-and-compilation.html) | FlashAttention 1–4、SageAttention 系列与算子融合 | [Word](word/05-attention-kernels-and-compilation.docx) |
 
 ### 通信与分布式训练
@@ -39,9 +39,9 @@
 
 | 课次 | 讲义 | 主要内容 | 下载 |
 | :---: | :--- | :--- | :---: |
-| 13 | [推理服务指标与 KV 分页](https://zjtoast.github.io/AI-Infra-Course/lessons/13-llm-serving-metrics-and-kv-paging.html) | TTFT、TPOT、分页与连续批处理 | [Word](word/13-llm-serving-metrics-and-kv-paging.docx) |
+| 13 | [推理服务指标与 KV 分页](https://zjtoast.github.io/AI-Infra-Course/lessons/13-llm-serving-metrics-and-kv-paging.html) | 预填充与解码、TTFT、TPOT、KV 分页与连续批处理 | [Word](word/13-llm-serving-metrics-and-kv-paging.docx) |
 | 14 | [推理引擎执行与 CUDA Graph](https://zjtoast.github.io/AI-Infra-Course/lessons/14-inference-engine-execution.html) | 请求槽位、CUDA Graph、前缀树 | [Word](word/14-inference-engine-execution.docx) |
-| 15 | [分离式推理与 KV 传输](https://zjtoast.github.io/AI-Infra-Course/lessons/15-disaggregated-inference-and-kv-transfer.html) | 预填充与解码分离、KV 重排与传输 | [Word](word/15-disaggregated-inference-and-kv-transfer.docx) |
+| 15 | [分离式推理与 KV 传输](https://zjtoast.github.io/AI-Infra-Course/lessons/15-disaggregated-inference-and-kv-transfer.html) | PD 分离、首词交付、KV 重排与跨池传输 | [Word](word/15-disaggregated-inference-and-kv-transfer.docx) |
 | 16 | [推测解码与前缀验证](https://zjtoast.github.io/AI-Infra-Course/lessons/16-speculative-decoding.html) | 拒绝采样、草稿长度、变长验证 | [Word](word/16-speculative-decoding.docx) |
 
 ### 训练平台与性能工程

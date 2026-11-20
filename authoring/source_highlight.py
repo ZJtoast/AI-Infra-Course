@@ -215,7 +215,11 @@ def highlight(figure):
                 last.tail = fragment
         explanation = row.attrib.pop("data-explanation", None)
         if explanation:
-            ET.SubElement(row, "span", {"class": "tok-comment"}).text = "  // " + explanation
+            if language == "pseudocode":
+                ET.SubElement(row, "span", {"class": "tok-comment"}).text = "  // " + explanation
+            else:
+                marker = "#" if language in ("python", "bash") else "//"
+                row.set("data-reading-note", f"{marker} {explanation}")
 
 
 def css():

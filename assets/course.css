@@ -475,3 +475,12 @@ a.example-ref {color:var(--blue-link)} a.line-ref {color:var(--red-link)}
   .bar .brand { font-size:16px }
 }
 @media print { .appearance { display:none } }
+.toc-module > summary {
+  cursor:pointer; padding:9px 6px; color:var(--deep);
+  font:650 14px/1.5 var(--sans); border-bottom:1px solid var(--line);
+}
+.toc-module > summary::marker { color:var(--teal); font-size:.82em }
+.toc-module[open] > summary { background:var(--tint); border-radius:5px }
+.toc-module > .chap { margin-inline-start:6px; padding-inline-start:3px; border-inline-start:2px solid var(--line) }
+.chap > a, .chap > strong { display:block; padding:4px 6px; font-size:13px }
+.chap > .toc { margin-inline-start:5px }

@@ -164,12 +164,12 @@ def contents(ch, prefix):
     return "".join(markup(e) for e in copy if e.tag != "lead")
 
 
-def toc(ch):
+def toc(ch, page=""):
     groups = []
     for name, sections in topic_groups(ch):
         entries = "".join(
             f'<li class="lv{s[0].tag[1]}" id="idx-{s.get("id")}">'
-            + link("#" + s.get("id"), text(s[0]))
+            + link(page + "#" + s.get("id"), text(s[0]))
             + "</li>"
             for s in sections
         )
@@ -177,6 +177,28 @@ def toc(ch):
             groups.append(f"<strong>{escape(name)}</strong>")
         groups.append(f'<ol class="toc">{entries}</ol>')
     return "".join(groups)
+
+
+def course_navigation(groups, current=None, *, handbook=False):
+    modules = []
+    for name, chapters in groups.items():
+        lessons = []
+        for ch in chapters:
+            number = ch.get("slug")[:2]
+            local = ch is current
+            page = "" if handbook or local else chapter_url(ch).removeprefix("lessons/")
+            anchor = "#ch-" + number if handbook else (page or "#main")
+            lessons.append(
+                f'<details class="chap" data-chapter="{number}"{" open" if local and not handbook else ""}>'
+                f'<summary><span class="chapter-number">{number}</span><span>{escape(ch.get("title"))}</span></summary>'
+                + link(anchor, "阅读本课") + toc(ch, page) + "</details>"
+            )
+        opened = " open" if any(ch is current for ch in chapters) else ""
+        modules.append(
+            f'<details class="toc-module"{opened}><summary>{escape(name)}</summary>'
+            + "".join(lessons) + "</details>"
+        )
+    return '<nav class="booknav" aria-label="按主题浏览课程">' + "".join(modules) + "</nav>"
 
 
 def reader(title, eyebrow, lead, download, aside, body, prefix):
@@ -217,8 +239,9 @@ def build(chapters, out):
     files = {}
     book = []
     index = []
-    chapnav = []
     groups = {}
+    for ch in chapters[1:]:
+        groups.setdefault(ch.get("group"), []).append(ch)
     for i, ch in enumerate(chapters):
         prepare_line_refs(ch)
         prepare_symbol_notes(ch)
@@ -227,7 +250,6 @@ def build(chapters, out):
         lead = text(ch.find("lead"))
         group = ch.get("group")
         prefix = "../" if i else ""
-        nav = toc(ch)
         adjacent = (
             '<div class="adjacent">'
             + "".join(
@@ -244,7 +266,8 @@ def build(chapters, out):
             f"第 {slug[:2]} 课　/　{group}" if i else group,
             lead,
             slug,
-            f'<details class="tocbox" open><summary>本页知识点 <small>{len(topics(ch))}</small></summary>{nav}</details>',
+            course_navigation(groups, ch) if i else
+            f'<details class="tocbox" open><summary>路线站点</summary>{toc(ch)}</details>',
             contents(ch, prefix) + adjacent,
             prefix,
         )
@@ -273,7 +296,6 @@ def build(chapters, out):
             }
         )
         if i:
-            groups.setdefault(group, []).append(ch)
             neighbors = "".join(
                 link("#ch-" + chapters[j].get("slug")[:2], label + chapters[j].get("title"))
                 for j, label in ((i - 1, "← 上一课　"), (i + 1, "下一课　"))
@@ -285,16 +307,12 @@ def build(chapters, out):
                 + contents(ch, "")
                 + f'<nav class="adjacent" aria-label="分课阅读">{neighbors}</nav></section>'
             )
-            chapnav.append(
-                f'<details class="chap" data-chapter="{slug[:2]}"><summary><span class="chapter-number">{slug[:2]}</span><span>{escape(title)}</span></summary>'
-                + link("#ch-" + slug[:2], "阅读本课") + nav + "</details>"
-            )
     files["handbook.html"] = reader(
         "知识点导航",
         "全课程合订本",
         "从目录选择课程或知识点。读到课末可翻到下一课。",
         "ai-infra-course-handbook",
-        '<div class="booknav">' + "".join(chapnav) + "</div>",
+        course_navigation(groups, chapters[1], handbook=True),
         "".join(book),
         "",
     )
