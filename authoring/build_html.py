@@ -44,7 +44,10 @@ def prepare_line_refs(chapter):
     excerpts = {}
     languages = {}
     source_rows = {}
-    for fig in chapter.xpath('.//figure[@class="code"]'):
+    figures_by_row = {}
+    for index, fig in enumerate(chapter.xpath('.//figure[@class="code"]'), 1):
+        if not fig.get("id"):
+            fig.set("id", f"code-{chapter.get('slug')[:2]}-{index}")
         url = fig.xpath("string(figcaption//a/@href)").partition("#")[0]
         keys = [k for k in (url, "#" + fig.get("id") if fig.get("id") else "") if k]
         for key in keys:
@@ -60,6 +63,7 @@ def prepare_line_refs(chapter):
             original = "".join(value for _, value in parts)
             for key in keys:
                 position = (key, int(row.get("data-line")), original)
+                figures_by_row.setdefault(position, set()).add(fig.get("id"))
                 excerpts[position] = parts
                 if fig.get("data-language") != "pseudocode":
                     source_rows.setdefault(position, []).append(row)
@@ -69,7 +73,13 @@ def prepare_line_refs(chapter):
         rows = json.loads(link.get("data-rows"))
         lines = [source for _, source, _ in rows]
         language = languages.get(key) or language_of("\n".join(lines), href)
-        parts = [excerpts.get((key, number, source)) for number, source, _ in rows]
+        positions = [(key, number, source) for number, source, _ in rows]
+        figures = set.intersection(*(figures_by_row.get(pos, set()) for pos in positions))
+        if figures:
+            link.set("data-source-figures", " ".join(sorted(figures)))
+            link.set("data-first-line", str(rows[0][0]))
+            link.set("data-last-line", str(rows[-1][0]))
+        parts = [excerpts.get(pos) for pos in positions]
         if any(line is None for line in parts):
             fallback = styled_lines(language, lines)
             parts = [original if original is not None else replacement for original, replacement in zip(parts, fallback)]
@@ -164,6 +174,10 @@ def contents(ch, prefix):
     return "".join(markup(e) for e in copy if e.tag != "lead")
 
 
+def reading_stops(topic):
+    return (topic, *topic.findall('div[@class="subtopic"]'))
+
+
 def toc(ch, page=""):
     groups = []
     for name, sections in topic_groups(ch):
@@ -171,7 +185,7 @@ def toc(ch, page=""):
             f'<li class="lv{s[0].tag[1]}" id="idx-{s.get("id")}">'
             + link(page + "#" + s.get("id"), text(s[0]))
             + "</li>"
-            for s in sections
+            for topic in sections for s in reading_stops(topic)
         )
         if name:
             groups.append(f"<strong>{escape(name)}</strong>")
@@ -190,7 +204,7 @@ def course_navigation(groups, current=None, *, handbook=False):
             anchor = "#ch-" + number if handbook else (page or "#main")
             lessons.append(
                 f'<details class="chap" data-chapter="{number}"{" open" if local and not handbook else ""}>'
-                f'<summary><span class="chapter-number">{number}</span><span>{escape(ch.get("title"))}</span></summary>'
+                f'<summary><span class="chapter-number">{ch.get("number")}</span><span>{escape(ch.get("title"))}</span></summary>'
                 + link(anchor, "阅读本课") + toc(ch, page) + "</details>"
             )
         opened = " open" if any(ch is current for ch in chapters) else ""
@@ -240,7 +254,8 @@ def build(chapters, out):
     book = []
     index = []
     groups = {}
-    for ch in chapters[1:]:
+    for position, ch in enumerate(chapters[1:], 1):
+        ch.set("number", f"{position:02d}")
         groups.setdefault(ch.get("group"), []).append(ch)
     for i, ch in enumerate(chapters):
         prepare_line_refs(ch)
@@ -263,7 +278,7 @@ def build(chapters, out):
         )
         files[chapter_url(ch)] = reader(
             title,
-            f"第 {slug[:2]} 课　/　{group}" if i else group,
+            f"第 {i:02d} 课　/　{group}" if i else group,
             lead,
             slug,
             course_navigation(groups, ch) if i else
@@ -291,7 +306,7 @@ def build(chapters, out):
                         text(s[0]),
                         " ".join(text(p) for p in s.findall("p"))[:260],
                     ]
-                    for s in topics(ch)
+                    for topic in topics(ch) for s in reading_stops(topic)
                 ],
             }
         )
@@ -303,7 +318,7 @@ def build(chapters, out):
             )
             book.append(
                 f'<section class="book-chapter" data-chapter="{slug[:2]}">'
-                f'<header class="chapterhead" id="ch-{slug[:2]}"><div class="eyebrow">第 {slug[:2]} 课</div><h2>{escape(title)}</h2></header>'
+                f'<header class="chapterhead" id="ch-{slug[:2]}"><div class="eyebrow">第 {i:02d} 课</div><h2>{escape(title)}</h2></header>'
                 + contents(ch, "")
                 + f'<nav class="adjacent" aria-label="分课阅读">{neighbors}</nav></section>'
             )
@@ -319,7 +334,7 @@ def build(chapters, out):
     home = (HERE / "home.html").read_text("utf8")
 
     def row(ch):
-        return f'<a class="lessonrow" href="{chapter_url(ch)}"><span class="num">{ch.get("slug")[:2]}</span><div><h3>{escape(ch.get("title"))}</h3><p>{escape(text(ch.find("lead")))}</p></div><span class="go" aria-hidden="true">↗</span></a>'
+        return f'<a class="lessonrow" href="{chapter_url(ch)}"><span class="num">{ch.get("number")}</span><div><h3>{escape(ch.get("title"))}</h3><p>{escape(text(ch.find("lead")))}</p></div><span class="go" aria-hidden="true">↗</span></a>'
 
     counts = [
         (len(chapters) - 1, "课"),

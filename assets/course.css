@@ -315,6 +315,7 @@ article .tablewrap > table {width:auto;max-width:100%;margin-inline:auto;font-si
 article .tablewrap > table :is(th,td) {text-align:center;vertical-align:middle;padding:.48em .85em}
 a.example-ref, a.line-ref {font-weight:650;text-decoration:underline dotted;text-underline-offset:.2em}
 a.example-ref {color:var(--blue-link)} a.line-ref {color:var(--red-link)}
+article a.line-location, article a.line-location:hover {color:inherit;font-weight:650;text-decoration:none;cursor:text}
 .reading-detail {max-width:100%;margin:1rem 0 .45rem;border:1px solid var(--line);border-radius:.45rem;background:var(--surface);padding:.72rem .9rem;scroll-margin-top:5rem}
 .reading-detail header {display:flex;align-items:center;justify-content:space-between;gap:1rem;font:600 .95rem/1.5 var(--sans)}
 .reading-detail button {font:inherit;background:transparent;border:1px solid var(--edge);border-radius:.3rem;padding:.15rem .55rem;cursor:pointer;flex:none}

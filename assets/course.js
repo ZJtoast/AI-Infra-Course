@@ -381,6 +381,76 @@ document.addEventListener("click", async e => {
   window.visualViewport?.addEventListener("resize",queue);
 })();
 
+// A source range directly beside its explanation needs only a line label.
+function initSourceDistances() {
+  const refs = document.querySelectorAll("a.line-ref[data-source-figures]");
+  if (!refs.length) return;
+  const targets = new WeakMap();
+  const visible = new Set();
+  let frame = 0;
+  function refresh() {
+    frame = 0;
+    const changes = [];
+    for (const ref of visible) {
+      if (ref.getAttribute("aria-expanded") === "true") continue;
+      const box = ref.getBoundingClientRect();
+      if (!box.height) continue;
+      const lineHeight = parseFloat(getComputedStyle(ref).lineHeight);
+      const near = targets.get(ref).some(({first, last, pre}) => {
+        const a = first.getBoundingClientRect(), b = last.getBoundingClientRect();
+        const clip = pre.getBoundingClientRect();
+        if (!a.height || a.top < clip.top - 1 || b.bottom > clip.bottom + 1) return false;
+        const gap = Math.max(0, a.top - box.bottom, box.top - b.bottom);
+        const span = Math.max(b.bottom, box.bottom) - Math.min(a.top, box.top);
+        return gap <= lineHeight * 2.5 && span <= window.innerHeight * 0.8;
+      });
+      if (near !== ref.classList.contains("line-location")) changes.push([ref, near]);
+    }
+    for (const [ref, near] of changes) {
+      ref.classList.toggle("line-location", near);
+      ref.classList.toggle("line-ref", !near);
+      if (near) {
+        ref.dataset.sourceHref = ref.getAttribute("href");
+        ref.removeAttribute("href");
+        ref.removeAttribute("aria-expanded");
+      } else {
+        ref.setAttribute("href", ref.dataset.sourceHref);
+        ref.setAttribute("aria-expanded", "false");
+      }
+    }
+  }
+  function schedule() {
+    if (!frame) frame = requestAnimationFrame(refresh);
+  }
+  const observer = new IntersectionObserver(entries => {
+    for (const entry of entries) {
+      if (entry.isIntersecting) visible.add(entry.target);
+      else visible.delete(entry.target);
+    }
+    schedule();
+  }, {rootMargin: "600px 0px"});
+  for (const ref of refs) {
+    const ranges = [];
+    for (const id of ref.dataset.sourceFigures.split(" ")) {
+      const figure = document.getElementById(id);
+      const first = figure?.querySelector('.cl[data-line="' + ref.dataset.firstLine + '"]');
+      const last = figure?.querySelector('.cl[data-line="' + ref.dataset.lastLine + '"]');
+      if (first && last) ranges.push({first, last, pre: first.closest("pre")});
+    }
+    targets.set(ref, ranges);
+    observer.observe(ref);
+  }
+  new ResizeObserver(schedule).observe(document.querySelector("article"));
+  window.addEventListener("resize", schedule);
+  document.addEventListener("toggle", schedule, true);
+  document.addEventListener("click", schedule);
+  document.addEventListener("scroll", event => {
+    if (event.target.tagName === "PRE") schedule();
+  }, true);
+  document.fonts.ready.then(schedule);
+}
+initSourceDistances();
+
 // Keep the explanation and the passage it refers to in the same reading position.
 (() => {
   let trigger, panel;
