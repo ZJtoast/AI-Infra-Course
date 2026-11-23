@@ -71,3 +71,43 @@ body:has(dialog[open]) .aira { display: none !important; }
 @media print { .aira { display: none !important; } }
 
 .aira .aira-duster, .aira .aira-poster { max-width:none; max-height:none; object-fit:fill; }
+
+.aira .aira-flight {
+  position: fixed; z-index: 3; display: block; margin: 0; max-width: none;
+  object-fit: contain; pointer-events: none;
+}
+.aira .aira-plane-card {
+  position: fixed; z-index: 4; box-sizing: border-box; transform: translate(-50%,-50%);
+  margin: 0; padding: 16px 18px; overflow: auto; overscroll-behavior: contain;
+  border: 1px solid var(--aira-edge); border-radius: 6px; color: var(--aira-ink);
+  background: linear-gradient(145deg,var(--aira-tint),var(--aira-paper) 44%);
+  box-shadow: 0 6px 24px #24344b35; pointer-events: auto; text-align: left;
+}
+.aira .aira-plane-card[data-state="unfolding"] {
+  animation: aira-paper-open 250ms ease-out both;
+}
+.aira .aira-plane-head {
+  display: flex; justify-content: space-between; align-items: baseline; gap: 12px;
+  font-size: .83rem; line-height: 1.35;
+}
+.aira .aira-plane-head span { color: var(--aira-ink); }
+.aira .aira-plane-card h3 {
+  margin: .65rem 0 .8rem; color: inherit; font: 600 1.05rem/1.48 "Times New Roman", SimHei, sans-serif;
+  text-indent: 0; overflow-wrap: anywhere;
+}
+.aira .aira-plane-answer {
+  margin: 0; padding-top: .65rem; border-top: 1px solid var(--aira-edge);
+  color: inherit; font: inherit; text-indent: 0; overflow-wrap: anywhere;
+}
+.aira .aira-plane-card button {
+  flex-shrink: 0; padding: .2rem .6rem; border-radius: .35rem; color: inherit;
+  background: var(--aira-tint); border: 1px solid var(--aira-edge); font: inherit;
+}
+@keyframes aira-paper-open {
+  0% {clip-path: polygon(48% 49%,55% 47%,51% 51%,49% 53%); background-color:var(--aira-tint);}
+  45% {clip-path: polygon(12% 45%,87% 23%,72% 68%,27% 77%);}
+  100% {clip-path: polygon(0 0,100% 0,100% 100%,0 100%);}
+}
+@media(prefers-reduced-motion:reduce) {
+  .aira .aira-plane-card[data-state="unfolding"] { animation: none; }
+}

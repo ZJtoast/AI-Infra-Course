@@ -13,9 +13,11 @@
     return url.href;
   }
   const pacing={poke:38,tinyheart:55,hearthands:52};
+  const dailyActions=["seal","sip","spin","starhug","stretch","sweep","watch","water","wave","whisk","yawn","plane","polish","pour","bell","bow","bubbles","sketch","stack","study","think"];
+  const dailyRate=0.6,standingScale=1.42;
   const forward=new Set(["hearthands","tinyheart"]);
   const transitionMs=760,breathMs=24*158,support=313/320;
-  let visualScale=1,centerEyesUntil=0;
+  let visualScale=1,centerEyesUntil=0,landingTime=null;
   const calm = matchMedia("(prefers-reduced-motion: reduce)");
   const widget = document.createElement("div");
   widget.className = "aira";
@@ -96,7 +98,7 @@
     floating.style.top=Math.round(bound(y,top,bottom-height))+"px";
   }
   function scheduleLayout() {
-    sceneChange();
+    sceneChange();centerPaper();
     if (!layoutFrame) layoutFrame=requestAnimationFrame(()=>{layoutFrame=0;layout();});
   }
   const textures=new Map(),resident=new Map();
@@ -129,9 +131,18 @@
     showCanvas();
     const large=file==="poses/breathe.webp" || file==="poses/idle_sway.webp" ||
       (active?.reaction && ["breathe","idle_sway"].includes(bodyPose) && file!=="poses/stand_squat.webp");
-    scaleVisual(large?1.1:file==="poses/stand_squat.webp"?1+(24-index)*.1/24:1);
+    let stand=standingScale;
+    if(landingTime!==null){
+      if(!active && file==="poses/breathe.webp"){
+        const t=Math.min(1,(performance.now()-landingTime)/900);
+        stand=1.1+(standingScale-1.1)*t*t*(3-2*t);
+        if(t>=1)landingTime=null;
+      }else landingTime=null;
+    }
+    scaleVisual(large?stand:file==="poses/stand_squat.webp"?1+(24-index)*(standingScale-1)/24:1);
     if(art.dataset.file===file && art.dataset.frame===String(index))return;
     if (art.dataset.file!==file) {
+      if(art.dataset.file==="poses/plane.webp"){art.style.clipPath="";art.style.transform="";}
       art.dataset.file=file;art.style.backgroundImage='url("'+resource(file)+'")';
       art.style.backgroundSize=cols*100+"% "+rows*100+"%";
     }
@@ -194,6 +205,12 @@
         if(window.requestIdleCallback)window.requestIdleCallback(warm,{timeout:500});else setTimeout(warm,40);
       }).catch(()=>{});
     }
+  }
+  function settleStandingSize(){
+    if(landingTime===null)return;
+    if(active || journey || resting || document.hidden || bodyPose!=="breathe"){landingTime=null;return;}
+    renderBody();
+    if(landingTime!==null)requestAnimationFrame(settleStandingSize);
   }
   function near(pose) {
     return postureEdges.filter(([a,b])=>a===pose || b===pose).map(([a,b,file])=>
@@ -309,7 +326,7 @@
   };
   const playbackSlot=new Map();
   // Each envelope covers both neighbouring time intervals in the original transparent animation.
-  const inkBounds={"duster":{"width":720,"height":672,"foot":[360,581],"step":160,"boxes":[[169,223,570,610],[169,223,570,610],[169,223,570,610],[169,220,574,610],[135,216,574,611],[135,216,574,611],[142,216,556,611],[145,218,550,603],[151,216,550,603],[152,198,550,603],[147,156,553,608],[142,141,556,612],[139,141,560,614],[137,152,561,614],[135,157,563,615],[133,207,566,617],[133,228,596,617],[133,213,596,617],[134,187,573,614],[120,187,560,610],[120,200,562,611],[120,164,563,612],[122,164,563,612],[122,195,563,612],[126,129,562,611],[131,97,559,611],[119,97,559,611],[119,110,557,610],[132,87,557,609],[133,87,556,608],[133,103,556,607],[128,103,559,607],[128,134,560,607],[116,157,560,607],[116,202,582,607],[128,155,582,608],[128,155,582,609],[129,155,563,609],[128,173,608,609],[128,140,608,608],[128,140,610,607],[130,181,610,605],[130,181,609,605],[130,215,559,605]],"still":[151,219,550,603]},"flying_squirrel":{"width":720,"height":672,"foot":[360,550],"step":160,"boxes":[[303,236,451,555],[303,232,463,567],[307,226,481,571],[289,218,522,571],[278,204,529,571],[275,202,558,571],[275,202,565,571],[275,202,565,573],[275,195,565,573],[296,195,562,573],[336,195,524,573],[348,195,517,573],[343,201,506,572],[343,209,499,571],[343,212,490,570],[344,216,472,566],[340,216,470,561],[330,209,469,563],[317,209,467,563],[308,205,464,563],[295,201,454,563],[281,201,448,562],[277,201,434,559],[277,201,423,557],[277,203,416,551],[281,220,441,547],[283,220,441,543],[285,220,443,543],[304,217,450,543],[306,216,457,544],[306,212,471,544],[307,206,494,555],[307,190,506,561],[319,173,521,563],[310,160,521,573],[290,134,532,582],[289,134,543,594],[289,134,547,594],[289,134,552,594],[289,134,552,594],[279,134,552,594],[279,136,552,588],[279,151,537,578],[286,173,498,568],[290,200,449,557],[290,213,435,557]],"still":[278,205,528,566]}};
+  const inkBounds={"duster":{"width":720,"height":672,"foot":[360,581],"step":160,"boxes":[[272,220,453,602],[272,220,453,602],[272,220,454,602],[272,216,457,602],[266,213,458,602],[141,213,553,605],[141,213,553,606],[141,213,553,606],[147,213,553,606],[147,180,553,607],[142,142,558,612],[137,138,561,616],[135,138,563,617],[134,138,564,617],[130,154,568,620],[130,204,599,620],[130,210,599,620],[130,184,599,620],[130,184,576,619],[117,184,563,614],[117,197,565,614],[117,161,566,615],[119,161,566,615],[119,161,566,615],[119,125,565,614],[123,94,564,614],[116,94,562,614],[116,90,561,613],[116,84,560,612],[129,84,559,611],[130,84,559,611],[125,100,562,610],[113,107,563,610],[113,154,563,610],[113,154,585,610],[113,152,585,612],[125,152,585,612],[126,152,611,612],[125,137,611,612],[125,137,613,611],[125,137,613,611],[126,178,613,609],[127,178,613,608],[127,178,612,608],[127,212,562,608]],"still":[151,219,550,603]},"flying_squirrel":{"width":720,"height":672,"foot":[360,550],"step":160,"boxes":[[303,236,451,555],[303,232,463,567],[307,226,481,571],[289,218,522,571],[278,204,529,571],[275,202,558,571],[275,202,565,571],[275,202,565,573],[275,195,565,573],[296,195,562,573],[336,195,524,573],[348,195,517,573],[343,201,506,572],[343,209,499,571],[343,212,490,570],[344,216,472,566],[340,216,470,561],[330,209,469,563],[317,209,467,563],[308,205,464,563],[295,201,454,563],[281,201,448,562],[277,201,434,559],[277,201,423,557],[277,203,416,551],[281,220,441,547],[283,220,441,543],[285,220,443,543],[304,217,450,543],[306,216,457,544],[306,212,471,544],[307,206,494,555],[307,190,506,561],[319,173,521,563],[310,160,521,573],[290,134,532,582],[289,134,543,594],[289,134,547,594],[289,134,552,594],[289,134,552,594],[279,134,552,594],[279,136,552,588],[279,151,537,578],[286,173,498,568],[290,200,449,557],[290,213,435,557]],"still":[278,205,528,566]}};
   function placePerformance(motion,image,still){
     const profile=inkBounds[motion.code];
     if(!profile || image.naturalWidth!==profile.width)return;
@@ -345,7 +362,7 @@
     if(calm.matches || resting || document.hidden)return;
     performanceTimer=setTimeout(()=>{
       if(!busy() && !active && !journey && !pendingExpression && bubble.hidden)
-        perform(drawFromBag("rare-performances",Object.keys(performances)));
+        begin({code:nextDailyAction(),returnPose:bodyPose});
       schedulePerformance();
     },80000+Math.random()*60000);
   }
@@ -464,12 +481,13 @@
       if(epoch!==generation || active!==ended)return;
       const further=pendingPoke;
       if(ended?.code==="flying_squirrel"){
-        centerEyesUntil=performance.now()+240;homePose="breathe";choice="auto";heldTime=0;save("aira-posture","auto");
+        landingTime=calm.matches?null:performance.now();centerEyesUntil=performance.now()+240;homePose="breathe";choice="auto";heldTime=0;save("aira-posture","auto");
       }else if(!ended?.reaction && choice==="auto" && homePose!==pose){
         previousHome=homePose;homePose=pose;heldTime=0;
       }
       if(!ended?.reaction || pose!==bodyPose){phase=0;breathTime=0;lastBodyTime=performance.now();}
       bodyPose=pose;goal=pose;widget.dataset.posture=pose;stopMotion();
+      if(landingTime!==null)requestAnimationFrame(settleStandingSize);
       if(further)poke(further);
       else if(choice!=="auto" && choice!==pose)scheduleReturn();
     }
@@ -491,7 +509,8 @@
     clearTimeout(tick);const epoch=++generation;
     const motion=active={code,reduced:calm.matches,frame:0,direction:1,looped:false,reaction:!!intent.reaction,group:intent.group,returnPose:intent.returnPose||bodyPose};
     const file="poses/"+code+".webp";
-    const pace=pacing[code]||40;
+    const daily=dailyActions.includes(code);
+    const pace=(pacing[code]||40)/(daily?dailyRate:1);
     const local=code.startsWith("react_"),entry=local?(firstRecoilFrame[intent.variant]||0):0;
     const ready=()=>epoch===generation && active===motion;
     const finishIfCurrent=()=>{if(ready()) finish();};
@@ -500,6 +519,15 @@
       if(intent.reaction){art.dataset.pokeGroup=intent.group;art.dataset.pokeVariant=intent.variant;}
       motion.frame=frame;art.hidden=false;art.dataset.action=code;
       tile(file,frame,5,5);toggle.title="Aira · 轻点互动，右键换姿势";
+      if(code==="plane"){
+        if(frame===0){
+          const b=toggle.getBoundingClientRect(),v=viewport();
+          motion.facing=b.left+b.width/2>v.x+v.w/2?-1:1;
+        }
+        art.style.transform="scaleX("+motion.facing+")";
+        art.style.clipPath=[15,17,20,22,23,24].includes(frame)?"polygon(0 0,75% 0,75% 23%,100% 23%,100% 100%,0 100%)":"";
+        if(frame===15)throwPlane(motion);
+      }
     };
     const native=performances[code];
     if(native){
@@ -523,7 +551,7 @@
       }).catch(finishIfCurrent);
       return;
     }
-    load(file).then(()=>{
+    (code==="plane"?Promise.all([load(file),load("maid-plane.webp")]):load(file)).then(()=>{
       if(!ready())return;
       if (calm.matches) {
         show(12);tick=setTimeout(finishIfCurrent,850);return;
@@ -535,7 +563,7 @@
           motion.direction=-1;motion.looped=true;
         }else if(repeat && motion.direction<0 && f<=repeat[0])motion.direction=1;
         if (motion.direction>0 && f===24) {
-          if(local || forward.has(code)){finish();return;}
+          if(daily || local || forward.has(code)){finish();return;}
           motion.direction=-1;
         }
         if(motion.direction<0 && f<=entry){finish();return;}
@@ -543,7 +571,7 @@
         let beat=pace;
         if(intent.reaction && next<6 && motion.direction>0)beat=24;
         if(intent.reaction && next>=15)beat+=5;
-        if(next===24)beat=pace*3;
+        if(next===24 && !daily)beat=pace*3;
         tick=setTimeout(step,beat);
       }
       motion.step=step;show(entry);
@@ -560,6 +588,22 @@
       bags.set(id,bag);
     }
     const line=bag.pop();bag.last=line;return line;
+  }
+  // Keep the rest of this round when the reader opens the next lesson in the same tab.
+  function nextDailyAction(){
+    const id="aira-daily-round-v1";
+    if(!bags.has(id)){
+      try{
+        const saved=JSON.parse(sessionStorage.getItem(id));
+        if(saved && dailyActions.includes(saved.last) && Array.isArray(saved.left) &&
+           new Set(saved.left).size===saved.left.length && saved.left.every(code=>dailyActions.includes(code) && code!==saved.last)){
+          const bag=saved.left;bag.last=saved.last;bags.set(id,bag);
+        }
+      }catch{}
+    }
+    const code=drawFromBag(id,dailyActions);
+    try{sessionStorage.setItem(id,JSON.stringify({last:code,left:bags.get(id)}));}catch{}
+    return code;
   }
   function close(){
     clearTimeout(writing);clearTimeout(dismiss);automatic=false;bubble.hidden=true;
@@ -582,6 +626,110 @@
     }
     write();
   }
+  const drawnQuestions=new Set();
+  let lastQuestion="",paper=null;
+  function lessonGroup(id){
+    const lesson=id.match(/^(?:l(\d+)-s\d+|ch-(\d+))$/);
+    if(lesson)return "lesson-"+Number(lesson[1]||lesson[2]);
+    return document.getElementById(id)?.closest("section[data-part]")?.dataset.part || "";
+  }
+  function chooseQuestion(){
+    const ids=Object.keys(cards);
+    let eligible=ids.filter(id=>!drawnQuestions.has(cards[id].question));
+    if(!eligible.length){
+      drawnQuestions.clear();
+      eligible=ids.filter(id=>cards[id].question!==lastQuestion);
+      if(!eligible.length)eligible=ids;
+    }
+    const group=lessonGroup(key||"");
+    const related=group?eligible.filter(id=>lessonGroup(id)===group):eligible;
+    const pool=related.length?related:eligible;
+    const id=pool[Math.floor(Math.random()*pool.length)];
+    const card=cards[id],section=document.getElementById(id);
+    const heading=section?.matches("h1,h2,h3,h4")?section:section?.querySelector("h1,h2,h3,h4");
+    return {id,question:card.question,answer:card.answer,title:heading?.textContent.trim()||""};
+  }
+  function clearPaper(restore=false){
+    if(!paper)return;
+    const p=paper;paper=null;cancelAnimationFrame(p.raf);
+    clearTimeout(p.expiry);clearTimeout(p.reveal);
+    const hadFocus=p.card.contains(document.activeElement);
+    p.flight.remove();p.card.remove();
+    if(restore && hadFocus)toggle.focus({preventScroll:true});
+  }
+  function centerPaper(){
+    if(!paper)return;
+    const v=viewport(), card=paper.card;
+    card.style.left=(v.x+v.w/2)+"px";card.style.top=(v.y+v.h/2)+"px";
+    card.style.width=Math.min(350,v.w-24)+"px";card.style.maxHeight=Math.max(60,v.h-24)+"px";
+  }
+  function throwPlane(motion) {
+    if(paper || document.hidden || busy())return;
+    const q=chooseQuestion(),flight=petImage("aira-flight"),card=document.createElement("div");
+    flight.src=resource("maid-plane.webp");flight.setAttribute("aria-hidden","true");
+    card.className="aira-plane-card";card.hidden=true;
+    card.setAttribute("role","dialog");card.setAttribute("aria-labelledby","aira-paper-question");
+    card.innerHTML=`<div class="aira-plane-head"><span></span><button type="button" data-paper="close" aria-label="收起纸飞机题目">关闭</button></div>
+      <h3 id="aira-paper-question"></h3><p class="aira-plane-answer" aria-live="polite" hidden></p>
+      <button type="button" data-paper="answer" aria-expanded="false">看答案</button>`;
+    card.querySelector("h3").textContent=q.question;
+    card.querySelector(".aira-plane-head span").textContent=q.title || "Aira 的纸飞机";
+    const answerButton=card.querySelector('[data-paper="answer"]'),answer=card.querySelector(".aira-plane-answer");
+    const p=paper={flight,card,q,raf:0,expiry:0,reveal:0};
+    card.dataset.questionKey=q.id;
+    card.querySelector('[data-paper="close"]').onclick=()=>clearPaper(true);
+    answerButton.onclick=()=>{
+      clearTimeout(p.expiry);
+      answer.textContent=q.answer;answer.hidden=false;
+      answerButton.setAttribute("aria-expanded","true");answerButton.hidden=true;
+      if(card.contains(document.activeElement))card.querySelector('[data-paper="close"]').focus({preventScroll:true});
+      centerPaper();
+    };
+    const manual=motion.requested || widget.contains(document.activeElement);
+    widget.append(flight,card);
+    const b=toggle.getBoundingClientRect(),scale=b.width/144,dir=motion.facing;
+    // Frame 15 is the first released sheet. Attach the tail to the extended fingertip.
+    const fingerX=b.left+(dir===1?109/144:1-109/144)*b.width;
+    const fingerY=b.top+39/160*b.height;
+    const sx=fingerX+dir*12*scale,sy=fingerY-5*scale;
+    const started=performance.now(),duration=calm.matches?0:810;
+    flight.style.width=(27*scale)+"px";flight.style.height=(15*scale)+"px";
+    function expire() {
+      if(paper!==p)return;
+      if(card.matches(":hover") || card.contains(document.activeElement)){
+        p.expiry=setTimeout(expire,2500);return;
+      }
+      clearPaper();
+    }
+    function unfold(){
+      // Only questions that actually opened count toward a reading session's draw.
+      drawnQuestions.add(q.question);lastQuestion=q.question;
+      flight.remove();centerPaper();card.hidden=false;
+      card.dataset.state="unfolding";
+      p.reveal=setTimeout(()=>{
+        if(paper!==p)return;
+        card.dataset.state="open";
+        if(manual)answerButton.focus({preventScroll:true});
+      },calm.matches?0:260);
+      p.expiry=setTimeout(expire,manual?22000:12000);
+    }
+    function fly(now) {
+      if(paper!==p)return;
+      const v=viewport(),tx=v.x+v.w/2,ty=v.y+v.h/2;
+      const t=duration?Math.min(1,(now-started)/duration):1, u=1-t;
+      const cx=sx+(tx-sx)*.44, cy=Math.max(v.y+12,Math.min(sy,ty)-Math.min(96,Math.hypot(tx-sx,ty-sy)*.24));
+      const x=u*u*sx+2*u*t*cx+t*t*tx,y=u*u*sy+2*u*t*cy+t*t*ty;
+      const tangent=Math.atan2(u*(cy-sy)+t*(ty-cy),u*(cx-sx)+t*(tx-cx))*180/Math.PI;
+      const angle=tangent-(dir===1?-25:-155);
+      flight.style.left=x+"px";flight.style.top=y+"px";
+      flight.style.transform="translate(-50%,-50%) rotate("+angle+"deg) scaleX("+dir+")";
+      if(t===1){unfold();return;}
+      p.raf=requestAnimationFrame(fly);
+    }
+    close();fly(started);
+  }
+
+
   let scene=null,heldScene=null,sceneTimer=0;
   function releaseHeldScene(){
     if(!heldScene)return;
@@ -785,7 +933,7 @@
     else if(!bubble.hidden) speak(automatic?"fact":mode==="answer"?"question":mode,automatic);
     schedulePrompt();
   }
-  function busy() {return !!drag || !!firstTap || !!document.querySelector("dialog[open], html.toc-overlay");}
+  function busy() {return !!drag || !!firstTap || !!paper || !!document.querySelector("dialog[open], html.toc-overlay");}
   function schedulePrompt() {
     clearTimeout(promptTimer);
     if(calm.matches || resting || document.hidden) return;
@@ -805,7 +953,7 @@
     return bag;
   }
   function rest(value,persist) {
-    resting=value;widget.dataset.rest=value?"yes":"no";
+    clearPaper();resting=value;widget.dataset.rest=value?"yes":"no";
     toggle.setAttribute("aria-label",value?"唤醒 Aira":"Aira");
     find(".aira-label").hidden=!value;stopTravel();stopMotion();close();layout();
     if(!value)go(homePose);bodyClock();schedulePrompt();schedulePerformance();scheduleScene();
@@ -940,12 +1088,13 @@
   },{capture:true,passive:true});
   document.addEventListener("keydown",e=>{
     if(e.key!=="Escape")return;
+    if(paper)clearPaper(true);
     if(scene)stopMotion();
     if(!bubble.hidden)close();
   });
   document.addEventListener("visibilitychange",()=>{
     if(document.hidden){
-      cancelTap();cancelExpression();
+      clearPaper();cancelTap();cancelExpression();
         if(drag)release({pointerId:drag.id},true);
       stopTravel();stopMotion();if(automatic)close();
     } else go(homePose);
