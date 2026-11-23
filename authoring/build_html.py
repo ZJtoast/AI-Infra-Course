@@ -251,6 +251,7 @@ def reader(title, eyebrow, lead, download, aside, body, prefix):
 
 def build(chapters, out):
     files = {}
+    accelerator_links = (HERE / "accelerator-links.html").read_text("utf8").strip()
     book = []
     index = []
     groups = {}
@@ -283,7 +284,7 @@ def build(chapters, out):
             slug,
             course_navigation(groups, ch) if i else
             f'<details class="tocbox" open><summary>路线站点</summary>{toc(ch)}</details>',
-            contents(ch, prefix) + adjacent,
+            (accelerator_links if not i else "") + contents(ch, prefix) + adjacent,
             prefix,
         )
         legacy = ch.get("legacy-slug")
@@ -331,7 +332,7 @@ def build(chapters, out):
         "".join(book),
         "",
     )
-    home = (HERE / "home.html").read_text("utf8")
+    home = (HERE / "home.html").read_text("utf8").replace("{{ACCELERATORS}}", accelerator_links)
 
     def row(ch):
         return f'<a class="lessonrow" href="{chapter_url(ch)}"><span class="num">{ch.get("number")}</span><div><h3>{escape(ch.get("title"))}</h3><p>{escape(text(ch.find("lead")))}</p></div><span class="go" aria-hidden="true">↗</span></a>'
@@ -367,6 +368,13 @@ def build(chapters, out):
             ignore=shutil.ignore_patterns("index-data.js"),
         )
         shutil.copytree(ROOT / "examples", out / "examples", dirs_exist_ok=True)
+        for platform in ("tpu", "amd"):
+            page = Path("accelerators") / platform / "index.html"
+            (out / page.parent).mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(ROOT / page, out / page)
+            figures = page.parent / "figures"
+            if (ROOT / figures).is_dir():
+                shutil.copytree(ROOT / figures, out / figures, dirs_exist_ok=True)
     for name, data in GENERATED.items():
         write(out / "assets/figures" / name, data)
     appearance = (HERE / "appearance.html").read_text("utf8").strip()
