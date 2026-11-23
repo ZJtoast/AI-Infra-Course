@@ -1,0 +1,11 @@
+HIP 设备端编译结果节选；LLVM 19.1.7，ROCm 7.2.4 HIP 头文件，-O2。
+每项记录原始汇编的一条命令。lds_read / lds_write 表示该函数是否出现相应 LDS 指令。
+
+gfx90a mfma_direct  lds_read=False  lds_write=False
+  v_mfma_f32_16x16x4f32 a[0:3], v1, v3, a[0:3]
+gfx90a mfma_block  lds_read=True  lds_write=True
+  v_mfma_f32_16x16x4f32 a[0:3], v3, v5, a[0:3]
+gfx942 mfma_direct  lds_read=False  lds_write=False
+  v_mfma_f32_16x16x4_f32 a[0:3], v1, v3, a[0:3]
+gfx942 mfma_block  lds_read=True  lds_write=True
+  v_mfma_f32_16x16x4_f32 a[0:3], v3, v5, a[0:3]

@@ -1,5 +1,6 @@
 __pycache__/
 /RULES.md
+/local-courses/
 
 # Profiler reports, per-run timing and request timelines stay outside Git.
 *.nsys-rep

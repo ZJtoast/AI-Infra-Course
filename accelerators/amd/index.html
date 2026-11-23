@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="referrer" content="no-referrer"><meta name="color-scheme" content="light dark"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'; script-src 'unsafe-inline'; font-src 'self'; base-uri 'none'; form-action 'none'"><title>AMD Instinct 架构与 AI 系统</title><style>@font-face{font-family:BookLatin;src:local("Times New Roman"),local("Liberation Serif");unicode-range:U+0020-024F,U+1E00-1EFF}*{box-sizing:border-box}html{color-scheme:light dark;scroll-padding-top:5rem;--paper:light-dark(#f3f7fc,#101821);--sheet:light-dark(#fff,#182430);--ink:light-dark(#101820,#e6edf4);--muted:light-dark(#43596b,#b3c4d4);--line:light-dark(#b6c9d8,#526475);--accent:light-dark(#165b94,#98d2ff);--tint:light-dark(#eaf3fa,#22384c);--shade:light-dark(#133753,#264b68);--code:light-dark(#eff4f8,#111c26)}html[data-mode=light]{color-scheme:light}html[data-mode=dark]{color-scheme:dark}body{background:var(--paper);color:var(--ink);margin:0;font:1.08rem/1.8 BookLatin,SimHei,"Microsoft YaHei",sans-serif;overflow-wrap:anywhere}a{color:var(--accent);text-underline-offset:.17em}header{position:sticky;top:0;background:var(--sheet);border-bottom:1px solid var(--line);z-index:3}.toolbar,.layout{width:min(100% - 2rem,81rem);margin-inline:auto}.toolbar{min-height:3.35rem;display:flex;align-items:center;justify-content:space-between;gap:1rem}.toolbar a{font-weight:bold;text-decoration:none}.toolbar select{background:var(--sheet);color:var(--ink);border:1px solid var(--line);border-radius:.3rem;padding:.3rem;font:inherit;font-size:.9rem}.layout{display:grid;grid-template-columns:minmax(13rem,17rem) minmax(0,56rem);gap:clamp(1rem,3vw,3rem);justify-content:center;align-items:start}.side{position:sticky;top:4.1rem;max-height:calc(100vh - 5rem);overflow:auto;scrollbar-width:thin;margin-top:1rem;padding:.5rem .7rem .8rem 0}.side>details>summary{font-weight:700;list-style:none;color:var(--shade)}.side .part{margin:.65rem 0 .3rem;font-weight:bold;color:var(--muted);font-size:.95rem}.side ul{border-inline-start:1px solid var(--line);padding:0 0 0 .7rem;margin:0;list-style:none}.side li{margin:.12rem 0}.side a{display:block;text-decoration:none;padding:.12rem .38rem;color:var(--ink);font-size:.96rem;line-height:1.45;border-radius:.22rem}.side a:hover { background:var(--tint); color:var(--accent) }
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="referrer" content="no-referrer"><meta name="color-scheme" content="light dark"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; font-src 'self'; base-uri 'none'; form-action 'none'"><title>AMD Instinct 架构与 AI 系统</title><style>@font-face{font-family:BookLatin;src:local("Times New Roman"),local("Liberation Serif");unicode-range:U+0020-024F,U+1E00-1EFF}*{box-sizing:border-box}html{color-scheme:light dark;scroll-padding-top:5rem;--paper:light-dark(#f3f7fc,#101821);--sheet:light-dark(#fff,#182430);--ink:light-dark(#101820,#e6edf4);--muted:light-dark(#43596b,#b3c4d4);--line:light-dark(#b6c9d8,#526475);--accent:light-dark(#165b94,#98d2ff);--tint:light-dark(#eaf3fa,#22384c);--shade:light-dark(#133753,#264b68);--code:light-dark(#eff4f8,#111c26)}html[data-mode=light]{color-scheme:light}html[data-mode=dark]{color-scheme:dark}body{background:var(--paper);color:var(--ink);margin:0;font:1.08rem/1.8 BookLatin,SimHei,"Microsoft YaHei",sans-serif;overflow-wrap:anywhere}a{color:var(--accent);text-underline-offset:.17em}header{position:sticky;top:0;background:var(--sheet);border-bottom:1px solid var(--line);z-index:3}.toolbar,.layout{width:min(100% - 2rem,81rem);margin-inline:auto}.toolbar{min-height:3.35rem;display:flex;align-items:center;justify-content:space-between;gap:1rem}.toolbar a{font-weight:bold;text-decoration:none}.toolbar select{background:var(--sheet);color:var(--ink);border:1px solid var(--line);border-radius:.3rem;padding:.3rem;font:inherit;font-size:.9rem}.layout{display:grid;grid-template-columns:minmax(13rem,17rem) minmax(0,56rem);gap:clamp(1rem,3vw,3rem);justify-content:center;align-items:start}.side{position:sticky;top:4.1rem;max-height:calc(100vh - 5rem);overflow:auto;scrollbar-width:thin;margin-top:1rem;padding:.5rem .7rem .8rem 0}.side>details>summary{font-weight:700;list-style:none;color:var(--shade)}.side .part{margin:.65rem 0 .3rem;font-weight:bold;color:var(--muted);font-size:.95rem}.side ul{border-inline-start:1px solid var(--line);padding:0 0 0 .7rem;margin:0;list-style:none}.side li{margin:.12rem 0}.side a{display:block;text-decoration:none;padding:.12rem .38rem;color:var(--ink);font-size:.96rem;line-height:1.45;border-radius:.22rem}.side a:hover { background:var(--tint); color:var(--accent) }
 .side a[aria-current="location"] {
   background:var(--tint); color:var(--accent); font-weight:700;
   box-shadow:inset .22rem 0 var(--accent);
@@ -19,8 +19,8 @@
     overscroll-behavior:contain;
   }
 }
-@media print{html{color-scheme:light}header,.side,.skip,.lab input{display:none}.layout,main{display:block;width:auto;border:0;margin:0;padding:0}.sources{display:block}pre{white-space:pre-wrap}pre code{white-space:pre-wrap}figure,table,details{break-inside:avoid}}</style></head>
-<body id="top"><a class="skip" href="#reader">跳到正文</a><header><div class="toolbar"><a href="../../index.html">AI Infra Course</a><select id="display-mode" aria-label="阅读主题"><option value="auto">跟随系统</option><option value="light">浅色主题</option><option value="dark">深色主题</option></select></div></header><div class="layout"><aside class="side"><details open><summary>本页目录</summary><nav aria-label="AMD Instinct 课程目录"><div class="part">Instinct 架构与存储</div><ul><li><a href="#instinct">Instinct 加速卡与 ROCm 软件栈</a></li><li><a href="#cdna">CDNA 的芯粒、计算单元与显存</a></li><li><a href="#wave">线程块、波前与访存顺序</a></li></ul><div class="part">HIP 与算子开发</div><ul><li><a href="#hip-axpy">第一个 HIP 算子的启动与校验</a></li><li><a href="#streams">HIP 流、事件与双缓冲</a></li><li><a href="#lds-reduce">块内规约与跨块归并</a></li><li><a href="#tile-gemm">分块矩阵乘与矩阵单元</a></li><li><a href="#libraries">rocBLAS、hipBLASLt 与 MIOpen</a></li><li><a href="#sparse">图邻接表与 rocSPARSE 的稀疏乘法</a></li></ul><div class="part">模型框架与注意力</div><ul><li><a href="#pytorch">ROCm PyTorch 的张量与自动求导</a></li><li><a href="#triton">Triton 的行块与融合 softmax</a></li><li><a href="#attention">注意力得分与分块归一化</a></li><li><a href="#precision">低精度表示、缩放与 Quark 校准</a></li></ul><div class="part">推理服务与长上下文</div><ul><li><a href="#kv-pages">预填充、解码与分页 KV 缓存</a></li><li><a href="#serve">vLLM 的推理服务与并发批处理</a></li><li><a href="#pd">SGLang 的分离式推理与 KV 交接</a></li><li><a href="#draft">并行草稿验证与有效交付量</a></li></ul><div class="part">通信与并行训练</div><ul><li><a href="#rccl">RCCL 集合通信与数据并行</a></li><li><a href="#parallel">张量并行、流水线与长序列分工</a></li><li><a href="#moe">MoE 的专家路由、重排与返回</a></li><li><a href="#fsdp">训练显存、状态分片与恢复</a></li><li><a href="#finetune">Instinct 上的监督微调与 LoRA</a></li><li><a href="#rl">verl 的采样、奖励与策略更新</a></li></ul><div class="part">性能剖析与部署验收</div><ul><li><a href="#timeline">rocprofv3 的时间线与请求等待</a></li><li><a href="#counters">算术强度、硬件计数器与内核瓶颈</a></li><li><a href="#isa">GPU 指令、源码位置与优化复测</a></li><li><a href="#qwen-design">MI300X 上的 Qwen3 服务容量与验收</a></li></ul></nav></details></aside><main id="reader"><div class="intro"><h1>AMD Instinct 架构与 AI 系统</h1><p>沿一组线程的访存与矩阵乘，理解 CDNA、HIP 和 ROCm，再把同一套计算带到模型训练与推理服务。</p></div>
+@media print{html{color-scheme:light}header,.side,.skip,.lab input{display:none}.layout,main{display:block;width:auto;border:0;margin:0;padding:0}.sources{display:block}pre{white-space:pre-wrap}pre code{white-space:pre-wrap}figure,table,details{break-inside:avoid}}</style><link rel="stylesheet" href="../../assets/aira/aira.css?v=a9e2ccbce9c1"></head>
+<body id="top"><a class="skip" href="#reader">跳到正文</a><header><div class="toolbar"><a href="../../index.html">AI Infra Course</a><select id="display-mode" aria-label="阅读主题"><option value="auto">跟随系统</option><option value="light">浅色主题</option><option value="dark">深色主题</option></select></div></header><div class="layout"><aside class="side"><details open><summary>本页目录</summary><nav aria-label="AMD Instinct 课程目录"><div class="part">Instinct 架构与存储</div><ul><li><a href="#instinct">Instinct 加速卡与 ROCm 软件栈</a></li><li><a href="#cdna">CDNA 的芯粒、计算单元与显存</a></li><li><a href="#wave">线程块、波前与访存顺序</a></li><li><a href="#transpose-layout">转置的全局地址与 LDS 存储体</a></li></ul><div class="part">HIP 与算子开发</div><ul><li><a href="#hip-axpy">第一个 HIP 算子的启动与校验</a></li><li><a href="#streams">HIP 流、事件与双缓冲</a></li><li><a href="#lds-reduce">块内规约与跨块归并</a></li><li><a href="#scan-cooperation">前缀和的树形进位与 wave 交换</a></li><li><a href="#tile-gemm">分块矩阵乘与矩阵单元</a></li><li><a href="#mfma-workgroup">双 wave 矩阵乘的 LDS 布局与 MFMA 寄存器</a></li><li><a href="#libraries">rocBLAS、hipBLASLt 与 MIOpen</a></li><li><a href="#sparse">图邻接表与 rocSPARSE 的稀疏乘法</a></li></ul><div class="part">模型框架与注意力</div><ul><li><a href="#pytorch">ROCm PyTorch 的张量与自动求导</a></li><li><a href="#triton">Triton 的行块与融合 softmax</a></li><li><a href="#attention">注意力得分与分块归一化</a></li><li><a href="#attention-tiles">行块 SDPA 的共享分数与在线归并</a></li><li><a href="#precision">低精度表示、缩放与 Quark 校准</a></li><li><a href="#quant-wave">分组 INT8 的双遍量化、单遍融合与反量化</a></li></ul><div class="part">推理服务与长上下文</div><ul><li><a href="#kv-pages">预填充、解码与分页 KV 缓存</a></li><li><a href="#serve">vLLM 的推理服务与并发批处理</a></li><li><a href="#pd">SGLang 的分离式推理与 KV 交接</a></li><li><a href="#draft">并行草稿验证与有效交付量</a></li></ul><div class="part">通信与并行训练</div><ul><li><a href="#rccl">RCCL 集合通信与数据并行</a></li><li><a href="#parallel">张量并行、流水线与长序列分工</a></li><li><a href="#moe">MoE 的专家路由、重排与返回</a></li><li><a href="#routing-pack">专家分桶的局部名次与稳定写回</a></li><li><a href="#fsdp">训练显存、状态分片与恢复</a></li><li><a href="#finetune">Instinct 上的监督微调与 LoRA</a></li><li><a href="#rl">verl 的采样、奖励与策略更新</a></li></ul><div class="part">性能剖析与部署验收</div><ul><li><a href="#timeline">rocprofv3 的时间线与请求等待</a></li><li><a href="#counters">算术强度、硬件计数器与内核瓶颈</a></li><li><a href="#isa">GPU 指令、源码位置与优化复测</a></li><li><a href="#qwen-design">MI300X 上的 Qwen3 服务容量与验收</a></li></ul><div class="part">从 NVIDIA 迁移到 Instinct</div><ul><li><a href="#port-hip">CUDA 算子到 HIP 的迁移</a></li><li><a href="#port-libraries">数值库、图算子与卷积模型的迁移</a></li><li><a href="#port-framework">训练、推理服务与性能记录的迁移</a></li></ul></nav></details></aside><main id="reader"><div class="intro"><h1>AMD Instinct 架构与 AI 系统</h1><p>沿一组线程的访存与矩阵乘，理解 CDNA、HIP 和 ROCm，再把同一套计算带到模型训练与推理服务。</p></div>
 <section data-part="Instinct 架构与存储" id="instinct"><p class="part-title">Instinct 架构与存储</p><h2>Instinct 加速卡与 ROCm 软件栈</h2>
 <p>给一句话做分类时，程序先把每个词表示成一排数。模型中的线性层把这排数分别与几列权重相乘、求和，得到下一排数。把几百个词叠成矩阵后，不同输出格可以同时算。AMD 的 Instinct 加速卡把大量这样的算术交给 GPU。CPU 准备输入、发起计算和处理结果，反复使用的权重可以一直留在卡上的高带宽显存（HBM）里。</p>
 <p>先用一行输入 [1，2] 和两列权重 [3，5]、[4，6] 算一次。第一个输出是 1 乘 3 加 2 乘 5，得 13；第二个是 1 乘 4 加 2 乘 6，得 16。下一行输入 [2，1] 仍用这两列权重，得到 11 和 14。一次调用让 GPU 产生四个输出。把两次输入排在一起，可以在卡内重复利用同一块权重。</p>
@@ -43,16 +43,24 @@ print(y.cpu().tolist(), out.cpu().tolist())</code></pre></figure>
 <h3>框架算子、设备程序与执行队列</h3>
 <p>沿 <code>x @ w</code> 向下看，PyTorch 的 <code>_matmul_impl</code> 先检查两个输入的维数。两者都是二维时，源码进入 <code>dim_tensor1 == 2 &amp;&amp; dim_tensor2 == 2</code> 分支。这里没有传预分配输出，于是调用 <code>tensor1.mm(tensor2)</code>。不同形状的向量或一批矩阵会走其他分支，GPU 后端再根据设备和数据类型处理所选的算子。</p>
 <p>框架看到的是矩阵乘，GPU 最后执行的是许多线程运行的设备程序。HIP 流把同一条执行队列中的工作按依赖排好。矩阵乘结果尚在设备上时，主机就能提交接下来要加偏置的操作，后者在对应结果可读后执行。单独计时一条 Python 语句常常只包含提交工作所花的时间。想知道设备什么时候算完，可以等待事件，或像上例那样取回输出逐格核对。</p>
+<h3>一次前向传播中的驻留数据</h3>
+<p>连续给两个批次分类时，模型权重保持相同。上例的输入、权重、输出各有四个 FP32 数，每个数用 4 字节。若每批都从 CPU 搬权重，两个批次一共向设备写入 64 字节：两个 16 字节输入，加两份 16 字节权重。模型加载时就把权重放在卡上，两批只需向设备写入 48 字节。两次矩阵乘的运算和输出完全相同。</p>
+<p>把模型搬上卡、提交一批输入、取回最后的结果，各有自己的完成时刻。后续层也在同一张卡上时，第一层输出可以作为第二层的设备输入。调用 <code>.cpu()</code> 时才需要把这份结果送回主机，方便和手算对照；推理循环里反复把层间结果拉回 CPU 会多走一趟。</p>
+<figure><img class="diagram-light" src="figures/worked-residency.svg" width="600" height="144" alt="两个批次共用一张权重表，输入和输出各批单独保存"><figcaption>两个批次共用一张权重表，输入和输出各批单独保存</figcaption></figure>
 <details><summary>权重转置后的第一项输出</summary><p>将权重转置后，第一列会从 (3, 5) 变成 (3, 4)，第一行点积从 13 变为 <math xmlns="http://www.w3.org/1998/Math/MathML"><mn>1</mn><mo>×</mo><mn>3</mn><mo>+</mo><mn>2</mn><mo>×</mo><mn>4</mn><mo>=</mo><mn>11</mn></math>。两张表即使仍是两行两列，交换权重两轴也会改变模型。</p></details>
 <p class="sources"><a href="https://rocm.docs.amd.com/projects/HIP/en/docs-7.2.3/understand/programming_model.html">AMD · HIP 编程模型</a> · <a href="https://rocm.docs.amd.com/projects/install-on-linux/en/docs-7.2.0/reference/system-requirements.html">AMD · Linux 系统与 GPU 支持表</a> · <a href="https://github.com/pytorch/pytorch/blob/v2.9.0/docs/source/notes/hip.rst">PyTorch · ROCm 后端</a> · <a href="https://github.com/pytorch/pytorch/blob/v2.9.0/aten/src/ATen/native/LinearAlgebra.cpp#L2039-L2040">PyTorch 二维矩阵乘分支</a></p>
 </section>
 
 <section data-part="Instinct 架构与存储" id="cdna"><h2>CDNA 的芯粒、计算单元与显存</h2>
 <p>一张 MI300X 上的计算资源分布在八个计算芯粒里。计算芯粒称为 XCD，每个 XCD 有 38 个启用的计算单元，合计 304 个。计算单元简称 CU，一批线程在 CU 上执行指令，把暂时用到的数放在寄存器，把一个线程块需要共用的数据放在 CU 上的本地数据共享存储区（LDS）。输入张量和最终输出通常存放在 HBM。芯粒经 I/O 芯粒和封装内互连访问显存。</p>
-<table><thead><tr><th scope="col">型号</th><th scope="col">架构与编译目标</th><th scope="col">整卡显存（GiB）</th><th scope="col">整卡启用 CU</th><th scope="col">单 CU 的 LDS（KiB）</th></tr></thead><tbody><tr><td>MI250X</td><td>CDNA 2 · gfx90a</td><td>128</td><td>220，两个 GCD 各 110</td><td>64</td></tr><tr><td>MI300X</td><td>CDNA 3 · gfx942</td><td>192</td><td>304，八个 XCD 各 38</td><td>64</td></tr><tr><td>MI325X</td><td>CDNA 3 · gfx942</td><td>256</td><td>304，八个 XCD 各 38</td><td>64</td></tr><tr><td>MI350X</td><td>CDNA 4 · gfx950</td><td>288</td><td>256，八个 XCD 各 32</td><td>160</td></tr></tbody></table>
+<table><thead><tr><th scope="col">型号</th><th scope="col">架构与编译目标</th><th scope="col">整卡显存（GiB）</th><th scope="col">整卡启用 CU</th><th scope="col">单 CU 的 LDS（KiB）</th></tr></thead><tbody><tr><td>MI100</td><td>CDNA · gfx908</td><td>32</td><td>120，一个计算裸片</td><td>64</td></tr><tr><td>MI250X</td><td>CDNA 2 · gfx90a</td><td>128</td><td>220，两个 GCD 各 110</td><td>64</td></tr><tr><td>MI300X</td><td>CDNA 3 · gfx942</td><td>192</td><td>304，八个 XCD 各 38</td><td>64</td></tr><tr><td>MI325X</td><td>CDNA 3 · gfx942</td><td>256</td><td>304，八个 XCD 各 38</td><td>64</td></tr><tr><td>MI350X</td><td>CDNA 4 · gfx950</td><td>288</td><td>256，八个 XCD 各 32</td><td>160</td></tr></tbody></table>
 <p>MI250X 把两个图形计算裸片（GCD）装进同一封装，每个 GCD 在系统中对应一个 GPU 设备。每个 GCD 各连 64 GiB HBM，两个设备合计 128 GiB。给单个设备分配 80 GiB 连续张量，就会超过这一侧的本地容量。MI300X 在单分区配置下向程序呈现一张设备，八个 XCD 共同处理发给这张设备的计算任务。</p>
 <p>MI300X 与 MI325X 的架构目标相同，后者的显存容量和峰值带宽提高了。MI350X 改用 gfx950，单 CU 能用的 LDS 增大。假设每个线程块占用 40 KiB LDS，只考虑 LDS 的容量，64 KiB 能放一个块，160 KiB 能放四个。编译器使用的寄存器、每个块的线程数和硬件驻留上限还会限制同一时刻实际驻留的块数。</p>
 <p>矩阵单元支持的输入格式也随代际变化。例如 MI300 系列 FP8 的 FNUZ 编码与 MI350 系列的 OCP FP8 编码使用不同的特殊值约定。把量化后的模型移到另一代硬件时，要核对权重文件的编码、尺度和算子支持的格式。即使每个元素都占一个字节，同一个字节也可能被两种格式解释成不同的数。</p>
+<h3>双缓冲的片上容量</h3>
+<p>矩阵乘常要一块 A、一块 B 同时到齐。举例取 A 的 64 行、32 列和 B 的 32 行、64 列，两者用 BF16，各占 4096 字节。一个工作组为这对输入留 8 KiB LDS；若还要提前装下一对，就要两套地址，共 16 KiB。用完当前块之前，写下一块的线程只能写第二套地址。</p>
+<p>按 MI300X 每 CU 的 64 KiB LDS 粗算，8 KiB 一套最多排下八个工作组，16 KiB 两套最多排下四个。双缓冲给下一块争取搬运时间，也减少了可同时驻留的工作组。实际收支要一起查看编译器报告的 LDS、VGPR 用量与内核时间。</p>
+<figure><img class="diagram-light" src="figures/worked-double-lds.svg" width="600" height="144" alt="一个工作组的两套 LDS 地址，下一对矩阵块与当前块各占 8 KiB"><figcaption>一个工作组的两套 LDS 地址，下一对矩阵块与当前块各占 8 KiB</figcaption></figure>
 <details><summary>练习 · 两块工作区的驻留条件</summary><p>每块申请 36 KiB，两个块共需 72 KiB。MI300X 的一个 CU 无法同时容下这两个块的 LDS；MI350X 有 160 KiB，按 LDS 单项预算最多能放四个这样的块。</p></details>
 <h3>MI300X 的一个 XCD 内部</h3>
 <figure><a href="figures/mi300-xcd.png"><img class="diagram-light" alt="AMD MI300 的单个 XCD，图中列出用于派发工作组的 ACE、成组的 CU 和共享 L2" width="2188" height="637" style="max-width:100%;height:auto" src="figures/mi300-xcd.png"></a><figcaption>AMD ROCm 的 MI300 单 XCD 结构图，点击可查看原尺寸。<a href="https://rocm.docs.amd.com/en/docs-7.2.0/conceptual/gpu-arch/mi300.html#mi300-xcd">AMD 原图及说明</a></figcaption></figure>
@@ -77,6 +85,12 @@ print(y.cpu().tolist(), out.cpu().tolist())</code></pre></figure>
     }
 }</code></pre></figure>
 <p>将程序保存为 <code>devices.cpp</code>，用 <code>hipcc devices.cpp -o devices</code> 编译，再执行 <code>./devices</code>。<code>dev</code> 枚举当前进程可见的逻辑设备，<code>gcnArchName</code> 可用来核对编译目标，<code>totalGlobalMem</code> 按字节报告当前设备的显存总量。对双 GCD 的 MI250X，要逐行读各设备的容量。训练任务实际还能分配多少，还要扣除已有分配，可用 <code>hipMemGetInfo</code> 查询当前选中设备的空闲量。</p>
+<h3>从第一代 CDNA 到第五代的程序变化</h3>
+<p>MI100 把 120 个 CU 放在一颗计算裸片上。一个训练脚本选择一张 MI100 时，这 120 个 CU 和 32 GiB HBM 都属于同一设备。到了 MI250X，程序先选择两个 GCD 中的一侧；到了 MI300X，单分区下一次启动的网格又可以覆盖八个 XCD。写多卡程序时，先查运行时列出的逻辑设备，再决定怎样切模型。</p>
+<p>再看一个具体访存选择。MI300X 的 LDS 有 32 个 bank，每个 bank 一次容纳一个 4 字节字；MI350X 增至 64 个 bank。把 FP32 矩阵按行连续存放，每行 32 个数。读取第 0 行第 0 列和第 1 行第 0 列时，两个字地址分别是 0 和 32。在 MI300X 上，两个地址对 32 取余都为 0；在 MI350X 上，对 64 取余得到 0 和 32。相同的下标在两代芯片上落到不同的 bank 组合。一次访问要分几拍还取决于指令宽度和哪些 lane 同时访问。</p>
+<p>CDNA 5 的 MI455X 有八个 XCD，共 256 个工作组处理器（WGP），支持 32 个线程一组的 Wave32。举例将 128 个元素分给一个 128 线程块，每个线程处理一项。wave 宽 64 时分成两组，宽 32 时分成四组。若每个 wave 向 LDS 写一个部分和，第二级归约就要分别读两个或四个数。让代码根据实际 wave 宽度决定分组和 LDS 槽数，迁移时同一算法便能覆盖这两种布局。</p>
+<p>在块矩阵乘里，早先的显式加载路径常把全局数据先送入线程寄存器，再存进 LDS。MI455X 的 Tensor Data Mover 可以把合适的块异步从全局内存直接送到 LDS，使负责搬运的线程少持有一份中转寄存器。随后仍要等这一块到齐，执行矩阵乘的线程才能读它。</p>
+<p><a href="https://rocm.docs.amd.com/en/docs-7.2.0/conceptual/gpu-arch/mi100.html">AMD · MI100 计算单元</a> · <a href="https://www.amd.com/content/dam/amd/en/documents/instinct-tech-docs/instruction-set-architectures/amd-instinct-mi300-cdna3-instruction-set-architecture.pdf#page=14">MI300 ISA 手册，图 2 与 LDS</a> · <a href="https://www.amd.com/content/dam/amd/en/documents/instinct-tech-docs/instruction-set-architectures/amd-instinct-cdna4-instruction-set-architecture.pdf#page=14">CDNA 4 ISA 手册，LDS bank 数量</a> · <a href="https://www.amd.com/en/technologies/cdna.html">AMD · CDNA 5 的 WGP、Wave32 与 TDM</a></p>
 <p class="sources"><a href="https://rocm.docs.amd.com/en/docs-7.0.0/reference/gpu-arch-specs.html">AMD · Instinct 型号规格</a> · <a href="https://rocm.docs.amd.com/en/docs-6.4.1/conceptual/gpu-arch/mi250.html">AMD · MI250 裸片与互连</a> · <a href="https://rocm.docs.amd.com/en/docs-7.2.0/conceptual/gpu-arch/mi300.html">AMD · MI300 微架构</a> · <a href="https://rocm.docs.amd.com/en/docs-7.2.4/how-to/rocm-for-ai/inference-optimization/workload.html">AMD · CDNA 3 与 CDNA 4 的执行差异</a></p>
 </section>
 
@@ -86,6 +100,12 @@ print(y.cpu().tolist(), out.cpu().tolist())</code></pre></figure>
 <figure><svg viewBox="0 0 680 147" width="100%" role="img" aria-label="HBM 输入经读取装入块内 LDS，两个波前读取同一片输入并分别累加"><defs><marker id="amd-memory-tip" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0 0 10 5 0 10Z" fill="#25557d"/></marker></defs><g fill="#e7f2fb" stroke="#48657a" stroke-width="2"><rect x="2" y="40" width="142" height="66" rx="7"/><rect x="196" y="40" width="170" height="66" rx="7"/><rect x="440" y="4" width="237" height="58" rx="7"/><rect x="440" y="84" width="237" height="58" rx="7"/></g><g fill="none" stroke="#25557d" stroke-width="2.5" marker-end="url(#amd-memory-tip)"><path d="M145 73 H191"/><path d="M367 73 H399 V33 H435"/><path d="M367 73 H399 V113 H435"/></g><g text-anchor="middle" dominant-baseline="middle" font-size="18" fill="#172b3d"><text x="73" y="73">HBM 输入片</text><text x="281" y="73">块内 LDS</text><text x="558" y="33">波前 0 · 寄存器累加</text><text x="558" y="113">波前 1 · 寄存器累加</text></g></svg><figcaption>MI300X 上一个 128 线程块的一次数据复用。两个波前共用块内 LDS，每个线程各自保留寄存器里的累加值。</figcaption></figure>
 <p>例如行主序矩阵每行 128 个 FP32 数。行主序表示一行挨着一行存放，FP32 每个元素占 4 字节。波前按列号走，同一行前四个 lane 的字节偏移是 0、4、8、12。改为按行号走，同一列前四个 lane 的偏移是 0、512、1024、1536。两种方式使四个线程请求的有效数据都是 16 字节，后一种需要访问相隔很远的位置。观察实际传输量时还需看对齐、缓存命中和具体指令。</p>
 <p>寄存器保留线程自己的中间值，LDS 让一个块内的线程交换数据。一个线程写入 LDS 后，其他线程要在约定的块内屏障之后使用。两个不同块各有各的 LDS，需要跨块交换结果时，通常让第一轮写到全局显存，再按执行队列的顺序启动下一轮读取。</p>
+<h3>一个 CU 里的波前、标量和向量</h3>
+<figure><a href="figures/amd-isa-mi300-memory.png"><img src="figures/amd-isa-mi300-memory.png" width="1817" height="1071" loading="lazy" alt="MI300 的存储层级，底层为每个 CU 的 LDS、SIMD、向量和标量寄存器，上层为各级缓存"></a><figcaption>AMD《Instinct MI300 ISA》图 2，原图下半部展开了一个 CU · <a href="https://www.amd.com/content/dam/amd/en/documents/instinct-tech-docs/instruction-set-architectures/amd-instinct-mi300-cdna3-instruction-set-architecture.pdf#page=14">原图第 14 页</a></figcaption></figure>
+<p>先看左下角的一块 CU。图中从 SIMD 0 画到 SIMD 3，省略号中还有 SIMD 1 和 2。SIMD 表示一条指令同时处理多项数据。调度器把一个 wave 的指令交给其中一个 SIMD；该 wave 里每个有效 lane 各处理自己的数。旁边的 SALU 负责整组共用的标量运算，下面的 LDS 供同一个工作组交换数据。图中方框的数量与一次启动创建的线程数分开计。</p>
+<p>例如同一 wave 要把一排温度乘 2 再加 1。整数 2 和 1 对所有 lane 相同，可以作为立即数或由标量寄存器保存。向量寄存器 v0 却给每个 lane 都留一个位置。若前三个 lane 读到 3、5、8，一条向量乘加指令就让这三个位置各自得到 7、11、17。下一个 wave 也能把自己的暂存值叫 v0，硬件为它另行分配位置。</p>
+<p>按 wave64 展开，一个 32 位 VGPR 在整个 wave 上保存 64 个 4 字节数，占 256 字节；持有 32 个这样的 VGPR，逻辑上占 8192 字节。若每个线程又要同时留住 16 个 32 位中间结果，同一 wave 的活跃数据多 4096 字节。编译后的寄存器数由变量同时存活的范围、复用和分配粒度决定。可以用这一笔账判断为什么加大分块后，可驻留的 wave 有时反而减少。</p>
+<p>再从 CU 沿箭头往上看。普通向量读可能命中本 CU 的 L1，未命中才继续查询共享的 L2 和更外层的缓存，最后才读 HBM。LDS 位于另一个分支，程序先执行写 LDS 的指令才会把片块交给其他线程。同一块输入是否来自 HBM、是否被复用、是否在等另一个 wave 写完，分别要看缓存命中、LDS 读写与块内同步。</p>
 <h3>二维线程位置与波前编号</h3>
 <p>在二维块里，线程的 x 方向先连续编号。若块形状为 (32, 4)，局部编号等于 <math xmlns="http://www.w3.org/1998/Math/MathML"><mn>32</mn><mo>×</mo><mi>y</mi><mo>+</mo><mi>x</mi></math>。行 0 的 32 个线程和行 1 的 32 个线程于是处在同一个 64 路波前。局部位置 (x=3, y=1) 对应第 35 个 lane，(3, 2) 则属于第二个波前的 lane 3。把二维图像按一行排布到设备内存时，选择哪个维度交给 x 方向，就会影响相邻 lane 是否读相邻字节。</p>
 <p>同一个波前里遇到不同分支时，硬件可借助执行掩码，只让满足当前路径条件的 lane 更新自己的结果，再去执行另一条路径。例如偶数 lane 计算平方、奇数 lane 计算绝对值时，数据不会串到相邻线程，但两条路径都可能占用执行时段。若一整组线程都走同一分支，控制流更易保持一致。</p>
@@ -119,8 +139,50 @@ print(y.cpu().tolist(), out.cpu().tolist())</code></pre></figure>
 }</code></pre></figure>
 <p>启动时选 64 或 128 个线程一块，给 out 留 n 个整数的位置，并用 <code>hipMemset(count,0,sizeof(int))</code> 初始化设备计数器。只有 lane 0 调用 <code>atomicAdd</code>，它一次性领走两个相邻位置，并拿到更新前的计数。假设计数起初为 4，新的计数为 6，<code>__shfl(base,0)</code> 把开始位置 4 告诉同一波前。</p>
 <p>lane 1 左边没有举手者，写 out[4] = 7；lane 3 左边只有 lane 1 举手，写 out[5] = 5。代码中 <code>(1ULL &lt;&lt; lane)-1</code> 保留本 lane 之前的低位，<code>__popcll</code> 数其中有几个 1。线程越过 n 时用 0 参加投票。不同波前谁先领号由设备调度决定；若结果要求维持整条输入的顺序，可以先写出各波前的正数个数，按波前编号求前缀和，把各自的起点事先定下来。</p>
+<h3>分块转置中的两次连续访问</h3>
+<p>把两行三列的 [[1,2,3],[4,5,6]] 改排成三行两列，输出按行展开是 [1,4,2,5,3,6]。直接让同一行的线程各写自己的转置位置，输入会顺着一行读，输出地址却隔着一整行。把一个小方块先写进 LDS，换一组线程读出它的列，就可以在全局显存的两端都按行访问。</p>
+<p>代码每块用 16×16 个线程。取线程 (u=1,v=0)，装入第 0 行第 1 列的 2；随后写第 0 行第 1 列输出的也是这个线程，但读的是 tile[1][0] 中的 4。数 2 由线程 (0,1) 写进输出第 1 行第 0 列。LDS 每行多留一格，改变按列读取时相邻线程的地址间隔。</p>
+<pre><code class="language-cpp"><span class="cm">// block=(16,16)，grid=(ceil(cols/16),ceil(rows/16))，输入、输出各存一张矩阵。
+</span>__global__ <span class="kw">void</span> tiled_transpose(<span class="kw">const</span> <span class="kw">float</span>* x, <span class="kw">float</span>* y, <span class="kw">int</span> rows, <span class="kw">int</span> cols) {
+    __shared__ <span class="kw">float</span> tile[<span class="nu">16</span>][<span class="nu">17</span>];
+    <span class="kw">int</span> u = threadIdx.x, v = threadIdx.y;
+    <span class="kw">int</span> r = blockIdx.y * <span class="nu">16</span> + v, c = blockIdx.x * <span class="nu">16</span> + u;
+    <span class="kw">if</span> (r &lt; rows &amp;&amp; c &lt; cols) tile[v][u] = x[r * cols + c];
+    __syncthreads();                         <span class="cm">// 等整块输入就绪，尾块也全部到达
+</span>    <span class="kw">int</span> out_r = blockIdx.x * <span class="nu">16</span> + v, out_c = blockIdx.y * <span class="nu">16</span> + u;
+    <span class="kw">if</span> (out_r &lt; cols &amp;&amp; out_c &lt; rows)
+        y[out_r * rows + out_c] = tile[u][v]; <span class="cm">// 写入转置后的行，邻居线程写相邻列
+</span>}</code></pre><p><a href="examples/transpose.hip">下载 HIP 内核</a></p><figure><img class="diagram-light" src="figures/worked-transpose.svg" width="600" height="144" alt="同一列的两个输入相邻写到输出的一行"><figcaption>同一列的两个输入相邻写到输出的一行</figcaption></figure>
+<p class="sources"><a href="https://rocm.docs.amd.com/projects/HIP/en/docs-7.2.4/understand/performance_optimization.html">AMD HIP · 访存和共享数据</a></p>
+<h3>一个线程地址错误的定位方法</h3>
+<p>给 2×3 输入的每个位置填不同的编号 (1,2,3;4,5,6)。正确的 3×2 输出按内存顺序是 (1,4,2,5,3,6)。如果写回时只改变片内坐标，却仍用输入宽度 3 作为输出行距，第二个输出行会从槽 3 而非槽 2 开始。填方阵看不出这种错误，所以再用 17×19 的长方阵，让两个方向都出现尾块。</p>
+<p>逐层检查时先固定一个真实的 (行,列)，画出输入线性地址、LDS 下标和输出线性地址，再观察与它同一个 wave 的相邻 lane。前者检测结果位置，后者决定这些读取能否合成较少的访问。下一节将同样的矩阵交给三种布局，分开观察全局写入方向和 LDS bank 分布。</p>
 <p class="sources"><a href="https://rocm.docs.amd.com/projects/HIP/en/docs-7.2.3/understand/programming_model.html">AMD · HIP 的执行层次与内存模型</a> · <a href="https://rocm.docs.amd.com/en/docs-7.0.0/reference/gpu-arch-specs.html">AMD · 波前宽度和 LDS 容量</a></p>
 </section>
+<section id="transpose-layout" data-part="Instinct 架构与存储"><h2>转置的全局地址与 LDS 存储体</h2>
+<p>输入按行存放，转置把 X[r,c] 送到 Y[c,r]。在直接写法里，相邻线程处理同一行的相邻列，因此从输入取数方便。转到输出后，这些线程各自写到不同行，同组线程的写地址跨过整行。把一个 32×32 片临时存进 LDS，可以让另一组线程接手写回，使读入和写出都沿各自矩阵的行前进。</p>
+<h3>同一元素的两次交接</h3>
+<p>设输入有 35 行、37 列。X[1,34] 的线性偏移是 1×37+34=71，转置后去 Y[34,1]，偏移为 34×35+1=1191。直接写法由读它的线程马上写出。分块写法在输入块 (x=1,y=0) 把它送到 tile[1][2]，再由同一块中负责输出第 34 行、局部列 1 的线程读取这格。输入和输出实际访问的首地址都可用这个元素核对。</p>
+<pre><code class="language-cpp">    __shared__ <span class="kw">float</span> tile[<span class="nu">32</span>][Pitch];                 <span class="cm">// Pitch=32 或 33，以 FP32 为单位
+</span>    <span class="kw">int</span> u=threadIdx.x, v=threadIdx.y;
+    <span class="kw">int</span> in_col=<span class="nu">32</span>*blockIdx.x+u, out_col=<span class="nu">32</span>*blockIdx.y+u;
+    <span class="kw">for</span>(<span class="kw">int</span> j=<span class="nu">0</span>;j&lt;<span class="nu">32</span>;j+=<span class="nu">8</span>) {
+        <span class="kw">int</span> in_row=<span class="nu">32</span>*blockIdx.y+v+j;
+        <span class="kw">if</span>(in_row&lt;rows &amp;&amp; in_col&lt;cols) tile[v+j][u]=x[in_row*cols+in_col];
+    }
+    __syncthreads();
+    <span class="kw">for</span>(<span class="kw">int</span> j=<span class="nu">0</span>;j&lt;<span class="nu">32</span>;j+=<span class="nu">8</span>) {
+        <span class="kw">int</span> out_row=<span class="nu">32</span>*blockIdx.x+v+j;
+        <span class="kw">if</span>(out_row&lt;cols &amp;&amp; out_col&lt;rows) y[out_row*rows+out_col]=tile[u][v+j];
+    }</code></pre>
+<p>一个块有 32×8 个线程，每个线程每次沿 y 加 8，合计搬四行，覆盖 32×32 的片。第一次循环按原行读，整个块同步，第二次循环交换块坐标和片内坐标后写。35×37 的右边与下边均有短边。写回条件以输出的 37 行、35 列为准；每个通过写回检测的片内槽都有对应的有效输入。</p>
+<h3>相同行距在 LDS 上的效果</h3>
+<figure><img src="figures/kernel-transpose32.svg" width="690" height="138" alt="32 个连续 lane 读取 LDS 的同一列；补一列改变了行距，数值和全局地址保持相同"><figcaption>32 个连续 lane 读取 LDS 的同一列；补一列改变了行距，数值和全局地址保持相同</figcaption></figure>
+<p>在 CDNA2/3 的 32 个 LDS bank 上，以一个 FP32 为一个字观察标量读取。lane u 访问 tile[u][v]，bank 编号是 (u×Pitch+v) mod 32。固定 v=0，若 Pitch=32，同一组 32 个 lane 拿不同地址却都排在 bank 0；Pitch=33 时它们分别落到 0～31。相对无补列版本，只多用 32×4=128 B 的 LDS。实际服务分组还随指令宽度变化，本例分析的是 32 个标量 lane 地址。</p>
+<h3>三种版本的同输入对照</h3>
+<p>下载文件用同一网格运行直接转置、Pitch=32、Pitch=33 三种实现。对一个完整矩阵，每版逻辑上都要读写 M×N 个 FP32，有效负载为 8MN 字节。直接版与分块版比较全局写访问，两个分块版比较 LDS bank 冲突。用 35×37 验证尾块，然后在多种大矩阵上记录耗时、有效带宽 8MN/耗时与 LDS 冲突计数。若尺寸变大前速率仍随启动开销跳动，继续观察更长的运行区间。</p>
+<h3>同输入的设备计时</h3><p>在 ROCm 主机解压实验包，先用 <code>./advanced</code> 做数值对照。固定 1024×1024 的 FP32 矩阵，实际输出每次设备事件计时和按 8MN 换算的有效 GB/s。可将边长改为 1023 并把网格改为向上取整，核查尾块造成的变化。 运行 <code>./benchmark transpose</code>。</p><p><a href="examples/operators.zip">完整实验包</a> · <a href="examples/benchmark.hip">六组计时实现</a></p><p><a href="examples/transpose-layout.hip">本节完整 HIP 源码</a> · <a href="examples/advanced.hip">设备对照驱动</a> · <a href="examples/advanced_reference.py">CPU 数值与访存对照</a></p>
+<p class="sources"><a href="https://rocm.blogs.amd.com/software-tools-optimization/lds-bank-conflict/README.html">AMD 逐地址分析 LDS bank 冲突</a> · <a href="https://rocm.docs.amd.com/projects/rocprofiler-compute/en/docs-7.2.4/conceptual/local-data-share.html">ROCm Compute Profiler 的 LDS 指标</a></p></section>
 
 <section data-part="HIP 与算子开发" id="hip-axpy"><p class="part-title">HIP 与算子开发</p><h2>第一个 HIP 算子的启动与校验</h2>
 <p>在卡上把一列传感器读数放大两倍，再加上固定偏移 1。先用 130 个容易核对的数，位置 0 放 0，位置 129 放 129，期望两个端点输出 1 和 259。把下面的完整程序存为 <code>affine.hip</code>。主机端的错误检查会指出失败的 HIP 调用。</p>
@@ -158,6 +220,18 @@ __global__ <span class="kw">void</span> affine(<span class="kw">const</span> <sp
 ./affine</code></pre>
 <p>编译命令给 MI300X 生成 gfx942 设备代码。启动式中的整除先用 130 加 63 得 193，再除以 64 取整，结果为三个块。末块第 1 号线程的全局下标是 129，读到 129，写出 259。两个缓冲各占 520 字节，所以第一次主机到设备复制只传输入的 520 字节，取回结果时再传 520 字节。</p>
 <p>运行时把 kernel 排入流（stream）。一个流里的工作按提交顺序执行。若要反复处理很多输入，可以先分配一次缓冲，把后续 kernel 串在同一流里，直到主机真正需要结果再取回；这样中间值始终留在显存。上面的显式同步方便第一次开发时找到错误，性能测量中则应记录实际需要等待的地方。</p>
+<h3>一个线程的整行点积</h3>
+<p>逐元素变换只读取一个数。线性层要把一行里的好几个数合成一个。设两行权重分别是 [1,2,3] 和 [4,5,6]，输入向量为 [2,0,−1]。第一个线程的累加器从 0 变成 2、2、−1，第二个线程依次得到 8、8、2，因此输出向量是 [−1,2]。两行共读同一条输入向量，每行有独立的累加器与输出位置。</p>
+<p>把矩阵展平后，线程 1 从 A[3] 读起，接着读 A[4]、A[5]；输入则从 x[0] 重新读起。这个版本能让 CPU 参考程序逐行比对中间和。行很长而行数很少时，启动的有效线程数受行数限制，后面的块内规约会让多个线程分摊一行。</p>
+<pre><code class="language-cpp"><span class="cm">// 一个线程负责一行，A 按行连续存放，共 rows*cols 个 float。
+</span>__global__ <span class="kw">void</span> matvec(<span class="kw">const</span> <span class="kw">float</span>* A, <span class="kw">const</span> <span class="kw">float</span>* x, <span class="kw">float</span>* y, <span class="kw">int</span> rows, <span class="kw">int</span> cols) {
+    <span class="kw">int</span> row = blockIdx.x * blockDim.x + threadIdx.x;
+    <span class="kw">if</span> (row &gt;= rows) <span class="kw">return</span>;
+    <span class="kw">float</span> sum = <span class="nu">0.0f</span>;
+    <span class="kw">for</span> (<span class="kw">int</span> col = <span class="nu">0</span>; col &lt; cols; ++col)
+        sum += A[row * cols + col] * x[col];
+    y[row] = sum;
+}</code></pre><p><a href="examples/matvec.hip">下载 HIP 内核</a></p>
 <details><summary>练习 · 尾块中的最后一个写入者</summary><p>长度改为 193 时需要四个块。第四块的第 0 号线程处理下标 192，写出 385；它之后的 63 个线程跳过读写。</p></details>
 <h3>设备指针的分配、写入与读取</h3>
 <p><code>in.data()</code> 指向主机向量的第一项，<code>x</code> 指向卡上 520 字节的显存，两边需要通过复制关联起来。<code>hipMalloc</code> 只留空间，尚未把 0 至 129 放进去。第一次 <code>hipMemcpy</code> 的源地址是 <code>in.data()</code>，目的地址是 <code>x</code>。核函数里的 <code>x[i]</code> 实际会读取设备基地址加 <math xmlns="http://www.w3.org/1998/Math/MathML"><mn>4</mn><mo>×</mo><mi>i</mi></math> 字节处的 FP32 数。第二次复制的方向相反，源地址 <code>y</code> 指向卡上算完的输出，<code>out.data()</code> 才是主机可逐项核对的位置。</p>
@@ -227,6 +301,18 @@ CHECK(hipFree(dx));
 CHECK(hipFree(dy));
 <span class="kw">for</span> (<span class="kw">int</span> i=<span class="nu">0</span>; i&lt;rows*cols; ++i) <span class="kw">if</span> (out[i] != scaled(in[i])) <span class="kw">return</span> <span class="nu">2</span>;</code></pre></figure>
 <p><code>hipMemcpy2D</code> 从每行只复制 width 个有效字节，下一行分别按源、目的的行距找到起点。因此同一条复制调用可以连接紧凑排列的主机矩阵和带填充的设备矩阵。输入若已经是连续的一维数组，前面的 <code>hipMalloc</code> 和一次普通复制就足够。</p>
+<h3>由一行一个线程到一行一个 wave</h3>
+<p>仍用前面的两行三列矩阵。把第 0、1、2 列分别交给 lane 0、1、2，它们算出第一行的部分积 2、0、−3，其余 61 个 lane 交出零。归约后只有 lane 0 写回 −1。第二个 wave 读取另一行，得到 8、0、−6，总和为 2。输出与一个线程包办一行完全一样。</p><figure><img src="figures/kernel-matvec-wave.svg" width="690" height="178" alt="行宽 130 时，各 lane 按 64 为步长取列，最后归并为一个输出"><figcaption>行宽 130 时，各 lane 按 64 为步长取列，最后归并为一个输出</figcaption></figure>
+<pre><code class="language-cpp"><span class="cm">// grid.x=rows, block.x=64, one CDNA wave processes one complete output row.
+</span>__global__ <span class="kw">void</span> matvec_wave64(<span class="kw">const</span> <span class="kw">float</span>* a,<span class="kw">const</span> <span class="kw">float</span>* x,<span class="kw">float</span>* y,<span class="kw">int</span> cols) {
+    <span class="kw">int</span> row=blockIdx.x,lane=threadIdx.x;
+    <span class="kw">float</span> partial=<span class="nu">0</span>;
+    <span class="kw">for</span>(<span class="kw">int</span> j=lane;j&lt;cols;j+=<span class="nu">64</span>) partial+=a[row*cols+j]*x[j];
+    <span class="kw">for</span>(<span class="kw">int</span> d=<span class="nu">32</span>;d&gt;<span class="nu">0</span>;d/=<span class="nu">2</span>) partial+=__shfl_down(partial,d,<span class="nu">64</span>);
+    <span class="kw">if</span>(lane==<span class="nu">0</span>) y[row]=partial;
+}</code></pre>
+<p>取一张只有两行却有 130 列的矩阵，两个单线程各自执行 130 次乘加，卡上没有其它行可分配。改写后每个 wave 的 lane 0 处理列 0、64、128，lane 1 处理列 1、65、129，lane 2 只处理列 2、66。每轮相邻 lane 从 A、x 中读相邻的列，再以六轮交换归并局部和。矩阵本身仍须读取 2×130 个 FP32。增加并行度的代价是每行一次 wave 内归约；列极短时大量 lane 都在贡献零。</p>
+<p>先用前面的三列数核对输出，再用 130 列检查末轮余数。微调时保持元素数相同、分别改变行数和列数，可以看出吞吐的上升来自增加独立行还是缩短一行的串行路径。 <a href="examples/matvec-wave.hip">下载一行一个 wave 的版本</a></p>
 <p class="sources"><a href="https://rocm.docs.amd.com/projects/HIP/en/docs-7.2.3/understand/programming_model.html">AMD · HIP kernel、线程索引与内存复制</a> · <a href="https://rocm.docs.amd.com/en/docs-7.0.0/reference/gpu-arch-specs.html">AMD · gfx 编译目标</a></p>
 </section>
 
@@ -290,6 +376,10 @@ CHECK(hipStreamSynchronize(s));                    <span class="cm">// 两批结
 </span>CHECK(hipGraphExecDestroy(exec));
 CHECK(hipGraphDestroy(graph));</code></pre></figure>
 <p>假设两批页锁定主机输入依次为 (1,2)、(10,20)，各有独立的主机输出。第一批在 tmp 中得到 (3,5)，在 dy 得到 (7,11)；第二批先得到 (21,41)，再得到 (43,83)。两批都在同一条流上，第二次覆盖 dx 时第一批已经用完。捕获结束时只得到操作模板，执行时读取的是刚复制的新数据。若要同时执行两个批次，还要像双缓冲例子那样为在途工作安排各自的存储和依赖。<a href="https://rocm.docs.amd.com/projects/HIP/en/latest/how-to/hip_runtime_api/hipgraph.html">AMD · HIP Graph 的捕获与重放</a>。</p>
+<h3>回传槽的复用时刻</h3>
+<p>沿用三个批次的 2 毫秒上传、3 毫秒计算，再设每批回传耗时 2 毫秒。考虑一台能同时进行上传、计算、下载的教学设备。输出槽也只有两个，计算流写回槽 0 前，要等下载流把批 0 的结果读完。批 0 在 5 毫秒算完，7 毫秒才回到主机；批 2 到 8 毫秒才开始计算，所以这一次输出槽复用没有再延长总时间。</p>
+<p>表中最后一列才是 CPU 能交付结果的时刻。若主机要在回传完成后立刻改写同一片页锁定内存，可以逐槽用 <code>hipEventRecord</code> 记录下载结束，在复用前用 <code>hipEventSynchronize</code> 等待该槽；另一个槽仍能工作。</p>
+<table><caption>三个引擎各一次处理一批，时间单位为毫秒</caption><thead><tr><th>批次与槽</th><th>上传</th><th>计算</th><th>回传</th><th>主机可读</th></tr></thead><tbody><tr><td>0 / 槽 0</td><td>0–2</td><td>2–5</td><td>5–7</td><td>7</td></tr><tr><td>1 / 槽 1</td><td>2–4</td><td>5–8</td><td>8–10</td><td>10</td></tr><tr><td>2 / 槽 0</td><td>5–7</td><td>8–11</td><td>11–13</td><td>13</td></tr></tbody></table>
 <p class="sources"><a href="https://rocm.docs.amd.com/projects/HIP/en/docs-7.2.4/how-to/hip_runtime_api/asynchronous.html">AMD · HIP 流、事件与异步复制</a> · <a href="https://rocm.docs.amd.com/projects/rocprofiler-sdk/en/docs-7.0.2/how-to/using-rocprofv3.html">AMD · 复制与 kernel 时间戳</a></p>
 </section>
 
@@ -307,10 +397,35 @@ __global__ <span class="kw">void</span> block_sum(<span class="kw">const</span> 
         __syncthreads();                           <span class="cm">// 整个块进入下一轮
 </span>    }
     <span class="kw">if</span> (lane == <span class="nu">0</span>) sums[blockIdx.x] = v[<span class="nu">0</span>];        <span class="cm">// 每块只交付一个小计
-</span>}</code></pre>
+</span>}</code></pre><p><a href="examples/reduction.hip">下载块内规约内核</a></p>
 <p>代码要求块大小 B 是 2 的幂，启动时实际线程数也取 B。用 B 等于 4 算输入 [1，2，3，4，5，6]。第一步时步长为 2，0 号线程取槽 0 和 2，1 号线程取槽 1 和 3。第二步把前两槽的结果相加。表中只列仍将参与下一步的位置。</p>
 <table><thead><tr><th scope="col">块</th><th scope="col">装入的四个数</th><th scope="col">步长 2 后的有效值</th><th scope="col">步长 1 后写出的值</th></tr></thead><tbody><tr><td>0</td><td>1，2，3，4</td><td><math xmlns="http://www.w3.org/1998/Math/MathML"><mrow><mn>1</mn><mo>+</mo><mn>3</mn><mo>=</mo><mn>4</mn></mrow></math>；<math xmlns="http://www.w3.org/1998/Math/MathML"><mrow><mn>2</mn><mo>+</mo><mn>4</mn><mo>=</mo><mn>6</mn></mrow></math></td><td>10</td></tr><tr><td>1</td><td>5，6，0，0</td><td><math xmlns="http://www.w3.org/1998/Math/MathML"><mrow><mn>5</mn><mo>+</mo><mn>0</mn><mo>=</mo><mn>5</mn></mrow></math>；<math xmlns="http://www.w3.org/1998/Math/MathML"><mrow><mn>6</mn><mo>+</mo><mn>0</mn><mo>=</mo><mn>6</mn></mrow></math></td><td>11</td></tr></tbody></table>
 <p>第二个 kernel 的输入是 [10，11]，只需一个四线程块。补上两个零，第一次配对得到 10 和 11，第二次得到 21。两个 kernel 在同一条流里先后启动，第二个能读到上一轮所有块写出的结果。真实长行可把 B 调到 128 或 256 给一个块多个波前。代码中的屏障放在条件分支外，少算一次加法的线程仍参与全块同步。</p>
+<h3>前缀和与跨块起点</h3>
+<p>相加得到总数之后，压紧输出还需要知道每一项左边已有多少项。对 [2,1,0,3,4,1] 做包含当前位置的前缀和，第一块四个线程先写 [2,1,0,3]，向左看一个位置后得到 [2,3,1,3]，再向左看两个位置得到 [2,3,3,6]。每个线程必须先读完邻居的旧值，等大家都读完才覆盖自己的旧值。</p>
+<p>第二块把 4、1 和两个补零做同样的扫描，有效结果为 [4,5]。两块的总数为 [6,5]，用一个块再次扫描它们，得到 [6,11]。第二块给自己的两项都加上前一块的 6，输出 [2,3,3,6,10,11]。在这组六个数上，依次启动 scan_tiles&lt;4&gt; 两个块、一个块，最后两个块执行 add_bases&lt;4&gt;。更多块时可以继续递归扫描块总数；库实现提供 <code>rocprim::inclusive_scan</code>。</p>
+<pre><code class="language-cpp"><span class="cm">// 每块 B 个线程；out 存每项的包含式前缀和，totals 收集每块末值。
+</span><span class="kw">template</span>&lt;<span class="kw">int</span> B&gt;
+__global__ <span class="kw">void</span> scan_tiles(<span class="kw">const</span> <span class="kw">int</span>* in, <span class="kw">int</span>* out, <span class="kw">int</span>* totals, <span class="kw">int</span> n) {
+    __shared__ <span class="kw">int</span> v[B];
+    <span class="kw">int</span> t = threadIdx.x, i = blockIdx.x * B + t;
+    v[t] = i &lt; n ? in[i] : <span class="nu">0</span>;
+    __syncthreads();
+    <span class="kw">for</span> (<span class="kw">int</span> d = <span class="nu">1</span>; d &lt; B; d *= <span class="nu">2</span>) {
+        <span class="kw">int</span> left = t &gt;= d ? v[t-d] : <span class="nu">0</span>; <span class="cm">// 先读上一轮，再允许任何线程写
+</span>        __syncthreads();
+        v[t] += left;
+        __syncthreads();
+    }
+    <span class="kw">if</span> (i &lt; n) out[i] = v[t];
+    <span class="kw">if</span> (t == B<span class="nu">-1</span>) totals[blockIdx.x] = v[t];
+}
+<span class="kw">template</span>&lt;<span class="kw">int</span> B&gt;
+__global__ <span class="kw">void</span> add_bases(<span class="kw">int</span>* out, <span class="kw">const</span> <span class="kw">int</span>* scanned_totals, <span class="kw">int</span> n) {
+    <span class="kw">int</span> i = blockIdx.x * B + threadIdx.x;
+    <span class="kw">if</span> (i &lt; n &amp;&amp; blockIdx.x &gt; <span class="nu">0</span>) out[i] += scanned_totals[blockIdx.x<span class="nu">-1</span>];
+}</code></pre><p><a href="examples/scan.hip">下载 HIP 内核</a></p><figure><img class="diagram-light" src="figures/worked-scan.svg" width="600" height="144" alt="第二块的起点来自第一块小计，块内每个位置加同一偏移"><figcaption>第二块的起点来自第一块小计，块内每个位置加同一偏移</figcaption></figure>
+<p class="sources"><a href="https://rocm.docs.amd.com/projects/rocPRIM/en/docs-7.2.4/">AMD rocPRIM · 块级和设备级扫描</a></p>
 <details><summary>练习 · 全是负数时的尾块补齐</summary><p>若把求和改成最大值，尾块需要用负无穷补齐。对负数 [−5，−6] 补零会引入一个比所有输入都大的值，最终错误地选出零。</p></details>
 <h3>十七个数经过三次启动的结果</h3>
 <p>把输入改成 1 至 17，块大小仍取 4。第一次需要五个块。前四个块分别负责 1 至 4、5 至 8、9 至 12、13 至 16，最后一个只读 17，剩下三项填零。第二次对五个小计求和，还需要两个块，直到第三次才只剩一项。</p>
@@ -337,8 +452,46 @@ __global__ <span class="kw">void</span> block_sum(<span class="kw">const</span> 
 <p>函数沿用上面的 <code>block_sum</code>，要求 <code>B</code> 是至少为 2 的二次幂。<code>1 + (n - 1) / B</code> 对正长度向上取整。临时区各留出第一轮块数那么多的浮点数就足以容纳后续更短的结果。<code>current = next</code> 只改变下次启动要传的设备地址，GPU 队列保证下一轮在同一流里排在上一轮之后。输入本来就只有一项时，直接复制到结果地址即可。</p>
 <h3>运算顺序与浮点误差</h3>
 <p>同一组整数 1 至 17 在 FP32 中可精确表示，这里的小计也能精确表示。但浮点加法每一步都有舍入，换一棵规约树就可能改变最后几位。例如在 FP32 中，先将 1 加到一亿上，小量会在舍入时丢失，随后减一亿得到 0。若先把一亿和负一亿配成一对，再加 1，结果是 1。对一般浮点输入检查规约，宜同时看绝对误差和相对误差，并用较高精度的参照值解释差异。</p>
+<h3>规约结果和前缀结果的逐项核对</h3>
+<p>同一组 (2,1,0,3) 如果只求规约，得到一个数 6；如果求包含式前缀，得到四个数 (2,3,3,6)。只校验最后一个数会让某些错误通过。比如输出 (2,3,0,6)，总数对了，第 2 项却忘了接手前两项的贡献。逐块检查时先记本块自己的输入、局部前缀和块末值，再把前一块的累计总数加到当前块的每一项。</p>
+<p>一次工作组同步只保证本块线程都已到达。若任意块在同一普通 kernel 里读取“上一块刚写完的总数”，结果会依赖 GPU 实际调度顺序。这里将块前缀与跨块回填放在同一流的不同 kernel 中，按启动顺序交接。下一节保留这条跨块路径，只替换局部规约和加法的安排，便于查明哪一步影响性能。</p>
 <p class="sources"><a href="https://rocm.docs.amd.com/projects/HIP/en/docs-7.2.3/understand/programming_model.html">AMD · LDS、块内屏障与网格执行</a></p>
 </section>
+<section id="scan-cooperation" data-part="HIP 与算子开发"><h2>前缀和的树形进位与 wave 交换</h2>
+<p>把前缀和写成“第 i 个线程依次读输入 0 到 i”，八个结果需要读取 1+2+…+8=36 个元素。上一节的分块实现每项只从全局读一次，然后在 LDS 里按距离 1、2、4 交换旧值。这个算法容易看清先后关系，但很多局部范围被重复相加。</p>
+<h3>工作量较小的上行与下行</h3>
+<p>取八项 (2,1,0,3,4,1,0,2)。先在树上合并相邻两项，得到 (3,3,5,2)，再合成 (6,7)，最后为 13。根节点收到的外部进位是零。左子树收到零，右子树收到“父进位加左边总数”即 6。逐层传回叶子后，各项前面的和为 (0,2,3,3,6,10,11,11)。各自再加原输入，得到包含自身的前缀 (2,3,3,6,10,11,11,13)。</p>
+<figure><img src="figures/kernel-scan-versions.svg" width="690" height="137" alt="上行把相邻区间合成总数，下行将父区间的进位分给左右子树"><figcaption>上行把相邻区间合成总数，下行将父区间的进位分给左右子树</figcaption></figure>
+<p>源码把每个子树的小计存到其最右边的叶槽，<code>right-step</code> 是左半区的小计槽。下行时先保存左小计，再把父进位写进左槽、把父进位加左小计写到右槽。这两次写的顺序决定了后面能否取到原小计。下面的片段就是这个交换。</p>
+<pre><code class="language-cpp">    <span class="kw">if</span>(t==<span class="nu">0</span>) { totals[blockIdx.x]=tree[<span class="nu">63</span>]; tree[<span class="nu">63</span>]=<span class="nu">0</span>; }
+    __syncthreads();
+    <span class="kw">for</span>(<span class="kw">int</span> step=<span class="nu">32</span>;step&gt;<span class="nu">0</span>;step/=<span class="nu">2</span>) {
+        <span class="kw">int</span> right=(t+<span class="nu">1</span>)*<span class="nu">2</span>*step<span class="nu">-1</span>;
+        <span class="kw">if</span>(right&lt;<span class="nu">64</span>) {
+            <span class="kw">int</span> left=tree[right-step];
+            tree[right-step]=tree[right];             <span class="cm">// 左子树沿用父进位
+</span>            tree[right]+=left;                        <span class="cm">// 右子树再加左子树总数
+</span>        }
+        __syncthreads();
+    }
+    <span class="kw">if</span>(i&lt;n) out[i]=tree[t]+own;</code></pre>
+<h3>64 项内的第三种写法</h3>
+<p>对于一个完整 64-lane wave，每个 lane 起初在寄存器中持有原值。距离 d 的 <code>__shfl_up</code> 把 lane−d 的旧值送来，编号至少为 d 的 lane 将其加到自己手里。经过六轮后，lane 63 的数就是块总数。该写法不占工作组 LDS，也不需要显式块同步；它要求整个 wave 都参加每一轮交换。末块无效 lane 输入零，仍参与交换。</p>
+<pre><code class="language-cpp">__global__ <span class="kw">void</span> scan_shuffle64(<span class="kw">const</span> <span class="kw">int</span>* x,<span class="kw">int</span>* out,<span class="kw">int</span>* totals,<span class="kw">int</span> n) {
+    <span class="kw">int</span> lane=threadIdx.x, i=blockIdx.x*<span class="nu">64</span>+lane;
+    <span class="kw">int</span> sum=i&lt;n ? x[i] : <span class="nu">0</span>;
+    <span class="kw">for</span>(<span class="kw">int</span> d=<span class="nu">1</span>;d&lt;<span class="nu">64</span>;d*=<span class="nu">2</span>) {
+        <span class="kw">int</span> left=__shfl_up(sum,d,<span class="nu">64</span>);
+        <span class="kw">if</span>(lane&gt;=d) sum+=left;
+    }
+    <span class="kw">if</span>(i&lt;n) out[i]=sum;
+    <span class="kw">if</span>(lane==<span class="nu">63</span>) totals[blockIdx.x]=sum;
+}</code></pre>
+<p>按一个满块计算，逐距离算法的有效加法数为 63+62+60+56+48+32=321。树形上行与下行各做 63 次加法，最后 64 个槽还需各加一次原输入，共 190 次。树形有两趟依赖与多次 LDS 同步，wave 交换保留 321 次有效加法但省去 LDS，哪一种更快要看目标机器和数据规模。</p>
+<h3>跨过工作组边界的检查</h3>
+<p>长度 70 时先得到两个局部结果。设前 64 项都为 1，后 6 项为 (2,1,0,3,4,1)。块总数是 (64,11)，因此最后六个全局前缀为 (66,67,67,70,74,75)。源码使用上一节的 <code>add_bases</code> 做跨块回填；测试同时核对逐距离、树形与 wave 交换的每个有效位置，以及总数。</p>
+<h3>同输入的设备计时</h3><p>在 ROCm 主机解压实验包，先用 <code>./advanced</code> 做数值对照。固定 65536 项，单独测三种块内前缀实现。跨块回填是共同步骤，完整序列的正确性由进阶对照驱动检查。 运行 <code>./benchmark scan</code>。</p><p><a href="examples/operators.zip">完整实验包</a> · <a href="examples/benchmark.hip">六组计时实现</a></p><p><a href="examples/scan-cooperation.hip">本节完整 HIP 源码</a> · <a href="examples/advanced.hip">设备对照驱动</a> · <a href="examples/advanced_reference.py">CPU 数值与访存对照</a></p>
+<p class="sources"><a href="https://rocm.docs.amd.com/projects/rocPRIM/en/docs-7.2.4/device_ops/scan.html">rocPRIM 全设备前缀和</a> · <a href="https://rocm.docs.amd.com/projects/rocPRIM/en/docs-7.2.4/block_ops/ops_classes/scan.html">rocPRIM 工作组前缀和</a></p></section>
 
 <section data-part="HIP 与算子开发" id="tile-gemm"><h2>分块矩阵乘与矩阵单元</h2>
 <p>把矩阵乘交给 GPU，可以先让一个线程负责一个输出格。左矩阵 A 有两行三列，右矩阵 B 有三行两列，结果 C 就有两行两列。两个输出列都要读同一行 A，两个输出行也都要读同一列 B。线程块可把一片 A、一片 B 一起搬进 LDS，供块内线程反复使用。</p>
@@ -387,8 +540,63 @@ acc = np.zeros((<span class="nu">16</span>, <span class="nu">16</span>), dtype=n
 <p>样例还支持把原 C 按系数加到乘积上。归约结束后它加载 C，对每个片段元素组合乘积项和原 C 项，再将结果按行写回 D。若系数分别为 1 和 0，D 就是这个算例的矩阵乘结果。沿源码检查布局时，可以给 A、B 填不同的行列数值。误把 B 当作行主序后，程序仍能读到合法地址，算出来的列却会对不上。</p>
 <h3>LDS 中的数据复用与线程协作</h3>
 <p>在前面的标量核中，一轮读 <math xmlns="http://www.w3.org/1998/Math/MathML"><mn>2</mn><mo>×</mo><mi>T</mi><mo>×</mo><mi>T</mi></math> 个输入，产生 <math xmlns="http://www.w3.org/1998/Math/MathML"><mi>T</mi><mo>×</mo><mi>T</mi><mo>×</mo><mi>T</mi></math> 次乘加。取 T 为 16，一块 A 和一块 B 共 512 个 FP32 数，占 2048 字节，可产生 4096 次乘加。每个 A 元素供 16 个输出列使用，每个 B 元素供 16 个输出行使用。CK Tile 进一步将一个较大的线程块输出切成多个波前片段，让全局加载方向、LDS 排布和矩阵指令需要的寄存器排布各自匹配。读性能报告时，可分别追踪全局读取、LDS 重排和 MFMA 发射，定位是哪一段没有及时供应下一片数据。</p>
+<h3>两个相邻输出与寄存器复用</h3>
+<p>固定上例第一行的两个输出，分别在寄存器 c0、c1 中累加。第一步只取一次 A[0,0] 即 1，同时取 B 的第 0 行 [7,8]，得到 [7,8]。第二步用 2 乘 [9,10]，得到 [25,28]；最后用 3 乘 [11,12]，得到 [58,64]。若把这两个输出交给不同线程，每个线程仍要拿到同一个 A 元素。</p>
+<p>把这种安排扩到每线程多个输出，能让同一次取数用于更多乘加，但每个线程同时要保留更多累加器。调块形状时，先确认边缘分块补零、结果不变，再比较寄存器数量和设备计时。rocWMMA 进一步让波前合做一块乘积，片段的逻辑坐标与某个 lane 的标量寄存器没有固定的一对一关系。</p>
+<figure><img class="diagram-light" src="figures/worked-register-gemm.svg" width="600" height="144" alt="同一个 A 元素用于两个输出，图中每列代表一次沿 K 方向的累加"><figcaption>同一个 A 元素用于两个输出，图中每列代表一次沿 K 方向的累加</figcaption></figure><p><a href="examples/tiled-gemm.hip">下载本节分块矩阵乘 HIP 内核</a></p>
+<h3>CK Tile 的读窗与寄存器预取</h3><p>沿用行主序矩阵。计算一个输出块时，它的行和列已经选定，变化的是内积还要读哪一段。设内积长 64，每次读 32 项。第一轮读 A 的第 0～31 列与 B 的第 0～31 行，第二轮换成 A 的第 32～63 列与 B 的第 32～63 行。两轮的乘积都加进同一块 C。</p><p>CK 把这两片待取数据的起点记在各自的读窗里。该版本的 GEMM 流水线用 <code>load_tile_with_elementwise</code> 读出当前片，再用 <code>move_tile_window</code> 移动下一次的起点。A 按行存时窗口偏移是 (0, 32)，B 按行存时是 (32, 0)。挪动窗口只更新寻址信息；真正的数据读取发生在下一次 load。</p><p>读到寄存器的数据由 <code>LocalPrefill</code> 写入 LDS。负责相乘的各个 wave 用 <code>LocalPrefetch</code> 从 LDS 取回各自需要的片段，<code>block_gemm</code> 将这一轮加入 C。主循环把下一轮的全局读取放到本轮乘加之前发出；块内线程在重用 LDS 时同步。</p><p class="sources"><a href="https://github.com/ROCm/rocm-libraries/blob/dabb6df2b988f8eabed1e2fecefaaf4e818bc7ef/projects/composablekernel/include/ck_tile/ops/gemm/pipeline/gemm_pipeline_ag_bg_cr_comp_v3.hpp#L464-L577">CK 官方 V3 GEMM 流水线的读窗、预取和乘加</a></p><h3>用两个内积片核对标量分块</h3>
+<p>对 2×3 的 A 与 3×2 的 B，取片宽 2。A 首行为 (1,2,3)，B 首列为 (7,9,11)。负责 C[0,0] 的线程先在 LDS 读取 (1,2) 和 (7,9)，寄存器得到 25；第二片读取 (3,0) 和 (11,0)，增量是 33，最后得到 58。如果忘记在两片之间保留累加器，结果只剩 33；若进入第二片时沿用旧数据填 K 的尾部，结果又会多出一项。</p>
+<p>整个乘法还应核查相邻格 C[0,1]=64、下一行 C[1,0]=139 和 C[1,1]=154。矩阵单元也会把若干个 K 片加到已有结果上，区别在于一格不再由单线程独立完成。学完这个标量例子后，可以直接在下一节把“一个线程的累加器”对应到“整个 wave 的分布式累加寄存器”。</p>
 <p class="sources"><a href="https://rocm.docs.amd.com/projects/composable_kernel/en/latest/conceptual/ck_tile/hardware/gemm_optimization.html">AMD · MI300 的 CK Tile 分块 GEMM</a> · <a href="https://rocm.docs.amd.com/en/docs-6.4.1/how-to/rocm-for-ai/inference-optimization/optimizing-with-composable-kernel.html">AMD · CK 算子融合实例</a> · <a href="https://rocm.docs.amd.com/projects/rocWMMA/en/docs-7.0.2/api-reference/api-reference-guide.html">AMD · rocWMMA 的分片加载、累加与存储</a> · <a href="https://github.com/ROCm/rocWMMA/blob/b5f06e649f496ada335c14b46a43840eaeb676f7/samples/simple_hgemm.cpp#L96-L137">AMD 半精度矩阵乘样例</a></p>
 </section>
+<section id="mfma-workgroup" data-part="HIP 与算子开发"><h2>双 wave 矩阵乘的 LDS 布局与 MFMA 寄存器</h2>
+<p>前面的标量分块让一个线程累加一格。现在给一个工作组 128 个线程，分成两个 64 lane 的 wave，一起产生 16 行 32 列的输出。左边 16 列归 wave 0，右边 16 列归 wave 1。它们要读不同的 B 列，却要读相同的 A 行，这就是把 A 放进工作组 LDS 的理由。</p>
+<h3>每四个内积位置的一次合作</h3>
+<p>A、B、C 均按行存储，形状分别为 M×K、K×N、M×N。每次沿 K 取 4 项，完整工作组从全局读 A 的 16×4 项和 B 的 4×32 项。前 64 个线程搬 A，每 4 个连续线程搬一行的 4 项；全部 128 个线程搬 B，每 32 个连续线程搬一行。第一次块同步后，两个 wave 都能从 LDS 读取同一片 A。</p>
+<figure><img src="figures/kernel-mfma.svg" width="690" height="153" alt="两个 wave 共享 A，各取 B 的一半"><figcaption>16×4 的 A 进入 LDS 一次，两个 wave 各取一半 B，分别计算输出的左右两半</figcaption></figure>
+<p>若两个 wave 各自从全局装入一片 A 和一片 B，两个完整输出片共请求 256 个 FP32 输入。现在两份 64 项的 A 合为一份，B 仍需 128 项，共 192 项，即每个 K 片装入 768 B。全局输入请求减少 25%，代价是 LDS 与同步。缓存命中、LDS 冲突和同步等待共同决定最后的时间。</p>
+<h3>lane 的输入和输出落点</h3>
+<p>把 wave 中的 lane 编号拆成 x = lane mod 16、y = floor(lane/16)。它将 A[x,y]、本 wave 的 B[y,x] 各取一个 FP32 放进寄存器。同一条 MFMA 从 64 个 lane 收齐两片输入，执行 16×16×4 矩阵乘加。每个 lane 有 4 个 FP32 累加寄存器；第 t 个寄存器保存行 4y+t、列 x 的结果，右半片还要把列加 16。</p>
+<pre><code class="language-cpp">            tile_a[t/<span class="nu">4</span>][t%<span class="nu">4</span>] = r&lt;M &amp;&amp; k&lt;K ? a[r*K+k] : <span class="nu">0</span>;
+        }
+        <span class="kw">int</span> k=k0+t/<span class="nu">32</span>, col=c0+t%<span class="nu">32</span>;                  <span class="cm">// B 的一行拆为 32 个连续字
+</span>        tile_b[t/<span class="nu">32</span>][t%<span class="nu">32</span>] = k&lt;K &amp;&amp; col&lt;N ? b[k*N+col] : <span class="nu">0</span>;
+        __syncthreads();
+        <span class="kw">float</span> av=tile_a[x][y], bv=tile_b[y][<span class="nu">16</span>*wave+x];
+        acc=__builtin_amdgcn_mfma_f32_16x16x4f32(av,bv,acc,<span class="nu">0</span>,<span class="nu">0</span>,<span class="nu">0</span>);
+        __syncthreads();                             <span class="cm">// 等两个 wave 都读完，再覆盖 LDS
+</span>    }
+    <span class="kw">for</span> (<span class="kw">int</span> reg=<span class="nu">0</span>; reg&lt;<span class="nu">4</span>; ++reg) {
+        <span class="kw">int</span> row=r0+<span class="nu">4</span>*y+reg, col=c0+<span class="nu">16</span>*wave+x;
+        <span class="kw">if</span> (row&lt;M &amp;&amp; col&lt;N) c[row*N+col]=acc[reg];
+    }
+<span class="cm">#</span><span class="cm">endif</span><span class="cm">
+</span>}</code></pre>
+<p>例如 wave 1 的 lane 17，x=1、y=1。它在第一片递交 A[1,1] 和 B[1,17]，最后写出 C 的第 17 列、第 4～7 行。这四个结果是整个 wave 共同算出的。</p>
+<h3>尾块与可复算的矩阵</h3>
+<p>取 M=17、N=35、K=5，令 A 的第 r 行第 k 列等于 r+k+1，B 的第 k 行第 c 列等于 (k+1)(1+c mod 3)，下标从 0 开始。计算 C[4,17] 时，第一片贡献 210，最后一个 k 贡献 135。K 的后三个补位给零，M、N 边界以外也写零进 LDS，最后按真实行列裁掉输出。所有线程都能到达两次工作组同步。</p>
+<math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><mrow><msub><mi>C</mi><mrow><mn>4</mn><mo>&#x0002C;</mo><mn>17</mn></mrow></msub><mo>&#x0003D;</mo><mn>3</mn><mo stretchy="false">&#x00028;</mo><mn>5</mn><mo>&#x000B7;</mo><mn>1</mn><mo>&#x0002B;</mo><mn>6</mn><mo>&#x000B7;</mo><mn>2</mn><mo>&#x0002B;</mo><mn>7</mn><mo>&#x000B7;</mo><mn>3</mn><mo>&#x0002B;</mo><mn>8</mn><mo>&#x000B7;</mo><mn>4</mn><mo stretchy="false">&#x00029;</mo><mo>&#x0002B;</mo><mn>3</mn><mo stretchy="false">&#x00028;</mo><mn>9</mn><mo>&#x000B7;</mo><mn>5</mn><mo stretchy="false">&#x00029;</mo><mo>&#x0003D;</mo><mn>345</mn></mrow></math>
+<p>练习时把 A 和 B 各改成仅一个非零元素，观察非零输出的位置，可分别找出 A 转置、B 半片或 C 寄存器映射的问题。本例分别生成了 gfx90a 和 gfx942 的目标汇编。两代都出现相同形状的 FP32 MFMA；gfx942 的汇编将操作数类型拼成 <code>v_mfma_f32_16x16x4_f32</code>。经 LDS 的版本还有 ds_read 和 ds_write，直接版没有这两类指令。<a href="examples/mfma-isa.txt">两代目标的汇编节选</a>。用相同输入比较直接装载与经 LDS 共享的实现，记录全局读取、LDS 访问及实际耗时。</p>
+<h3>同输入的设备计时</h3><p>在 ROCm 主机解压实验包，先用 <code>./advanced</code> 做数值对照。在同一 256×256×256 矩阵上分别测两个版本。将计算量 2MNK 除以每次耗时可得吞吐率。若全局请求减少但总耗时增大，继续比较 LDS 等待与并行占用。 运行 <code>./benchmark gemm</code>。</p><p><a href="examples/operators.zip">完整实验包</a> · <a href="examples/benchmark.hip">六组计时实现</a></p><p><a href="examples/mfma-block.hip">本节完整 HIP 源码</a> · <a href="examples/advanced.hip">设备对照驱动</a> · <a href="examples/advanced_reference.py">CPU 数值与访存对照</a></p>
+
+<h3>四个乘积在 wave 里的来源</h3>
+<p>沿用上面的矩阵，追踪 wave 1 的 lane 17 保存的第一项 C[4,17]。矩阵单元从整组收集操作数。左矩阵操作数按行号决定 lane 的低四位，右矩阵按本 wave 内的列号决定低四位，输出有自己单独的分配方式。</p>
+<figure><img src="figures/kernel-mfma-owner.svg" width="690" height="151" alt="wave 1 里，给 C[4,17] 提供第一项的两个 lane 与保存结果的 lane 各有分工"><figcaption>wave 1 里，给 C[4,17] 提供第一项的两个 lane 与保存结果的 lane 各有分工</figcaption></figure>
+<div class="table-wrap"><table><thead><tr><th>内积位置 k</th><th>提供 A[4,k] 的 lane</th><th>提供 B[k,17] 的 lane</th><th>对 C[4,17] 的贡献</th></tr></thead><tbody><tr><td>0</td><td>4，值 5</td><td>1，值 3</td><td>5 × 3 = 15</td></tr><tr><td>1</td><td>20，值 6</td><td>17，值 6</td><td>6 × 6 = 36</td></tr><tr><td>2</td><td>36，值 7</td><td>33，值 9</td><td>7 × 9 = 63</td></tr><tr><td>3</td><td>52，值 8</td><td>49，值 12</td><td>8 × 12 = 96</td></tr></tbody></table></div>
+<p>第一片相加得到 15＋36＋63＋96＝210，放进 lane 17 的 a0。下一片只剩 k=4，提供 A 和 B 的 lane 又分别从 4 和 1 开始，数值为 9 和 15，再加 135，得到 345。其余三个位置补零。这个 wave 的其他 255 个输出也在同一组指令里推进。</p>
+<h3>一次 LDS 交接在汇编中的顺序</h3>
+<p>下面八行连续出现在本节分块程序的 gfx942 目标汇编中。前面的全局加载把一个待搬运的数送入 v3。第一个等待确保这个数已返回，第二个等待确保 LDS 写入完成，接着两个 wave 在同一个块内屏障会合。</p>
+<pre><code class="language-asm"><span class="fn">s_waitcnt</span> vmcnt(<span class="nu">0</span>)           <span class="cm">// 等本 wave 已发出的向量内存请求完成
+</span><span class="fn">ds_write_b32</span> v12, v3         <span class="cm">// 按 v12 的 LDS 地址写一个 32 位数
+</span><span class="fn">s_waitcnt</span> lgkmcnt(<span class="nu">0</span>)         <span class="cm">// 等本 wave 此前的 LDS 操作完成
+</span><span class="fn">s_barrier</span>                    <span class="cm">// 同一工作组内的 wave 在此会合
+</span><span class="fn">ds_read_b32</span> v3, v13          <span class="cm">// 从 LDS 读出本 lane 提供的 A
+</span><span class="fn">ds_read_b32</span> v5, v14          <span class="cm">// 从 LDS 读出本 lane 提供的 B
+</span><span class="fn">s_waitcnt</span> lgkmcnt(<span class="nu">0</span>)         <span class="cm">// 这两个读结果已可用
+</span><span class="fn">v_mfma_f32_16x16x4_f32</span> a[<span class="nu">0</span>:<span class="nu">3</span>], v3, v5, a[<span class="nu">0</span>:<span class="nu">3</span>] // 以四个旧累加值为起点更新四个结果</code></pre>
+<p>在这段代码里，waitcnt 管本 wave 已经发出的内存请求，barrier 管工作组里各 wave 是否都到达。若 wave 1 先到，它要等负责写 A 的 wave 0。计算完一个 K 片后再过一次屏障，写下一片的线程就不会提前覆盖仍有人在读取的 LDS 地址。输出阶段，编译器用 global_store_dword 把 a0 至 a3 按各自地址写回；走到这里，C[4,17] 才成为显存中的结果。</p>
+<p><a href="https://www.amd.com/content/dam/amd/en/documents/instinct-tech-docs/instruction-set-architectures/amd-instinct-mi300-cdna3-instruction-set-architecture.pdf">AMD · MI300 ISA 中的 S_WAITCNT、S_BARRIER 与矩阵指令</a></p>
+<p class="sources"><a href="https://gpuopen.com/learn/amd-lab-notes/amd-lab-notes-matrix-cores-readme/">AMD 的 16×16×4 MFMA 与 lane 分布</a> · <a href="../../lessons/03-cuda-ptx-and-tiled-kernels.html#ptx-ampere">主课的 Ampere 线程束矩阵指令</a></p></section>
 
 <section data-part="HIP 与算子开发" id="libraries"><h2>rocBLAS、hipBLASLt 与 MIOpen</h2>
 <p>常用的稠密矩阵乘可以直接交给 rocBLAS。它按 BLAS 约定接收矩阵地址、形状、是否转置以及相邻两列的间距。沿用刚才的 A、B 和 C，按列存储时依次写入 A 的第一列 [1，4]、第二列 [2，5]、第三列 [3，6]。B 的两列依次是 [7，9，11]、[8，10，12]。</p>
@@ -421,6 +629,42 @@ image = [[<span class="nu">1</span>,<span class="nu">2</span>,<span class="nu">3
 <h3>MIOpen 卷积中的窗口与工作区</h3>
 <p>将上例图像按行填入 1 至 9。窗口向右移动一列时，左上四项 <math xmlns="http://www.w3.org/1998/Math/MathML"><mn>1</mn><mo>+</mo><mn>2</mn><mo>+</mo><mn>4</mn><mo>+</mo><mn>5</mn><mo>=</mo><mn>12</mn></math> 换成 <math xmlns="http://www.w3.org/1998/Math/MathML"><mn>2</mn><mo>+</mo><mn>3</mn><mo>+</mo><mn>5</mn><mo>+</mo><mn>6</mn><mo>=</mo><mn>16</mn></math>。下一行重复同样的滑动，得到 24、28。这里批量、输入通道、输出通道都为 1。NCHW 格式的输入形状为 (1, 1, 3, 3)，权重为 (1, 1, 2, 2)，输出为 (1, 1, 2, 2)。把步长改成 2 后，每个方向只容一个完整窗口，输出只剩 12。</p>
 <p>即时模式用 <code>miopenConvolutionForwardGetSolution</code> 获取当前问题的候选方案及标识。根据选中方案申请工作区后，可用 <code>miopenConvolutionForwardCompileSolution</code> 提前准备其设备程序。反复执行同一问题时把方案标识和实际张量交给 <code>miopenConvolutionForwardImmediate</code>。工作区用于算法执行期间的临时结果，卷积的四个最终输出仍写在独立的输出张量里。</p>
+<h3>卷积核的地址、边缘与方向</h3>
+<p>为了核对库的卷积结果，可以先写逐窗口的 HIP 对照程序。沿用 3×3 图像 1 至 9，这次让权重依次为 [−1,0;0,1]。深度学习中这里按互相关计算，左上输出从左上角的 1 和中心的 5 得到 −1+5=4。卷积核若上下、左右都翻转，这一格会得到 −4。全一权重无法查出这种方向错误。</p>
+<p>设采样间距为 1，若四周各补一格零、滑动步长是 2，输出高宽都是 2。输出 (0,0) 的窗口对应输入行列 −1、0，只有右下权重与图像左上值 1 对齐，所以得 1。其余三个结果分别是 3、7、4。代码把越界项直接跳过，效果等于乘零，主机无需分配一圈补零数据。</p>
+<pre><code class="language-cpp"><span class="cm">// 单图 N=1；数组顺序为 CHW、O×C×K×K、O×OH×OW。grid.z = 输出通道数。
+</span>__global__ <span class="kw">void</span> conv_chw(<span class="kw">const</span> <span class="kw">float</span>* in, <span class="kw">const</span> <span class="kw">float</span>* weight, <span class="kw">float</span>* out,
+                         <span class="kw">int</span> C, <span class="kw">int</span> H, <span class="kw">int</span> W, <span class="kw">int</span> K, <span class="kw">int</span> stride, <span class="kw">int</span> pad, <span class="kw">int</span> OH, <span class="kw">int</span> OW) {
+    <span class="kw">int</span> ox = blockIdx.x * blockDim.x + threadIdx.x;
+    <span class="kw">int</span> oy = blockIdx.y * blockDim.y + threadIdx.y, oc = blockIdx.z;
+    <span class="kw">if</span> (ox &gt;= OW || oy &gt;= OH) <span class="kw">return</span>;
+    <span class="kw">float</span> acc = <span class="nu">0</span>;
+    <span class="kw">for</span> (<span class="kw">int</span> c = <span class="nu">0</span>; c &lt; C; ++c)
+        <span class="kw">for</span> (<span class="kw">int</span> ky = <span class="nu">0</span>; ky &lt; K; ++ky)
+            <span class="kw">for</span> (<span class="kw">int</span> kx = <span class="nu">0</span>; kx &lt; K; ++kx) {
+                <span class="kw">int</span> iy = oy * stride + ky - pad, ix = ox * stride + kx - pad;
+                <span class="kw">if</span> (iy &gt;= <span class="nu">0</span> &amp;&amp; iy &lt; H &amp;&amp; ix &gt;= <span class="nu">0</span> &amp;&amp; ix &lt; W)
+                    acc += in[(c*H+iy)*W+ix] * weight[((oc*C+c)*K+ky)*K+kx];
+            }
+    out[(oc*OH+oy)*OW+ox] = acc;
+}</code></pre><p><a href="examples/conv-chw.hip">下载 HIP 内核</a></p><figure><img class="diagram-light" src="figures/worked-conv.svg" width="600" height="144" alt="补零边缘窗口里，越界项对累加器贡献零"><figcaption>补零边缘窗口里，越界项对累加器贡献零</figcaption></figure>
+<h3>滑窗重叠、边缘数据与后续池化</h3>
+<p>先把步幅固定为 1、不填充，一格卷积输出依赖相邻 2×2 的四个像素。想同时生成 8×8 格输出，最右一格仍需再向右读一个像素，最下一格也需再向下读一个像素，所以工作组要准备 9×9 的输入片。多出来的一行一列叫作 halo。直接写法的 64 个线程合计请求 256 个输入数；整片交给 LDS，只要从全局取 81 个，再由各输出按需读取 LDS。这个数按一个完整内部块计算，忽略权重访问，也没有把缓存命中算作额外外存流量。</p><figure><img src="figures/kernel-conv-halo.svg" width="570" height="227" alt="9×9 输入片及右下角最后的卷积窗口"><figcaption>绿色四格是最后一个输出的感受野，黄色为额外读入的边缘</figcaption></figure>
+<pre><code class="language-cpp">__global__ <span class="kw">void</span> conv_halo2(<span class="kw">const</span> <span class="kw">float</span>* x,<span class="kw">const</span> <span class="kw">float</span>* weight,<span class="kw">float</span>* out,<span class="kw">int</span> H,<span class="kw">int</span> W) {
+    __shared__ <span class="kw">float</span> image[<span class="nu">9</span>][<span class="nu">9</span>];
+    <span class="kw">int</span> u=threadIdx.x,v=threadIdx.y, x0=<span class="nu">8</span>*blockIdx.x,y0=<span class="nu">8</span>*blockIdx.y;
+    <span class="kw">for</span>(<span class="kw">int</span> i=v*<span class="nu">8</span>+u;i&lt;<span class="nu">81</span>;i+=<span class="nu">64</span>) {                    <span class="cm">// 右边与下边的 halo 也搬进来
+</span>        <span class="kw">int</span> r=y0+i/<span class="nu">9</span>,c=x0+i%<span class="nu">9</span>;
+        image[i/<span class="nu">9</span>][i%<span class="nu">9</span>]=r&lt;H &amp;&amp; c&lt;W ? x[r*W+c] : <span class="nu">0</span>;
+    }
+    __syncthreads();
+    <span class="kw">int</span> r=y0+v,c=x0+u;
+    <span class="kw">if</span>(r&lt;H<span class="nu">-1</span> &amp;&amp; c&lt;W<span class="nu">-1</span>)
+        out[r*(W<span class="nu">-1</span>)+c]=weight[<span class="nu">0</span>]*image[v][u]+weight[<span class="nu">1</span>]*image[v][u+<span class="nu">1</span>]
+                     +weight[<span class="nu">2</span>]*image[v+<span class="nu">1</span>][u]+weight[<span class="nu">3</span>]*image[v+<span class="nu">1</span>][u+<span class="nu">1</span>];</code></pre>
+<p>64 个线程如何装 81 个数？线程号 0～16 先搬自己的编号，再搬编号加 64 的一项，其他线程搬一项。例如编号 16 搬片内 (1,7) 和 (8,8)，最后一项正好是右下角所需的像素。输入越界时填零，等待整个块搬完后，仅合法输出线程计算卷积。</p>
+<p>换一张 3×3 图像，行依次为 (2,1,3)、(3,2,8)、(5,6,1)，用刚才的右下减左上权重。结果为两行 (0,7)、(3,−1)。若随后做 2×2、步幅 2 的最大池化，四个值只留下 7。把最大值错误地初始化成 0 会破坏全负窗口，设备测试另给一个全负输入。池化的四个窗口元素已不重叠，这个步幅下不必为相邻输出重复搬同一组像素。</p>
+<p><a href="examples/conv-halo.hip">卷积 halo 与最大池化的 HIP 实现</a> · <a href="https://rocm.docs.amd.com/projects/MIOpen/en/docs-7.2.4/doxygen/html/group__convolutions.html">MIOpen 卷积描述符和方案接口</a></p>
 <p class="sources"><a href="https://rocm.docs.amd.com/projects/rocBLAS/en/latest/reference/level-3.html">AMD · rocBLAS 矩阵乘参数</a> · <a href="https://rocm.docs.amd.com/projects/hipBLASLt/en/latest/reference/datatypes.html">AMD · hipBLASLt 偏置与结果布局</a> · <a href="https://rocm.docs.amd.com/projects/MIOpen/en/docs-7.0.1/how-to/find-and-immediate.html">AMD · MIOpen 的方案搜索与工作区</a></p>
 </section>
 
@@ -439,6 +683,18 @@ image = [[<span class="nu">1</span>,<span class="nu">2</span>,<span class="nu">3
     y[row] = acc;                                  <span class="cm">// 空行也有定义良好的输出
 </span>}</code></pre>
 <p>行的边数很不均匀时，同一波前里短行很快结束，长行仍需循环。还可考虑让一个波前协同处理长行再规约；这一改动会改变每个线程负责的边数以及 LDS 或寄存器间交换开销。AMD 的 rocSPARSE 提供 <code>rocsparse_spmv</code>，通过矩阵和向量描述符指定布局、索引与数值类型。对于固定稀疏结构，可按接口要求先查询临时空间、预处理，再重复计算。评估迭代图算法时，可以把一次预处理与后续多轮 SpMV 分别计时。</p>
+<h3>索引取行与重复邻居</h3>
+<p>在稀疏聚合前单独做一次“按号取行”。沿用三个顶点的两列特征，取行编号 [2,0,2]。输出第 0 和第 2 行都从顶点 2 复制 (6,2)，中间一行从顶点 0 复制 (4,1)。把六个输出格分配给六个线程，每个地址只有一个写入者，即使两个线程读取同一个源值，也不会争写输出。</p>
+<p>反向传播会把多个输出对同一个输入的贡献相加。假设每个输出格的上游梯度都是 1，顶点 2 被读两次，两个通道各收到 2；顶点 0 收到 (1,1)，从未访问的顶点 1 为 (0,0)。直接让两个线程覆盖同一梯度地址会丢掉一次贡献。可先按顶点分组求和，或给已清零的 FP32 梯度格使用 atomicAdd。</p>
+<pre><code class="language-cpp"><span class="cm">// 第 i 个输出行由 ids[i] 指定。输入、输出均为行主序 float 数组。
+</span>__global__ <span class="kw">void</span> gather_rows(<span class="kw">const</span> <span class="kw">float</span>* in, <span class="kw">const</span> <span class="kw">int</span>* ids, <span class="kw">float</span>* out,
+                            <span class="kw">int</span> count, <span class="kw">int</span> features) {
+    <span class="kw">int</span> index = blockIdx.x * blockDim.x + threadIdx.x;
+    <span class="kw">if</span> (index &gt;= count * features) <span class="kw">return</span>;
+    <span class="kw">int</span> out_row = index / features;
+    <span class="kw">int</span> channel = index % features;
+    out[index] = in[ids[out_row] * features + channel];
+}</code></pre><p><a href="examples/gather.hip">下载 HIP 内核</a></p><p><a href="examples/csr-spmv.hip">下载本节 CSR 稀疏乘向量内核</a></p>
 <details><summary>练习 · 空行与间接地址</summary><p>若把列号序列的最后一个 2 改成 1，第三行的最后一项从 <math xmlns="http://www.w3.org/1998/Math/MathML"><mrow><mn>2</mn><mo>×</mo><mn>6</mn></mrow></math> 变成 <math xmlns="http://www.w3.org/1998/Math/MathML"><mrow><mn>2</mn><mo>×</mo><mn>5</mn></mrow></math>，输出从 31 降为 29。行偏移和该行的边数均不变。</p></details>
 <h3>行偏移、边编号与邻居编号</h3>
 <p>看第三行。线程先从 <code>offsets[2]</code> 和 <code>offsets[3]</code> 取到 2 和 5，因此循环变量 <code>e</code> 会取 2、3、4。中间一次迭代中，3 是边在压缩表里的下标。<code>cols[3]</code> 才是邻居编号 1，读到的邻居特征是 <code>x[1]=5</code>。与这条边对应的权重是 <code>weights[3]=3</code>，这一项给输出增加 15。若直接以边下标读取特征，三个顶点的图甚至没有 <code>x[3]</code> 这个位置。</p>
@@ -459,6 +715,21 @@ features = [[<span class="nu">4</span>, <span class="nu">1</span>], [<span class
 <h3>rocSPARSE 的描述符与迭代开销</h3>
 <p>矩阵描述符需要 3 行、3 列、5 个非零项，行偏移长度为 4，列号和数值各长 5。若这三张表放在 GPU 上，描述符记录真实的设备地址、索引宽度、零起始索引和数值类型。输入、输出向量则各有 3 项。用库的求和形式时，令乘积系数为 1、旧输出系数为 0，目标才与上面的教学核一致。若旧输出系数取 1，即使当前行为空，其输出也会保留原值。</p>
 <p>先用查询阶段取得所选算法需要的临时字节数，再准备工作区。如果该算法有预处理阶段，就在图结构确定后执行一次。多轮传播中可以只替换特征向量，重复计算阶段。测量时把准备时间单列。预处理花 2 毫秒，每次新算法省 0.1 毫秒，要超过 20 次计算才会减少累计耗时。</p>
+<h3>一组四个 lane 共用一个邻居编号</h3>
+<p>把上面的图扩为四个特征。顶点 0 是 (4,1,0,2)，顶点 1 是 (5,−1,2,0)，顶点 2 是 (6,2,1,−2)。第三行仍读三条边，第一通道输出 31，第二通道输出 2，第三通道是 0+3×2+2×1=8，第四通道是 2+3×0+2×(−2)=−2。三个输出行应为 (14,4,1,2)、(0,0,0,0)、(31,2,8,−2)。</p><figure><img src="figures/kernel-csr-channels.svg" width="690" height="60" alt="边号仅定位邻接表，列号 1 确定从顶点 1 的连续四个特征取数"><figcaption>边号仅定位邻接表，列号 1 确定从顶点 1 的连续四个特征取数</figcaption></figure>
+<p>如果让四个线程独立处理四个特征，每条边的列号和权重会分别发起四次读取。这里一个 wave 划为 16 个四-lane 小组，每组负责一条边，四个 lane 负责其四个特征。小组内的第一个 lane 读取一次列号与边权，然后广播给另外三个 lane。四次特征读取落在同一个邻居的四个连续 FP32 上；访问下一个邻居是否连续，仍取决于图的列号。</p>
+<pre><code class="language-cpp">    <span class="kw">float</span> sum=<span class="nu">0</span>;
+    <span class="kw">for</span>(<span class="kw">int</span> base=first;base&lt;last;base+=<span class="nu">16</span>) {
+        <span class="kw">int</span> edge=base+group;
+        <span class="kw">int</span> c=channel==<span class="nu">0</span> &amp;&amp; edge&lt;last ? col[edge] : <span class="nu">0</span>;
+        <span class="kw">float</span> weight=channel==<span class="nu">0</span> &amp;&amp; edge&lt;last ? w[edge] : <span class="nu">0</span>;
+        c=__shfl(c,lane-channel,<span class="nu">64</span>);
+        weight=__shfl(weight,lane-channel,<span class="nu">64</span>);
+        <span class="kw">if</span>(edge&lt;last) sum+=weight*features[<span class="nu">4</span>*c+channel];
+    }
+    <span class="kw">for</span>(<span class="kw">int</span> off=<span class="nu">32</span>;off&gt;=<span class="nu">4</span>;off/=<span class="nu">2</span>) sum+=__shfl_down(sum,off,<span class="nu">64</span>);</code></pre>
+<p>完成边上的乘法后，用 32、16、8、4 的距离交换部分和。每次移动都是 4 的倍数，所以 lane 0 只会累加通道 0，lane 1 只会累加通道 1。边数超过 16 时，每个四线程小组沿边号增加 16，先把自己负责的部分累加在寄存器。空行没有读边操作，最后仍写四个零。短行上有些小组没有边，可用行长度直方图判断需要为长短行制定不同的分工。</p>
+<p><a href="examples/csr-wave.hip">下载四通道的 CSR SpMM 内核</a></p>
 <p class="sources"><a href="https://rocm.docs.amd.com/projects/rocSPARSE/en/latest/reference/generic.html">AMD · rocSPARSE 的 SpMV 阶段、格式与参数</a> · <a href="https://rocm.docs.amd.com/projects/HIP/en/docs-7.2.3/understand/programming_model.html">AMD · 波前与访问模式</a></p>
 </section>
 
@@ -498,6 +769,41 @@ print(w.detach().cpu().tolist())</code></pre>
 <h3>张量视图、设备与拷贝</h3>
 <p>用 <code>x.T</code> 访问输入的列时，PyTorch 可以改变形状和步长而保留同一份底层数据。对本例的连续矩阵，原来按行步长 (2, 1) 访问，转置视图改成 (1, 2)。矩阵库需要同时知道形状和步长才读得对。若后端某一条路径要求连续布局，显式调用 <code>contiguous()</code> 会在需要时另建连续副本，性能轨迹里可能因此出现复制。</p>
 <p><code>detach()</code> 返回与原计算图分离的张量，通常仍共享原张量的存储。<code>cpu()</code> 对设备张量执行回传。只想在本卡继续算误差时可以保留设备结果，等需要打印少数标量时再回传。若在训练和评估之间切换带 Dropout 或 BatchNorm 的模型，<code>model.eval()</code> 控制模块的行为，<code>inference_mode()</code> 控制求导记录，两者分别作用在不同步骤。</p>
+<h3>一行特征的 RMSNorm 与 PyTorch 对照</h3>
+<p>隐藏状态每行对应一个词，每列是该词的一项特征。RMSNorm 沿一行计算平方的平均值，用它的平方根作为这一行共同的尺度，再给每个通道乘上自己的可学习权重。把 [0,4,0,0] 整体放大一倍，平方均值会放大四倍，用均方根相除后输出尺度便能保持接近。模型得以分别控制整行尺度和各通道权重。</p>
+<p>为便于手算，令 ε=0，权重 [1,3,1,1]。这行平方和为 16，除以四个特征得 4，均方根为 2。第二格先得 4/2=2，再乘权重 3 得 6，其余为零。实际含全零行时用正的 ε 加在平方均值后，避免除零。HIP 的每个块先求本行平方和，再复用同一个倒数；参考可用 <code>torch.nn.functional.rms_norm(x,(D,),weight,eps)</code>。</p>
+<pre><code class="language-cpp"><span class="cm">// grid.x 等于行数，block.x 等于 B（2 的幂），每行 D 个特征。
+</span><span class="kw">template</span>&lt;<span class="kw">int</span> B&gt;
+__global__ <span class="kw">void</span> rms_rows(<span class="kw">const</span> <span class="kw">float</span>* x, <span class="kw">const</span> <span class="kw">float</span>* weight, <span class="kw">float</span>* y, <span class="kw">int</span> D, <span class="kw">float</span> eps) {
+    __shared__ <span class="kw">float</span> part[B];
+    <span class="kw">int</span> t = threadIdx.x, base = blockIdx.x * D;
+    <span class="kw">float</span> sum = <span class="nu">0</span>;
+    <span class="kw">for</span> (<span class="kw">int</span> j=t; j&lt;D; j+=B) { <span class="kw">float</span> v=x[base+j]; sum += v*v; }
+    part[t]=sum;
+    __syncthreads();
+    <span class="kw">for</span> (<span class="kw">int</span> step=B/<span class="nu">2</span>; step; step/=<span class="nu">2</span>) {
+        <span class="kw">if</span> (t&lt;step) part[t] += part[t+step];
+        __syncthreads();
+    }
+    <span class="kw">float</span> scale = rsqrtf(part[<span class="nu">0</span>]/D + eps);
+    <span class="kw">for</span> (<span class="kw">int</span> j=t; j&lt;D; j+=B) y[base+j] = x[base+j] * scale * weight[j];
+}</code></pre><p><a href="examples/rmsnorm.hip">下载 HIP 内核</a></p><figure><img class="diagram-light" src="figures/worked-rmsnorm.svg" width="600" height="144" alt="平方和来自整行，权重则各乘各列"><figcaption>平方和来自整行，权重则各乘各列</figcaption></figure>
+<p class="sources"><a href="https://docs.pytorch.org/docs/stable/generated/torch.nn.RMSNorm.html">PyTorch · RMSNorm 定义</a></p>
+<h3>残差相加与 RMSNorm 的融合</h3>
+<p>把刚才的输入拆成主支 x=(2,1,0,−1) 和残差 r=(−2,3,0,1)。先相加得到 u=(0,4,0,0)，再用同一组权重 (1,3,1,1) 做归一化。仍取 ε=0，归一化返回 (0,6,0,0)，而后续残差支路还要拿到 u。这次融合算子会同时写回这两个张量。</p><figure><img src="figures/kernel-residual.svg" width="690" height="114" alt="融合内核从同一个寄存器值分出残差输出，并计算归一化输出"><figcaption>融合内核从同一个寄存器值分出残差输出，并计算归一化输出</figcaption></figure>
+<p>分开执行时，第一个内核读 x、r 后写 u。上一段的通用 RMSNorm 先读 u 统计平方和，再读 u 做归一化，并读取权重。若行宽不超过 64，每个 lane 可以把自己的相加结果一直留在寄存器，同一 wave 一起求平方和。这样既保留两个输出，又省掉两轮从全局读取 u。</p>
+<pre><code class="language-cpp"><span class="cm">// 1 &lt;= cols &lt;= 64；每行独占一个完整 wave，u 还会提供给后一层。
+</span>__global__ <span class="kw">void</span> residual_rms64(<span class="kw">const</span> <span class="kw">float</span>* x,<span class="kw">const</span> <span class="kw">float</span>* residual,<span class="kw">const</span> <span class="kw">float</span>* w,
+                               <span class="kw">float</span>* u,<span class="kw">float</span>* y,<span class="kw">int</span> cols,<span class="kw">float</span> eps) {
+    <span class="kw">int</span> lane=threadIdx.x,i=blockIdx.x*cols+lane;
+    <span class="kw">float</span> v=lane&lt;cols ? x[i]+residual[i] : <span class="nu">0</span>;
+    <span class="kw">float</span> sum=v*v;
+    <span class="kw">for</span>(<span class="kw">int</span> off=<span class="nu">32</span>;off;off/=<span class="nu">2</span>) sum+=__shfl_down(sum,off,<span class="nu">64</span>);
+    <span class="kw">float</span> scale=rsqrtf(__shfl(sum,<span class="nu">0</span>,<span class="nu">64</span>)/cols+eps);
+    <span class="kw">if</span>(lane&lt;cols) { u[i]=v; y[i]=v*w[lane]*scale; }
+}</code></pre>
+<p>按 FP32 每行 D 列计算，分开版的输入输出请求为 28D 字节，融合版为 20D 字节。D=4 时分别为 112 B 与 80 B。宽度超过 64 时，一个 lane 需要保留多个值，或分次加载；寄存器压力和多 wave 通信会改变可行的分块。校验时要分别比较 u 和 y；只看归一化结果会漏掉残差值没有保留下来的错误。</p>
+<p><a href="examples/row-fusions.hip">下载残差相加与 RMSNorm 融合内核</a></p>
 <p class="sources"><a href="https://github.com/pytorch/pytorch/blob/v2.9.0/docs/source/notes/hip.rst">PyTorch · HIP 接口与设备名称</a> · <a href="https://rocm.docs.amd.com/en/docs-6.4.1/how-to/rocm-for-ai/fine-tuning/single-gpu-fine-tuning-and-inference.html">AMD · ROCm 上的模型训练与推理</a></p>
 </section>
 
@@ -549,6 +855,46 @@ torch.testing.assert_close(y, torch.softmax(x, dim=<span class="nu">1</span>))</
 <p>输入步长是 (1, 2)，连续输出步长是 (3, 1)。第二行在输入里读地址 1、3、5，在输出里写地址 3、4、5。减去行最大值后，第二行仍得到 (−2, −1, 0)，概率与上一例第二行相同。可见共同增加 10 并不改变 softmax，但换了张量布局就必须换地址算法。</p>
 <h3>寄存器占用与分块归约的选择</h3>
 <p>对 257 列的有限分数，单实例可以取 512 个逻辑槽，掩去尾部 255 个。若寄存器用量成为瓶颈，可按列先做局部归约。例子中两片未经缩放的指数权重是 (1, 2) 和 (4)。前片以 2 为基准得到局部分母 1.5，后片以 4 为基准得到 1。要换用全行基准 4，前片分母再乘 1/2，合并后为 1.75。再按这个分母写三列输出，才会得到 (1/7, 2/7, 4/7)。拆成多个实例后，需要跨实例交换这些行状态，或另外启动归一化核。应对同一宽度比较省下的寄存器与增加的临时读写。</p>
+<h3>同一行在 HIP 中的两次规约</h3>
+<p>沿用三列输入 [0,1,2]，假设块内只有两个线程。0 号线程读第 0、2 列，得到自己的最大值 2；1 号读第 1 列，得到 1。两项合并后全块都用 2 作为指数的基准。接着 0 号贡献 exp(−2)+1，1 号贡献 exp(−1)，分母仍是前面 Triton 实例得到的 1.5032。</p>
+<p>这份 HIP 实现把列号 j 以块大小为步幅向后移动，因此一行比块更宽也能算。为了节省暂存空间，最大值与分母共用 LDS。在线程把分母写入前，全块必须先读完最大值。下面为了对照流程，在输出阶段重算了一遍指数；若每线程只负责少量列，也可以保留这些指数再用寄存器换算术。</p>
+<pre><code class="language-cpp"><span class="cm">// 每块一行，B 为 2 的幂，行中有 n 个有限分数；y 与输入形状相同。
+</span><span class="kw">template</span>&lt;<span class="kw">int</span> B&gt;
+__global__ <span class="kw">void</span> softmax_rows(<span class="kw">const</span> <span class="kw">float</span>* x, <span class="kw">float</span>* y, <span class="kw">int</span> n) {
+    __shared__ <span class="kw">float</span> v[B];
+    <span class="kw">int</span> t=threadIdx.x, base=blockIdx.x*n;
+    <span class="kw">float</span> m=-__builtin_huge_valf();
+    <span class="kw">for</span> (<span class="kw">int</span> j=t;j&lt;n;j+=B) m=fmaxf(m,x[base+j]);
+    v[t]=m; __syncthreads();
+    <span class="kw">for</span> (<span class="kw">int</span> s=B/<span class="nu">2</span>;s;s/=<span class="nu">2</span>) {
+        <span class="kw">if</span> (t&lt;s) v[t]=fmaxf(v[t],v[t+s]);
+        __syncthreads();
+    }
+    m=v[<span class="nu">0</span>]; __syncthreads(); <span class="cm">// 先让大家读到行最大值，再复用同一块 LDS
+</span>    <span class="kw">float</span> z=<span class="nu">0</span>;
+    <span class="kw">for</span> (<span class="kw">int</span> j=t;j&lt;n;j+=B) z+=expf(x[base+j]-m);
+    v[t]=z; __syncthreads();
+    <span class="kw">for</span> (<span class="kw">int</span> s=B/<span class="nu">2</span>;s;s/=<span class="nu">2</span>) {
+        <span class="kw">if</span> (t&lt;s) v[t]+=v[t+s];
+        __syncthreads();
+    }
+    <span class="kw">for</span> (<span class="kw">int</span> j=t;j&lt;n;j+=B) y[base+j]=expf(x[base+j]-m)/v[<span class="nu">0</span>];
+}</code></pre><p><a href="examples/softmax.hip">下载 HIP 内核</a></p>
+<h3>列值在寄存器中的三次使用</h3>
+<p>把上一段的通用块实现改成专门处理 1～64 列的 CDNA wave。一个 lane 取一个分数，把它保留到最后。第一次用这个数求行最大值；第二次从寄存器减去行最大值并求指数；第三次使用的是已保存的指数，除以行分母后即可写出。源码中两次 <code>__shfl</code> 各广播一个数，第一次让各列使用同一最大值，第二次让各列使用同一分母。</p>
+<pre><code class="language-cpp">__global__ <span class="kw">void</span> softmax_wave64(<span class="kw">const</span> <span class="kw">float</span>* x,<span class="kw">float</span>* y,<span class="kw">int</span> cols) {
+    <span class="kw">int</span> lane=threadIdx.x,i=blockIdx.x*cols+lane;
+    <span class="kw">float</span> v=lane&lt;cols ? x[i] : -__builtin_huge_valf();
+    <span class="kw">float</span> m=v;
+    <span class="kw">for</span>(<span class="kw">int</span> off=<span class="nu">32</span>;off;off/=<span class="nu">2</span>) m=fmaxf(m,__shfl_down(m,off,<span class="nu">64</span>));
+    <span class="kw">float</span> w=expf(v-__shfl(m,<span class="nu">0</span>,<span class="nu">64</span>)),sum=w;
+    <span class="kw">for</span>(<span class="kw">int</span> off=<span class="nu">32</span>;off;off/=<span class="nu">2</span>) sum+=__shfl_down(sum,off,<span class="nu">64</span>);
+    sum=__shfl(sum,<span class="nu">0</span>,<span class="nu">64</span>);
+    <span class="kw">if</span>(lane&lt;cols) y[i]=w/sum;
+}</code></pre>
+<p>按第二行 (0,1,2) 计算，lane 0 和 lane 2 的寄存器先存 0 和 2。第一次广播后，它们的指数分别为 exp(−2) 和 1，lane 1 为 exp(−1)。其余 lane 读入负无穷，贡献零。第二次广播分母约 1.5032，lane 0 最后写约 0.0900。改变全部分数为 (1000,1001,1002)，这三项结果应相同，能同时检查稳定性和补位处理。</p>
+<p>原 HIP 版本把输入用于找最大值、累加分母、输出归一化三次，按 D 个有限 FP32 计，总请求为 12D 字节读、4D 字节写。专用版只需 4D 字节读、4D 字节写，指数也从两次降为一次。若一行有 65 列，就不能把原循环直接删掉；需要让某些 lane 持两个值，或者沿用通用实现。Triton 的行块程序表达了同样的值复用，实际分配了多少寄存器可检查编译产物。</p>
+<p><a href="examples/row-fusions.hip">下载单 wave softmax 内核</a></p>
 <p class="sources"><a href="https://rocm.blogs.amd.com/artificial-intelligence/triton/README.html">AMD · Triton 的行号、列偏移与内核开发</a> · <a href="https://rocm.docs.amd.com/projects/ai-ecosystem/en/latest/optimization/model-acceleration-libs.html">AMD · 模型加速库与框架实现</a></p>
 </section>
 
@@ -586,14 +932,74 @@ torch.testing.assert_close(y, torch.softmax(x, dim=<span class="nu">1</span>))</
 <h3>两个点积之间的片上数据</h3>
 <p>分块注意力的第一次矩阵乘产生一片匹配分数，每一行先按可见位置更新最大值和指数和。第二次矩阵乘把这一片指数权重乘对应的 V 块，得到输出各坐标的贡献。如果新块的最大值更高，旧的分子向量与旧分母要一起缩放。最后一个键块处理完，才有本查询行的最终分母。</p>
 <p>在 GPU 上，波前协作完成矩阵片段的点积，逐行求和、取最大值和缩放又需要 lane 间交换。查询块越大，同一片 K、V 可服务更多查询，但要在寄存器中保留更多行状态和部分和。对比两个后端时须固定真实掩码、数据类型和头宽，先对照逐行输出，再核对是否避开了整张分数表的写回。</p>
+<h3>历史前缀在 HIP 中的逐行验证</h3>
+<p>下面沿用上一例的两个新位置，取 N=2、S=4、D=1、F=2、past=2。每个线程只维护一个输出坐标的分子；一条查询的两个线程都按同一次序读键。因此它们在同一历史位置算出相同的分数、最大值和分母，各自只去 V 的对应列取数。输入约定每个查询至少有一个可见键。</p>
+<p>例如查询 0 的第二个坐标到键 2 时，旧分子是 1，旧最大值 ln 2。换到 ln 4 后保留一半旧分子，再加上新值 −1，得到 −0.5；分母为 1.75，输出为 −2/7。查询 1 再读值 3，分子缩为 −0.25 后加 3 得 2.75，分母缩为 0.875 后加 1 得 1.875，输出 22/15。实际分块实现可让同一行多个输出通道共享点积；这个逐坐标版本适合对齐掩码、位置和基准缩放。</p>
+<pre><code class="language-cpp"><span class="cm">// Q:[N,D]，K:[S,D]，V:[S,F]；查询第 r 行的逻辑位置等于 past+r。
+</span>__global__ <span class="kw">void</span> causal_attention(<span class="kw">const</span> <span class="kw">float</span>* q,<span class="kw">const</span> <span class="kw">float</span>* k,<span class="kw">const</span> <span class="kw">float</span>* v,<span class="kw">float</span>* out,
+                                 <span class="kw">int</span> N,<span class="kw">int</span> S,<span class="kw">int</span> D,<span class="kw">int</span> F,<span class="kw">int</span> past) {
+    <span class="kw">int</span> f=blockIdx.x*blockDim.x+threadIdx.x, r=blockIdx.y;
+    <span class="kw">if</span> (r&gt;=N || f&gt;=F) <span class="kw">return</span>;
+    <span class="kw">float</span> m=-__builtin_huge_valf(), den=<span class="nu">0</span>, num=<span class="nu">0</span>;
+    <span class="kw">for</span>(<span class="kw">int</span> j=<span class="nu">0</span>;j&lt;S &amp;&amp; j&lt;=past+r;++j) {
+        <span class="kw">float</span> s=<span class="nu">0</span>;
+        <span class="kw">for</span>(<span class="kw">int</span> d=<span class="nu">0</span>;d&lt;D;++d) s += q[r*D+d]*k[j*D+d];
+        s *= rsqrtf(<span class="kw">float</span>(D));
+        <span class="kw">float</span> next=fmaxf(m,s), keep=expf(m-next), w=expf(s-next);
+        num = num*keep + w*v[j*F+f];
+        den = den*keep + w;
+        m = next;
+    }
+    out[r*F+f]=num/den;
+}</code></pre><p><a href="examples/causal-attention.hip">下载 HIP 内核</a></p><figure><img class="diagram-light" src="figures/worked-att-state.svg" width="600" height="144" alt="两条查询沿用同一组键值，最后一行的可见性改变分母和第二坐标"><figcaption>两条查询沿用同一组键值，最后一行的可见性改变分母和第二坐标</figcaption></figure>
+<h3>两列值共享的同一行权重</h3>
+<p>回到位置 2 只看前三个键的例子。给第一和第二个输出特征使用的都是 (1/7,2/7,4/7)，差别仅在它们读取的 V 列。第一列读取 (2,5,8)，点积是 44/7；第二列读取 (0,1,−1)，点积是 −2/7。分别把分母印出来时，这两列都应为 7。若把每一列的 V 独自送进 softmax，权重就会变掉，输出也不再表达查询与键的匹配程度。</p>
+<p>逐个输出坐标实现时，把记录分数或分母的语句放到两个线程里，就能看到它们做了相同的 QK 运算。让这些输出列共享一次计算后的分数，是下一节从标量参考改成行块 SDPA 的直接理由。</p>
 <p class="sources"><a href="https://rocm.blogs.amd.com/artificial-intelligence/llm-inference-optimize/README.html">AMD · LLM 推理中的注意力与分页</a> · <a href="https://rocm.docs.amd.com/en/docs-7.1.0/how-to/rocm-for-ai/inference-optimization/vllm-optimization.html">AMD · vLLM 的 ROCm 注意力后端</a></p>
 </section>
+<section id="attention-tiles" data-part="模型框架与注意力"><h2>行块 SDPA 的共享分数与在线归并</h2>
+<p>先分别给每个查询与每个键算点积，再沿键做 softmax，最后把权重乘到 V，这三步会产生整张查询×键的分数表。上一节的 HIP 写法沿键逐个更新，对一个值特征只保留一个分子，但同一行有四个值特征时，相同的点积也重新算了四次。本节让四个查询行组成一个块，用 LDS 留住刚算完的小片分数。</p>
+<figure><img src="figures/kernel-att-block.svg" width="690" height="138" alt="四行查询共用一次键值装载，每个分数又给四个值特征重复使用"><figcaption>四行查询共用一次键值装载，每个分数又给四个值特征重复使用</figcaption></figure>
+<h3>一个工作组的分数与值</h3>
+<p>取 Q 的形状为 [3,4]，K、V 均为 [5,4]。每个工作组有 64 个线程，前 16 个将至多四行 Q 放进 LDS。每轮这 16 个线程搬入四个键及其四维值，再各算一个查询与一个键的点积；随后四个线程各更新一行的最大值和指数和。其余算输出的线程按“查询行、值列”分工，读取这一行共享的权重，保留自己的分子。四个槽用于教学展示，再放大时可以让更多线程参与每次 QK 或 PV 乘积。</p>
+<h3>跨键块换算旧状态</h3>
+<p>设 m、l、u 分别是上轮的最大分数、相对此最大值的指数和，以及某一值列的加权和。新块到达后取新最大值 m′，旧分母、旧分子同乘 exp(m−m′)。下式里 j 只遍历本块可见键，s 是缩放点积，v 是该值列的数据。</p>
+<math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><mrow><mi>&#x003B1;</mi><mo>&#x0003D;</mo><msup><mi>e</mi><mrow><mi>m</mi><mo>&#x02212;</mo><msup><mi>m</mi><mrow><mi>&#x02032;</mi></mrow></msup></mrow></msup><mo>&#x0002C;</mo><mspace width="1em" /><msup><mi>l</mi><mrow><mi>&#x02032;</mi></mrow></msup><mo>&#x0003D;</mo><mi>&#x003B1;</mi><mi>l</mi><mo>&#x0002B;</mo><munder><mo>&#x02211;</mo><mi>j</mi></munder><msup><mi>e</mi><mrow><msub><mi>s</mi><mi>j</mi></msub><mo>&#x02212;</mo><msup><mi>m</mi><mrow><mi>&#x02032;</mi></mrow></msup></mrow></msup><mo>&#x0002C;</mo><mspace width="1em" /><msup><mi>u</mi><mrow><mi>&#x02032;</mi></mrow></msup><mo>&#x0003D;</mo><mi>&#x003B1;</mi><mi>u</mi><mo>&#x0002B;</mo><munder><mo>&#x02211;</mo><mi>j</mi></munder><msup><mi>e</mi><mrow><msub><mi>s</mi><mi>j</mi></msub><mo>&#x02212;</mo><msup><mi>m</mi><mrow><mi>&#x02032;</mi></mrow></msup></mrow></msup><msub><mi>v</mi><mi>j</mi></msub></mrow></math>
+<pre><code class="language-cpp">            <span class="kw">float</span> next=m[t];
+            <span class="kw">for</span>(<span class="kw">int</span> j=<span class="nu">0</span>;j&lt;<span class="nu">4</span>;++j) next=fmaxf(next,w[t][j]);
+            <span class="kw">bool</span> live=next != -__builtin_huge_valf();
+            keep[t]=live ? expf(m[t]-next) : <span class="nu">0</span>;
+            den[t]*=keep[t];
+            <span class="kw">for</span>(<span class="kw">int</span> j=<span class="nu">0</span>;j&lt;<span class="nu">4</span>;++j) {
+                w[t][j]=live ? expf(w[t][j]-next) : <span class="nu">0</span>;
+                den[t]+=w[t][j];
+            }
+            m[t]=next;
+        }
+        __syncthreads();
+        <span class="kw">if</span>(t&lt;<span class="nu">16</span>) {
+            num*=keep[r];
+            <span class="kw">for</span>(<span class="kw">int</span> j=<span class="nu">0</span>;j&lt;<span class="nu">4</span>;++j) num+=w[r][j]*vs[j][f];
+        }
+        __syncthreads();                          <span class="cm">// 下一块即将覆盖 K、V 和权重
+</span>    }
+    <span class="kw">if</span>(t&lt;<span class="nu">16</span> &amp;&amp; r0+r&lt;rows) out[(r0+r)*<span class="nu">4</span>+f] = num/den[r];</code></pre>
+<p>三行查询都取 (1,0,0,0)。K 只有第一列非零，依次放 2ln1、2ln3、2ln2、2ln6、2ln12。D=4，点积除以 2，故指数权重还原为 1、3、2、6、12。V 的第一列是 2、8、−1、3、4。三行的逻辑位置为 2、3、4，可见键数随之为 3、4、5。未缩放的 (分子,分母) 分别是 (24,6)、(42,12)、(90,24)，第一列输出依次为 4、3.5、3.75。</p>
+<p>以最后一行为例，前四个键的最大分数是 ln6，保存的分母是 12/6=2、分子是 42/6=7。第二片只有键 4，有更大的分数 ln12；旧状态减半，再加新权重 1 与加权值 4，分母变成 2，分子变成 7.5。最右侧三个空槽和被因果条件挡住的键用掩码参与，不进入当前行的分母。</p>
+<h3>工作量与验证</h3>
+<p>在一个完整、全部可见的 4×4 分数块上，D=4、F=4。每个值列重复点积的实现需要 4×4×4×4=256 次标量乘法来取得分数，这里只算 4×4×4=64 次。PV 的乘法两种方法都要做。对照驱动在同一组 Q、K、V 上同时运行逐特征版本和行块版本，校验每行的全部四列。优化更宽的头时，再检查 LDS 用量、矩阵片大小与可同时驻留的工作组数量。</p>
+<h3>同输入的设备计时</h3><p>在 ROCm 主机解压实验包，先用 <code>./advanced</code> 做数值对照。固定 32 行查询、512 行键值和四维的头宽，分别测逐值列与行块版本。两版最终输出相同，按 profiler 中的全局读取和工作组数量定位变化；这组尺寸适合观察分数复用。 运行 <code>./benchmark attention</code>。</p><p><a href="examples/operators.zip">完整实验包</a> · <a href="examples/benchmark.hip">六组计时实现</a></p><p><a href="examples/attention-block.hip">本节完整 HIP 源码</a> · <a href="examples/advanced.hip">设备对照驱动</a> · <a href="examples/advanced_reference.py">CPU 数值与访存对照</a></p>
+<p class="sources"><a href="https://proceedings.neurips.cc/paper_files/paper/2022/file/67d57c32e20fd0a7a302cb81d36e40d5-Paper-Conference.pdf#page=5">FlashAttention 原文算法 1（NeurIPS 2022）</a> · <a href="https://rocm.docs.amd.com/projects/rocWMMA/en/docs-7.2.4/conceptual/programmers-guide.html">rocWMMA 的矩阵片与数据布局</a></p></section>
 
 <section data-part="模型框架与注意力" id="precision"><h2>低精度表示、缩放与 Quark 校准</h2>
 <p>一张量里既有很小的数，也可能有一两个很大的数。把它们压进更短的编码，需要先决定一个刻度。设缩放系数 s 表示一个编码单位有多大，按该刻度把原值 x 换成可保存的值 q，使用时再换回近似值。实际 FP8 同时有指数和尾数，不同数量级的可表示值间距会变化。先用等间距的小整数网格，看清刻度和误差。</p>
 <p>教学网格用 −7 到 7 的整数，选择 s 等于 <math xmlns="http://www.w3.org/1998/Math/MathML"><mrow><mn>1</mn><mo>/</mo><mn>2</mn></mrow></math>。原值 [−2.4，0.2，3.0] 分别除以 <math xmlns="http://www.w3.org/1998/Math/MathML"><mrow><mn>1</mn><mo>/</mo><mn>2</mn></mrow></math> 得 [−4.8，0.4，6]，就近取整数得到 [−5，0，6]。还原为 [−2.5，0，3]，与原值的差依次为 [−0.1，−0.2，0]。如果同一张量出现 10，按原刻度需要编码为 20，超过可保存的最大编码 7，截断后只能还原到 3.5。扩大刻度可以覆盖 10，也会让较小值之间的间隔变大。</p>
 <p>AMD Quark 将这种准备工作组织成校准、量化和导出。官方示例先加载模型与分词器，把校准语句送进模型，收集被量化张量的范围，再为权重、激活以及选定的 KV 投影设置量化规则，导出供 vLLM 使用的模型。想保住长提示上的精度，校准语料应覆盖业务里常见的提示长度和文本分布。静态尺度随导出的模型一起使用，动态尺度则在运行中从当前数据计算。</p>
 <p>在 Instinct 上启用量化前要核对存储类型、缩放粒度和可用 kernel。权重压小可能降低 HBM 读取量，反量化和尺度读取也要占执行时间。例如教学权重矩阵有 <math xmlns="http://www.w3.org/1998/Math/MathML"><mrow><mn>128</mn><mo>×</mo><mn>128</mn></mrow></math> 个元素，从 BF16 改为每元素一个字节，纯权重从 32 KiB 降到 16 KiB；若每 128 个元素存一个 FP32 尺度，需 128 个尺度，另占 512 字节。KV 量化则单独影响历史缓存，每个 token 的节省量要按层数和 KV 头重新计算。</p>
+<h3>按输出通道反量化的点积</h3>
+<p>沿用整数编码的教学网格。把一层权重按输出通道存，两列的编码都是 [2,−1]，第一列尺度为 0.25，第二列尺度为 2。给两个输入通道 [4,2]，先对编码求一次基准点积：4×2 加 2×(−1) 等于 6。按列乘各自尺度后，两项输出分别为 1.5 和 12。</p>
+<p>若尺度沿输出列固定，可以先用整数编码权重计算该列的点积，最后缩放一次。若第一输入通道与第二输入通道采用不同尺度，必须先分别缩放各组的部分和再合并。导出低精度模型时，应把尺度张量的形状连同权重布局一起写入配置，加载时从相同轴读取。</p>
+<figure><img class="diagram-light" src="figures/worked-channel-scale.svg" width="600" height="188" alt="编码相同的两列具有不同数值尺度，缩放必须与输出通道对齐"><figcaption>编码相同的两列具有不同数值尺度，缩放必须与输出通道对齐</figcaption></figure>
 <details><summary>练习 · 量化误差对一个输出格的影响</summary><p>前面两项原权重取 [−2.4，0.2]，输入取 [2，1]，精确点积是 −4.6。用 [−2.5，0] 重算得到 −5，输出差 −0.4，正好是两项权重误差分别乘输入再相加。对比模型时可先查单层误差，再用业务任务评估累积影响。</p></details>
 <h3>整数刻度与 FP8 指数字段</h3>
 <p>把整数刻度改为 10/7，四个原值 −2.4、0.2、3、10 的整数码依次变成 −2、0、2、7，还原为约 −2.857、0、2.857、10。数值 10 现在可以表示，原来的 3 却从完全可表示变成有误差。校准时看到一个极大值，是否要为它扩大整组刻度，需要把它出现的频率和典型位置的输出误差一起考虑。</p>
@@ -612,8 +1018,38 @@ x = np.array([-<span class="nu">2.4</span>, <span class="nu">0.2</span>, <span c
 <h3>Quark 校准数据进入模型的位置</h3>
 <p>AMD 的示例把全局量化配置与按层覆盖的配置合进 <code>quant_config</code>，再构造 <code>ModelQuantizer</code>。<code>quantize_model</code> 接收模型和校准数据，让观察器收集选中模块在实际输入下的数值。随后冻结量化状态并导出。推理加载端需要识别导出的权重格式、尺度及对应层名，才能在点积时恢复正确的数值单位。</p>
 <p>例如两个输出列的权重范围相差十倍，按列保存尺度时，两列的整数码都可以是 3。还原左列时乘左列尺度，右列要乘右列尺度。校对导出结果时先选定一层和一个输出格，核对每一组码和尺度，再比较量化前后的点积。单看文件体积或模型能成功加载，看不出尺度是否被错误地广播到另一列。</p>
+<h3>尺度方向与一次整数点积</h3>
+<p>给两项激活 (2,−4) 配一个解码步长 0.5，整数码为 (4,−8)；给权重 (3,1) 配步长 1，整数码仍为 (3,1)。先在整数域做点积，得 4×3+(−8)×1=4，再乘两个步长 0.5×1，结果 2，恰等于原浮点点积 2×3−4×1。这里四个数都能精确编码，适合检查“写码时除尺度、读码时乘尺度”是否写反。</p>
+<p>若同一条 K 轴被拆成多组，每组使用自己的激活和权重步长。应先让各组的整数部分和乘回对应的尺度，再把组的贡献相加；仅在各组尺度乘积恰好相等时才能最后统一乘一次。下一节把步长如何从原值求出、在 GPU 上如何传给整组 lane 分开实现。</p>
 <p class="sources"><a href="https://rocm.docs.amd.com/projects/ai-developer-hub/en/v5.1/notebooks/gpu_dev_optimize/fp8_quantization_quark_vllm.html">AMD · Quark 校准与 vLLM 推理实例</a> · <a href="https://rocm.docs.amd.com/en/docs-7.2.4/how-to/rocm-for-ai/inference-optimization/workload.html">AMD · MI300 与 MI350 的数值格式</a></p>
 </section>
+<section id="quant-wave" data-part="模型框架与注意力"><h2>分组 INT8 的双遍量化、单遍融合与反量化</h2>
+<p>向内存写一行低精度激活时，一个字节只能存整数，还要给它配一个单位。这里每 64 个相邻特征共用一个 FP32 步长 s，把绝对值最大的有限数映射到 127，其余数字按比例落到整数格上。约定中点向远离零的方向舍入，整数范围为 −127 到 127。全零组用步长 1，整组码都为零。</p>
+<h3>需要两次读取的写法</h3>
+<p>直接实现分两遍。第一遍扫描一组，求最大绝对值 a 并写出步长；第二遍再把同一组浮点值从全局读一遍，用已知步长把每个值变成整数。读者可先写出这两步，对照源码里的 <code>scales_serial</code> 与 <code>quant_pass</code>。解码时，每个元素取所属组的步长，乘回整数。</p>
+<math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><mrow><mi>s</mi><mo>&#x0003D;</mo><mrow><mo stretchy="true" fence="true" form="prefix">&#x0007B;</mo><mtable><mtr><mtd columnalign="left"><mi>a</mi><mo>&#x0002F;</mo><mn>127</mn></mtd><mtd columnalign="left"><mi>a</mi><mo>&#x0003E;</mo><mn>0</mn></mtd></mtr><mtr><mtd columnalign="left"><mn>1</mn></mtd><mtd columnalign="left"><mi>a</mi><mo>&#x0003D;</mo><mn>0</mn></mtd></mtr></mtable></mrow><mo>&#x0002C;</mo><mspace width="1em" /><mi>q</mi><mo>&#x0003D;</mo><mo>sign</mo><mo stretchy="false">&#x00028;</mo><mi>x</mi><mo stretchy="false">&#x00029;</mo><mrow><mo stretchy="true" fence="true" form="prefix">&#x0230A;</mo><mo stretchy="false">&#x0007C;</mo><mi>x</mi><mo stretchy="false">&#x0007C;</mo><mo>&#x0002F;</mo><mi>s</mi><mo>&#x0002B;</mo><mn>0.5</mn><mo stretchy="true" fence="true" form="postfix">&#x0230B;</mo></mrow><mo>&#x0002C;</mo><mspace width="1em" /><mover accent="true"><mrow><mi>x</mi></mrow><mo>&#x0005E;</mo></mover><mo>&#x0003D;</mo><mi>q</mi><mspace width="0.167em" /><mi>s</mi></mrow></math>
+<figure><img src="figures/kernel-group-q8.svg" width="690" height="140" alt="一行 66 个特征分成两组，两个步长分别与本组的整数码配对"><figcaption>一行 66 个特征分成两组，两个步长分别与本组的整数码配对</figcaption></figure>
+<h3>一个 wave 只读一次输入</h3>
+<p>gfx90a 和 gfx942 使用 64 lane。每个 lane 先把本列的值留在寄存器里，再交换绝对值，按距离 32、16、8、4、2、1 逐级取最大值。lane 0 汇总全组后，<code>__shfl</code> 把这个数广播给每个 lane。各列现在能直接量化寄存器中的原值，组步长只需写一次。尾组不足 64 时，无效 lane 交出零参加规约，同时跳过最终写回。</p>
+<pre><code class="language-cpp">__global__ <span class="kw">void</span> quant_wave64(<span class="kw">const</span> <span class="kw">float</span>* x,<span class="kw">signed</span> <span class="kw">char</span>* codes,<span class="kw">float</span>* scales,<span class="kw">int</span> cols) {
+    <span class="kw">int</span> lane=threadIdx.x, row=blockIdx.y, g=blockIdx.x, j=<span class="nu">64</span>*g+lane;
+    <span class="kw">float</span> v=j&lt;cols ? x[row*cols+j] : <span class="nu">0</span>;
+    <span class="kw">float</span> a=fabsf(v);
+    <span class="kw">for</span>(<span class="kw">int</span> d=<span class="nu">32</span>;d&gt;<span class="nu">0</span>;d/=<span class="nu">2</span>) a=fmaxf(a,__shfl_down(a,d,<span class="nu">64</span>));
+    a=__shfl(a,<span class="nu">0</span>,<span class="nu">64</span>);                              <span class="cm">// 组内每个有效值都用相同步长
+</span>    <span class="kw">float</span> s=a&gt;<span class="nu">0</span> ? a/<span class="nu">127.0f</span> : <span class="nu">1</span>;
+    <span class="kw">if</span>(lane==<span class="nu">0</span>) scales[row*gridDim.x+g]=s;
+    <span class="kw">if</span>(j&lt;cols) codes[row*cols+j]=q8_code(v,s);
+}
+__global__ <span class="kw">void</span> dequant_group(<span class="kw">const</span> <span class="kw">signed</span> <span class="kw">char</span>* codes,<span class="kw">const</span> <span class="kw">float</span>* scales,<span class="kw">float</span>* y,<span class="kw">int</span> cols) {
+    <span class="kw">int</span> row=blockIdx.y, g=blockIdx.x, j=<span class="nu">64</span>*g+threadIdx.x;
+    <span class="kw">if</span>(j&lt;cols) y[row*cols+j]=<span class="kw">float</span>(codes[row*cols+j])*scales[row*gridDim.x+g];
+}</code></pre>
+<p>取一行 66 个 FP32，前 64 项的最大绝对值是 254，其中含 −63、1 和 −1。该组步长 2，这三项得到 −32、1、−1，解码为 −64、2、−2。余下两项为 63.5、−5.25，步长 0.5，编码为 127、−11，解码为 63.5、−5.5。对照程序同时检查整数码、两组步长和解码后的所有元素。</p>
+<h3>字节数与后续算子的复用</h3>
+<p>一行原占 66×4=264 B，编码后占 66+2×4=74 B。两遍基线在程序层面读原行 528 B，融合版读 264 B，二者都写 74 B。若下一步马上解码成 FP32 并写回全局，另会写 264 B。若下游矩阵乘能在取数时应用尺度，就可以省掉这次中间写回。缩短分组能减轻组内单个大值对舍入误差的影响，同时会增加尺度数量。</p>
+<h3>同输入的设备计时</h3><p>在 ROCm 主机解压实验包，先用 <code>./advanced</code> 做数值对照。4096 行、256 列的输入同时用于两种实现。前一项计时包含求尺度与写码两次启动，后一项只需一次，可进一步在时间线上分清启动间隔与设备执行时间。 运行 <code>./benchmark quant</code>。</p><p><a href="examples/operators.zip">完整实验包</a> · <a href="examples/benchmark.hip">六组计时实现</a></p><p><a href="examples/quant-group.hip">本节完整 HIP 源码</a> · <a href="examples/advanced.hip">设备对照驱动</a> · <a href="examples/advanced_reference.py">CPU 数值与访存对照</a></p>
+<p class="sources"><a href="https://rocm.docs.amd.com/projects/HIP/en/docs-7.2.4/how-to/hip_cpp_language_extensions.html">HIP 的 wave 内数据交换</a> · <a href="https://rocm.docs.amd.com/projects/hipBLASLt/en/docs-7.2.4/reference/api-reference.html">hipBLASLt 的缩放因子与矩阵乘描述符</a></p></section>
 
 <section data-part="推理服务与长上下文" id="kv-pages"><p class="part-title">推理服务与长上下文</p><h2>预填充、解码与分页 KV 缓存</h2>
 <p>用户提交四个 token 时，预填充阶段一次处理整个提示。在每一层，四个位置各自产生 K、V 并保存。因果掩码规定第一个位置只能看见自己，第二个能看见前两个，第四个能看见四个，共有 1 加 2 加 3 加 4 等于 10 个有效位置对。最后一个提示位置的输出用来预测首个新 token。</p>
@@ -624,6 +1060,18 @@ x = np.array([-<span class="nu">2.4</span>, <span class="nu">0.2</span>, <span c
 <p>算一张卡上的教学模型。设 L 是层数，H 是每层保存的 KV 头数，d 是每个头的键或值宽度，b 是每个分量占的字节数。每新增一个 token，要为每层同时存一份 K 和一份 V。下面按这张卡保存所有层和所有 KV 头来算。</p>
 <math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><mrow><msub><mi>B</mi><mtext>每 token</mtext></msub><mo>=</mo><mn>2</mn><mo>×</mo><mi>L</mi><mo>×</mo><mi>H</mi><mo>×</mo><mi>d</mi><mo>×</mo><mi>b</mi></mrow></math>
 <p>取 32 层、8 个 KV 头、每头 128 个 BF16 分量，每分量 2 字节，单 token 是 131072 字节，即 128 KiB。长度 4096 正好占 512 MiB，16 条互不共享的同长度请求合计 8 GiB。若块大小改成 16，长度 17 的请求占两块、32 个槽，最后 15 个槽暂时空着。估并发时实际可用于 KV 的空间还要扣掉权重、执行临时区和其他常驻对象。</p>
+<h3>新 KV 行的物理写入地址</h3>
+<p>假设每个位置有两个特征，每个物理页容纳两个位置。请求已有三个位置，新来两行 (30,31)、(40,41)，要写的逻辑位置依次为 3、4。用块表 [4,1,7]，位置 3 落到物理页 1 的槽 1。该页首元素的下标是 1×2×2=4，再跳一个槽的两项，就写 cache[6]、cache[7]。位置 4 转到物理页 7 第一个槽，写 cache[28]、cache[29]。</p>
+<p>分配器要先给新位置准备好页表项。本例缓存按“物理页、槽、特征”行主序存储，键和值可分别调用。生产注意力后端可以改变每个页内部的头和特征排布；查源码时先比对页表的逻辑分配，再沿后端的真实 stride 算地址。</p>
+<pre><code class="language-cpp"><span class="cm">// 本例处理一个请求。src:[new_tokens,F]，cache:[physical_pages,page_size,F]。
+</span>__global__ <span class="kw">void</span> append_pages(<span class="kw">const</span> <span class="kw">float</span>* src,<span class="kw">const</span> <span class="kw">int</span>* table,<span class="kw">float</span>* cache,
+                             <span class="kw">int</span> new_tokens,<span class="kw">int</span> F,<span class="kw">int</span> page_size,<span class="kw">int</span> prior) {
+    <span class="kw">int</span> i=blockIdx.x*blockDim.x+threadIdx.x;
+    <span class="kw">if</span>(i&gt;=new_tokens*F) <span class="kw">return</span>;
+    <span class="kw">int</span> token=i/F, feature=i%F, position=prior+token;
+    <span class="kw">int</span> page=table[position/page_size], slot=position%page_size;
+    cache[(page*page_size+slot)*F+feature]=src[i];
+}</code></pre><p><a href="examples/append-pages.hip">下载 HIP 内核</a></p>
 <details><summary>练习 · 逻辑行与物理行</summary><p>前例的下一个 token 处在逻辑位置 5，沿用物理块 7 的槽 1；再下一个处在逻辑位置 6，此时才需为第四个逻辑块找新的物理块。</p></details>
 <h3>从页表读回一条完整的注意力行</h3>
 <p>只看一层中的一个标量头。为方便手算，把五个键取成自然对数 ln 1、ln 2、ln 1、ln 4、ln 2，当前查询取 1，值分别为 2、5、8、1、9。点积取指数后得到权重 1、2、1、4、2。下面的页记录直接存这组指数权重和值，专门追踪读哪一页、取哪一行。真实缓存保存的是 K、V，查询变化时需要重新计算权重。</p>
@@ -647,6 +1095,24 @@ print(attention(<span class="nu">6</span>))</code></pre></figure>
 <p>保持每页两个位置，假设请求 A 长 5、请求 B 长 3，二者没有共享前缀。A 需三页、共六槽，B 需两页、共四槽。目前共分配十槽，只有八个位置有效。将这两个请求放进同一轮解码，各自先把一个新位置写进原来的末页，无需新分配物理页。下一轮两条请求都要跨到新页，调度器需一次准备两页。</p>
 <div class="tablewrap"><table><caption>长度、页数与新分配时机</caption><thead><tr><th scope="col">轮次</th><th scope="col">A 长度／页数</th><th scope="col">B 长度／页数</th><th scope="col">两条请求合计有效位置</th><th scope="col">本轮新增物理页</th></tr></thead><tbody><tr><td>初始</td><td>5／3</td><td>3／2</td><td>8</td><td>已有 5 页</td></tr><tr><td>各前进一次</td><td>6／3</td><td>4／2</td><td>10</td><td>0</td></tr><tr><td>各再前进一次</td><td>7／4</td><td>5／3</td><td>12</td><td>2</td></tr></tbody></table></div>
 <p>若预填充和解码在两组卡执行，源端块表里的 4、1、7 只是源端页号。传给解码组时，要按请求、层、头及逻辑块号找到目的端分配的页，再交接有效长度和首个新词。一次移交多少字节取决于是否传整页、是否已有可复用前缀及两组卡的分片方式。用上面的容量配置估算，4096 个位置的独占有效 KV 是 512 MiB，不能只按首词的几个字节估计跨组流量。</p>
+<h3>两个请求共享前缀时的批量读取</h3>
+<p>准备三个物理页，每页两行、每行两个特征。物理页 2 是 [(10,11),(20,21)]，物理页 0 是 [(30,31),(99,99)]，物理页 1 是 [(40,41),(50,51)]。请求 A 的页表为 (2,0)，长度 3；请求 B 的页表为 (2,1)，长度 4。两者都从物理页 2 读前两行。位置 2 同时跨到第二个逻辑页，但 A 读物理页 0 的 (30,31)，B 则读物理页 1 的 (40,41)。</p>
+<pre><code class="language-cpp">__global__ <span class="kw">void</span> gather_kv_batch(<span class="kw">const</span> <span class="kw">float</span>* pages,<span class="kw">const</span> <span class="kw">int</span>* table,<span class="kw">const</span> <span class="kw">int</span>* length,
+                                <span class="kw">float</span>* out,<span class="kw">int</span> page_size,<span class="kw">int</span> table_width,<span class="kw">int</span> max_length,<span class="kw">int</span> features) {
+    <span class="kw">int</span> pos=blockIdx.x, request=blockIdx.y;
+    <span class="kw">bool</span> live=pos&lt;length[request];
+    <span class="kw">int</span> row=<span class="nu">0</span>;
+    <span class="kw">if</span>(live) {
+        <span class="kw">int</span> physical=table[request*table_width+pos/page_size];
+        row=physical*page_size+(pos%page_size);
+    }
+    <span class="kw">for</span>(<span class="kw">int</span> f=threadIdx.x;f&lt;features;f+=blockDim.x) {
+        <span class="kw">int</span> dest=(request*max_length+pos)*features+f;
+        out[dest]=live ? pages[row*features+f] : <span class="nu">0</span>;
+    }</code></pre>
+<p>一个工作组负责一个 (请求,位置)，块内的线程沿特征方向连续取数。以 B 的位置 3 为例，先用请求号和逻辑页号找到物理页 1，再取页内槽 1。物理行是 1×2+1=3，两个标量地址为 6 和 7。A 的位置 3 已超出实际长度，直接输出两个零；物理页 0 的第二个槽里虽然留有 (99,99)，也不应读进结果。</p>
+<p>这个内核把数据还原成连续张量，便于与 CPU 结果逐个位置对照。若紧接着算注意力，可让 QK 和 PV 的读地址直接走页表，省掉先写一份连续 K、V 再读回的中间流量。代价是内核在换页时要查询页号，若连续位置落在同一页，可在一组读取中复用该页号。共享前缀节省的是物理存储，每个请求的注意力仍有自己的查询与权重。</p>
+<p><a href="examples/kv-gather.hip">下载分页批量读回内核</a></p>
 <p class="sources"><a href="https://docs.vllm.ai/en/latest/design/paged_attention/">vLLM · 块表与注意力读取</a> · <a href="https://rocm.docs.amd.com/en/docs-7.1.0/how-to/rocm-for-ai/inference-optimization/vllm-optimization.html">AMD · Instinct 上的 vLLM 服务</a> · <a href="https://rocm.blogs.amd.com/artificial-intelligence/llm-inference-optimize/README.html">AMD · 解码期间的 KV 读取</a></p>
 </section>
 
@@ -678,6 +1144,10 @@ print(tokens * <span class="nu">1000</span> / <span class="nu">27</span>)</code>
 <p>假设本轮有 8 个位置可算，已有两条解码请求各需一个位置，新到的提示长 12。按优先安排这两个解码位置的示例规则，第一轮还能替新请求处理六个提示位置，第二轮再处理余下六个。已有用户可以在两轮各收到一个新词，新用户要等第二段预填充完成才得到首词。调大每轮预算时，还应核实原有用户两次交付之间有没有出现更长的停顿。</p>
 <h3>两卡服务中一次层内求和</h3>
 <p>例如一行输入为 (1, 2)，一个输出的两项权重是 (3, 5)。若按输入特征切权重，两卡分别得到 3 和 10，必须经归约得到 13 才能继续使用这个输出。每个解码轮都会用到类似的层内通信。若单卡和双卡都能容纳同一模型，观察改变并行度后首词时延、稳定词间隔、每卡显存与通信时间各自如何变化，可以区分显存容量收益与单请求时延的变化。</p><p>客户端发流式请求时，一个响应块有时会携带多个词。若只能记录块的到达时刻，就同时记下这一块的词数。把同一块拆成若干个零毫秒间隔会人为压低分位数。需要精确了解每个解码轮的完成时间时，可用服务端的轮次记录对齐客户端事件。</p>
+<h3>调度轮中的 token 预算和页预算</h3>
+<p>把一轮调度放在纸上。令每个 KV 页装 4 个位置，设备只剩一个空页。已运行的请求甲长 4、乙长 3，新请求丙有两个提示位置。本轮算力预算能再处理 4 个位置。甲写第 5 个位置必须领新页，乙的第 4 个位置能写进原末页。若先排甲乙，两个解码词均能推进，虽然还剩两个 token 预算，丙仍缺自己的第一个物理页。</p>
+<p>假设乙这一步恰好生成结束词，释放它独有的一页，下一轮丙即可开始预填充。排查“卡上还有计算空档，队列却没动”时，同时记录本轮 token 预算、空闲页、请求的末页是否还有位置和真正的完成事件。三张表分别回答算得过来、放得进去和数据何时可以回收。</p>
+<table><caption>一个空页面对三条请求</caption><thead><tr><th>请求</th><th>启动前已用位置</th><th>本轮拟追加</th><th>所需新页</th><th>本轮结果</th></tr></thead><tbody><tr><td>甲</td><td>4</td><td>1</td><td>1</td><td>分配最后一个空页</td></tr><tr><td>乙</td><td>3</td><td>1</td><td>0</td><td>填满原末页并结束</td></tr><tr><td>丙</td><td>0</td><td>2</td><td>1</td><td>等待下一轮回收页</td></tr></tbody></table>
 <p class="sources"><a href="https://rocm.docs.amd.com/en/docs-7.1.0/how-to/rocm-for-ai/inference-optimization/vllm-optimization.html">AMD · vLLM V1 部署与后端配置</a> · <a href="https://docs.vllm.ai/en/stable/cli/bench/serve/">vLLM · 在线服务基准参数</a></p>
 </section>
 
@@ -705,7 +1175,11 @@ print(dst, ordered)
 <p>假设固定观测十秒，共完成 100 条请求。其中 90 条首词时延达标，85 条后续间隔达标，只有 78 条两者同时达标。完成吞吐是每秒 10 条，同时满足两个目标的有效吞吐是每秒 7.8 条。两池扩容时，应当定位未达标的那 22 条各自等待在哪一步。提示处理慢可优先检查预填充池。交接后解码排队时间持续增长，则要检查目的池容量与批处理安排。</p>
 <h3>一次交接在 SGLang 源码中的顺序</h3>
 <p>在 AMD 实验使用的 v0.4.7.post1 中，路由器为一次请求带上同一个 <code>bootstrap_room</code>，同时向两端登记。解码端先分配自己的页，把目标位置发给预填充端。预填充端按源页和目的页建立对应关系，具备条件时可先传早已算好的整页，最后一块再交接首个输出 token 等元数据。解码端确认成功后，才让这个词接在原提示后面继续生成。<a href="https://github.com/sgl-project/sglang/blob/v0.4.7.post1/python/sglang/srt/disaggregation/mini_lb.py#L74-L85">路由登记</a> · <a href="https://github.com/sgl-project/sglang/blob/v0.4.7.post1/python/sglang/srt/disaggregation/mooncake/conn.py#L233-L265">页地址与 Mooncake 传输</a> · <a href="https://github.com/sgl-project/sglang/blob/v0.4.7.post1/python/sglang/srt/disaggregation/decode.py#L579-L590">首个输出词的交接</a>。</p>
-<p>AMD 以 FP8 Llama 3.3 70B、一个预填充实例和一个解码实例测试。并发 128 时，输入/输出长度为 3200/800 的任务以首词 1000 毫秒为门限；1024/2048 的任务以 500 毫秒为门限，两者的每个后续词门限都是 25 毫秒。按每 GPU 的达标吞吐比较，AMD 分别报告最高 6.9 倍和 2.23 倍。该实验的推理服务由 SGLang 执行，压测请求从 vLLM 基准客户端发出。</p>
+<p>AMD 以 FP8 Llama 3.3 70B、一个预填充实例和一个解码实例测试。并发 128 时，输入/输出长度为 3200/800 的任务以首词 1000 毫秒为门限；1024/2048 的任务以 500 毫秒为门限，两者都要求单个请求的平均后续词耗时（TPOT）不超过 25 毫秒。按每 GPU 的达标吞吐比较，AMD 分别报告最高 6.9 倍和 2.23 倍。该实验的推理服务由 SGLang 执行，压测请求从 vLLM 基准客户端发出。</p>
+<h3>整页交接与解码首轮的关键路径</h3>
+<p>既要保住请求的逻辑顺序，又想把部分复制藏在预填充后半程，可以按准备完成的页分批送。设三批 KV 各需 2 毫秒传输，在第 3、5、9 毫秒分别就绪。目的端提前分好页，传输引擎依次占用 3–5、5–7、9–11 毫秒。最后一批确认成功后才能把首词送进解码。若第 9 毫秒才把三批一起交给同一传输引擎，则到第 15 毫秒才齐。</p>
+<p>即使链路同时还能承接别的请求，本请求在第 7 至 9 毫秒仍要等最后一批数据算好。要判断该换更快的连接还是增加预填充能力，可以分别画出每段可以发送、开始发送、写入完成的时间，再看最晚完成的那一段究竟在等谁。</p>
+<figure><img class="diagram-light" src="figures/worked-pd-transfer.svg" width="600" height="188" alt="教学时间线中，按就绪顺序发送让最后一批在第 11 毫秒完成"><figcaption>教学时间线中，按就绪顺序发送让最后一批在第 11 毫秒完成</figcaption></figure>
 <p class="sources"><a href="https://rocm.blogs.amd.com/software-tools-optimization/disaggregation/README.html">AMD · MI300X 上的 SGLang 预填充与解码分离实例</a></p>
 </section>
 
@@ -735,6 +1209,10 @@ print(dst, ordered)
 <p>AMD 的 MI350X 训练实例用目标模型自己续写出的文本作样本，把浅、中、深层隐藏状态送进草稿器，让它练习连续预测多个词。线上一次猜错就会截断整段，训练时也让草稿器接着自己的预测往下走。AMD 在贪心、每轮三个候选的 SPEED-Bench 测试中报告，代码类平均交付 3.33 个词，角色扮演类为 2.02 个。两者的验证流程相同，目标模型延续文本的方式影响了草稿被接受的长度。</p>
 <h3>目标模型的验证源码</h3>
 <p>vLLM 的 <code>rejection_greedy_sample_kernel</code> 把当前行的目标选择写到输出，再比较它与草稿的候选。首次不同时，这次写入留下了正确的替换词。所有候选都匹配时，内核读取末行的 bonus token，写入下一个输出位置。这里正好对应表中的第四行。<a href="https://github.com/vllm-project/vllm/blob/6e448d0ea9bf3d88d898b65449ca6dc2aec170ac/vllm/v1/sample/rejection_sampler.py#L742-L769">vLLM 验证内核源码</a>。</p>
+<h3>从逐位命中到平均交付量</h3>
+<p>设 100 个尚未结束的请求都猜三个词。第一位有 80 条命中；这 80 条里又有 40 条第二位命中；这 40 条里有 20 条第三位命中。读草稿时能够接上的前缀总长是 80+40+20=140 个词。每条请求还从目标模型拿到一个替换词或全中后的额外词，这 100 次验证合计交付 240 个词，平均每轮 2.4 个。</p>
+<p>第三位多带来 20 个词，检查它是否值得，要看多猜一位让草拟和验证多花多少时间。假设两候选每轮耗 10 毫秒，三候选每轮耗 12 毫秒，前两位命中数相同。两候选每词耗 1000/220≈4.55 毫秒，三候选每词耗 1200/240=5 毫秒。长草稿在这个负载下交付更多词，短草稿却更快。</p>
+<figure><img class="diagram-light" src="figures/worked-draft-depth.svg" width="600" height="144" alt="每一列只验证上一列已经接上的路径"><figcaption>每一列只验证上一列已经接上的路径</figcaption></figure>
 <p class="sources"><a href="https://rocm.blogs.amd.com/artificial-intelligence/eagle3-training/README.html">AMD · MI350X 上的 EAGLE3 草稿模型训练</a></p>
 </section>
 
@@ -766,6 +1244,10 @@ dist.destroy_process_group()</code></pre>
 <h3>按有效 token 加权的梯度</h3>
 <p>若某卡的本地损失对本地 token 取均值，反向给出的也是本地平均。前例先把平均梯度 1 和 3 还原为和，即 <math xmlns="http://www.w3.org/1998/Math/MathML"><mn>2</mn><mo>×</mo><mn>1</mn><mo>=</mo><mn>2</mn></math> 和 <math xmlns="http://www.w3.org/1998/Math/MathML"><mn>6</mn><mo>×</mo><mn>3</mn><mo>=</mo><mn>18</mn></math>。全局有效数是 8，故每个 token 的平均梯度是 <math xmlns="http://www.w3.org/1998/Math/MathML"><mo>(</mo><mn>2</mn><mo>+</mo><mn>18</mn><mo>)</mo><mo>/</mo><mn>8</mn><mo>=</mo><mn>2.5</mn></math>。使用默认 DDP 时，它随后还会对两个 rank 的梯度取平均。要在反向前校正，可以给本地平均损失乘以“进程数 × 本地有效数 / 全局有效数”。两卡系数为 0.5 和 1.5，DDP 最后算出 <math xmlns="http://www.w3.org/1998/Math/MathML"><mo>(</mo><mn>0.5</mn><mo>×</mo><mn>1</mn><mo>+</mo><mn>1.5</mn><mo>×</mo><mn>3</mn><mo>)</mo><mo>/</mo><mn>2</mn><mo>=</mo><mn>2.5</mn></math>。每卡有效数应取自损失实际覆盖的位置，padding 位置不计入。</p><h3>程序中的设备号与进程号</h3>
 <p>在两机、每机两卡的作业里，每台机器的 LOCAL_RANK 都可以是 0、1，全局 rank 则分别为 0、1、2、3。set_device 用前者选本机显卡，通信组用后者区分参与者。上面的张量初始化让每个 rank 都能贡献不同的数。all_reduce 原地改写 g，随后的除法直接使用相加后的结果。两卡程序若只在 rank 0 上调用 all_reduce，它会等卡 1 提交同一轮操作。打印可以只交给 rank 0，通信须由全组执行。</p>
+<h3>四卡环上的分片字节数</h3>
+<p>用四张卡算一轮环形 AllReduce。每卡有 8 个 FP32 元素，即 32 字节。把数组均分成四片，每片 2 个数、8 字节。第一阶段 ReduceScatter 让每张卡在三个步骤中各向下一张卡发一片，同时接一片并与本地贡献相加。三步之后，每张卡持有自己负责的那一片总和。</p>
+<p>第二阶段 AllGather 也走三步，各卡把已经求完和的一片向后传。最后每卡都有四片完整结果。每张卡发出的有效载荷是两阶段各 3×8=24 字节，共 48 字节；接收也是 48 字节。选用何种算法由库和硬件拓扑决定。在 RCCL 轨迹中比较实际调用时，先核对元素个数、类型、通信组大小以及报告采用单向还是收发合计。</p>
+<figure><img class="diagram-light" src="figures/worked-ring-volume.svg" width="600" height="144" alt="四卡等分环中每卡发出的有效载荷，接收量另计"><figcaption>四卡等分环中每卡发出的有效载荷，接收量另计</figcaption></figure>
 <details><summary>练习 · 三个进程的平均值</summary><p>沿用程序的初始化，rank 2 的 g 是 [5,6]。三个进程相加得 [9,12]，再除以 3，每个进程都会读到 [3,4]。</p></details>
 <p class="sources"><a href="https://rocm.docs.amd.com/projects/rccl/en/latest/how-to/rccl-usage-tips.html">AMD · RCCL 的通信与拓扑</a> · <a href="https://rocm.docs.amd.com/en/docs-7.2.3/how-to/rocm-for-ai/training/scale-model-training.html">AMD · 多卡 DDP 与 FSDP</a> · <a href="https://docs.pytorch.org/docs/2.9/generated/torch.nn.parallel.DistributedDataParallel.html">PyTorch · DDP 梯度同步</a> · <a href="https://docs.pytorch.org/docs/2.9/notes/ddp.html">PyTorch · 梯度钩子与 Reducer</a></p>
 </section>
@@ -776,6 +1258,10 @@ dist.destroy_process_group()</code></pre>
 <p>流水线并行（PP）把连续的层放在不同设备上。设前半模型和后半模型各占一张卡，每半处理一个微批各用一个时间槽。把两个微批 A、B 送进前向流水：第 1 槽前半算 A；第 2 槽前半算 B、后半算 A；第 3 槽后半算 B。两卡三槽共有六个可用位置，其中四个做了计算。微批增多后，固定的启动和排空时间分摊得更薄；训练还要安排反向和保留的激活。</p>
 <table><thead><tr><th scope="col">分片的对象</th><th scope="col">每卡持有什么</th><th scope="col">同一次训练中最容易暴露的开销</th></tr></thead><tbody><tr><td>TP · 层内矩阵</td><td>一部分权重列或行</td><td>同层各卡间的集合通信</td></tr><tr><td>PP · 连续模型层</td><td>一段完整层及其本地参数</td><td>边界激活传输、流水填充和排空</td></tr><tr><td>CP · 上下文位置</td><td>一部分 token 的查询和局部键值</td><td>为本地查询提供其他卡上的历史键值</td></tr><tr><td>DP · 样本</td><td>不同训练样本，参数可再分片</td><td>梯度归约或参数收集</td></tr></tbody></table>
 <p>长序列的上下文并行（CP）让不同卡负责不同位置。例如一条四 token 序列，A 卡持有位置 0、1，B 卡持有 2、3。B 卡的位置 3 拥有自己的查询，却要看两个分片里的四个历史位置。可以交换 K、V 分片逐块计算，再按前面注意力算例的最大值、分母、分子合并；A 卡的位置 0 只允许看第一个位置。通信分片和因果可见范围应分别跟踪。序列并行（SP）常用来把层归一化等逐 token 操作的激活按序列分片，和跨卡完成整行注意力的 CP 分工不同。</p>
+<h3>两条序列行上的归约与散分</h3>
+<p>把上一例的第一行 [1,2] 与第二行 [2,1] 排成一个两行批次，沿用相同的权重和恒等激活。第一层切输出列，卡 0 得 [13,11]，卡 1 得 [16,14]。第二层在卡 0 的局部列乘 2，在卡 1 的局部列乘 −1，两卡此时保存的部分和分别为 [26,22] 和 [−16,−14]。两条序列行仍不能互相相加。</p>
+<p>若做 AllReduce，两卡都得到逐位置相加的 [10,8]。若下一层按序列维分片，可在这一步做 ReduceScatter，卡 0 只收第一行的 10，卡 1 只收第二行的 8。之后给本地每行各加一次偏置 3，逻辑输出为 [13,11]。换通信方式改变每张卡持有哪些行，保留每一格相同的数学结果。</p>
+<figure><img class="diagram-light" src="figures/worked-tp-rs.svg" width="600" height="144" alt="ReduceScatter 按同一序列行先相加，再把不同的行分给两卡"><figcaption>ReduceScatter 按同一序列行先相加，再把不同的行分给两卡</figcaption></figure>
 <details><summary>练习 · 八卡训练的进程组</summary><p>一台八卡机器选 TP 为 2、PP 为 2，暂取 CP 为 1。一个模型副本用四卡，还可放两个数据并行副本。给每个副本喂不同样本；每个流水阶段的两张卡仍须同时执行该阶段的层内通信。</p></details>
 <h3>两个微批的一次训练</h3>
 <p>流水训练中，前半模型先算出激活，后半接着用这个激活算损失。反向时方向调转，后半发回“这个边界激活要怎样变，损失才会变小”的梯度，前半才有条件继续反向。把激活发送和梯度返回都画在同一条时间轴上，就能看见前向表里省略的等待。</p>
@@ -813,8 +1299,62 @@ print(out)</code></pre></figure>
 <p>本例用标量，真实激活的一行包含模型宽度个元素。若宽度为 4，每个元素用 BF16 的 2 字节，那么跨卡去程的 A乙、B甲 各占 8 字节，合计 16 字节；回程若发回同宽度的专家结果，又需 16 字节。其余两份任务就在专家所在卡上，可直接交给本地计算。这个字节数只计两次传输的激活载荷。</p>
 <h3>专家负载与尾部等待</h3>
 <p>设下一批使用 top-1，八个 token 中六个去甲、两个去乙，且每张卡只放一个专家。两卡平均各有四行，实际计算批却为六行和两行。如果按每行相同时间作粗算，乙算完两行后还要等甲做四行。可以先看每个专家分了几行，再看路由中的跨卡行数。前者影响两边何时算完，后者影响网络要搬多少，两者可用同一组路由记录分别统计。</p>
-<p class="sources"><a href="https://rocm.blogs.amd.com/software-tools-optimization/vllm-moe-guide/README.html">AMD · vLLM 中的 MoE 与专家并行</a> · <a href="https://rocm.docs.amd.com/projects/primus/en/latest/04-technical-guides/parallelism-strategies.html">AMD Primus · 专家组与其他并行维度</a></p>
+<h3>按原 token 地址合并专家结果</h3>
+<p>回程按专家顺序收到 [4,6,6,7]。与之同行的原 token 号为 [0,1,0,1]，权重依次为 [0.75,0.25,0.25,0.75]。令输出缓冲初始为 [0,0]。四项要加入的量依次为 3、1.5、1.5、5.25；落点分别是 0、1、0、1，收齐后得到 [4.5,6.75]。</p>
+<p>代码让每个线程算一份路由的一列。两位专家可能同时往同一 token 的同一特征格相加，此处用原子加保护这次更新。另一种安排是把回程结果先按原 token 排好，每个线程负责一个输出格，顺序读取该 token 的 top-k 项。后一种写法固定了求和次序，但需要能迅速找到每个 token 的所有分支。</p>
+<pre><code class="language-cpp"><span class="cm">// val:[routes,F] 按专家打包；dst_id 和 gate 各长 routes。发起前将 out 清零。
+</span>__global__ <span class="kw">void</span> combine_routes(<span class="kw">const</span> <span class="kw">float</span>* val,<span class="kw">const</span> <span class="kw">int</span>* dst_id,<span class="kw">const</span> <span class="kw">float</span>* gate,
+                               <span class="kw">float</span>* out,<span class="kw">int</span> routes,<span class="kw">int</span> F) {
+    <span class="kw">int</span> i=blockIdx.x*blockDim.x+threadIdx.x;
+    <span class="kw">if</span>(i&gt;=routes*F) <span class="kw">return</span>;
+    <span class="kw">int</span> route=i/F, feature=i%F;
+    <span class="kw">float</span> contribution=gate[route]*val[i];
+    atomicAdd(out+dst_id[route]*F+feature,contribution);
+}</code></pre><p><a href="examples/combine-routes.hip">下载 HIP 内核</a></p>
+<h3>原路由与打包槽的逆映射</h3><p>给两个 token 各自的两条路由按 token 顺序编号为 0、1、2、3。若路由 0、2 去专家 A，路由 1、3 去专家 B，打包缓冲的第 0～3 格就依次对应原路由 (0,2,1,3)。从左向右扫描一次并写 <code>slot[packed[p]]=p</code>，即可让每条原路由反查自己的打包槽，无须再按 token 排序。</p><p>例如 token 0 的两条原路由 0、1 分别位于打包槽 0、2。负责其输出的线程读取这两格并乘各自的门控权重，写回一次；token 1 读打包槽 1、3。这里不再需要原子加，代价是每条路由多占一个整数反查槽，也要在结果使用前构造它。每个 token 独立写一个特征格，试验时可以改变 K 或特征宽度来观察访存和线程数。</p><pre><code class="language-cpp">__global__ <span class="kw">void</span> inverse_slots(<span class="kw">const</span> <span class="kw">int</span>* packed,<span class="kw">int</span>* slot,<span class="kw">int</span> routes) {
+    <span class="kw">int</span> p=blockIdx.x*blockDim.x+threadIdx.x;
+    <span class="kw">if</span>(p&lt;routes) slot[packed[p]]=p;
+}
+<span class="cm">// 原路由编号为 token*K + 分支号；专家结果与 gate 分别按打包、原路由次序存放。
+</span>__global__ <span class="kw">void</span> combine_by_token(<span class="kw">const</span> <span class="kw">float</span>* values,<span class="kw">const</span> <span class="kw">float</span>* gate,<span class="kw">const</span> <span class="kw">int</span>* slot,
+                                 <span class="kw">float</span>* y,<span class="kw">int</span> tokens,<span class="kw">int</span> K,<span class="kw">int</span> F) {
+    <span class="kw">int</span> i=blockIdx.x*blockDim.x+threadIdx.x;
+    <span class="kw">if</span>(i&gt;=tokens*F) <span class="kw">return</span>;
+    <span class="kw">int</span> token=i/F, f=i%F;
+    <span class="kw">float</span> sum=<span class="nu">0</span>;
+    <span class="kw">for</span>(<span class="kw">int</span> branch=<span class="nu">0</span>;branch&lt;K;++branch) {
+        <span class="kw">int</span> r=token*K+branch;
+        sum+=gate[r]*values[slot[r]*F+f];
+    }
+    y[i]=sum;
+}</code></pre><p><a href="examples/route-stable.hip">原路由反查槽与逐 token 合并内核</a></p><p class="sources"><a href="https://rocm.blogs.amd.com/software-tools-optimization/vllm-moe-guide/README.html">AMD · vLLM 中的 MoE 与专家并行</a> · <a href="https://rocm.docs.amd.com/projects/primus/en/latest/04-technical-guides/parallelism-strategies.html">AMD Primus · 专家组与其他并行维度</a></p>
 </section>
+<section id="routing-pack" data-part="通信与并行训练"><h2>专家分桶的局部名次与稳定写回</h2>
+<p>一次 Top-K 决策会为同一个 token 生成多条路由。专家矩阵乘希望同一专家的路由挨在一起，计算完成后还要按原路由找回 token 和门控权重。给每条路由保留原序号 r，打包输出的每项就只需先写 r；下游以这个序号取特征与权重。</p>
+<h3>用八条路由找写回位置</h3>
+<p>按原顺序给出专家号 (2,0,2,1,0,2,1,1)。专家 0 有 2 条、专家 1 有 3 条、专家 2 有 3 条，三个桶的首槽依次为 0、2、5，结尾是 8。路由 6 属于专家 1，同组中只有路由 3 在它前面，因此它的组内名次是 1，写入首槽 2 加名次 1 的位置 3。完整结果按原路由编号读作 (1,4 | 3,6,7 | 0,2,5)。</p>
+<figure><img src="figures/kernel-pack.svg" width="690" height="102" alt="序列按专家切成三个连续区间，每个区间沿用原路由次序"><figcaption>序列按专家切成三个连续区间，每个区间沿用原路由次序</figcaption></figure>
+<p>最直接的 <code>pack_reference</code> 让每个线程对整张专家号表扫描一遍，数出“专家号更小”以及“专家号相同且原序更早”的路由。答案天然稳定，R 条路由却要做 R² 次比较。只给专家一个 atomicAdd 计数器也可取得不同槽位，但工作组调度会影响同一专家内部的先后次序。</p>
+<h3>64 位投票、块前缀与散写</h3>
+<p>现在一组 64 个 lane 读连续的路由。给专家 e 投票后，<code>__ballot</code> 产生一个 64 位掩码，第 i 位为 1 表示 lane i 属于 e。第一个内核逐块写下每位专家的票数。第二个内核按“专家在外、块在内”的次序对计数做独占前缀，得到每个 (块,专家) 的首槽，前块的同专家路由自然排在后块前面。</p>
+<pre><code class="language-cpp">}
+__global__ <span class="kw">void</span> scatter_routes(<span class="kw">const</span> <span class="kw">int</span>* expert,<span class="kw">const</span> <span class="kw">int</span>* bases,<span class="kw">int</span>* packed,<span class="kw">int</span> n,<span class="kw">int</span> E) {
+    <span class="kw">int</span> lane=threadIdx.x, r=blockIdx.x*<span class="nu">64</span>+lane;
+    <span class="kw">int</span> key=r&lt;n ? expert[r] : <span class="nu">-1</span>;
+    <span class="kw">unsigned</span> <span class="kw">long</span> <span class="kw">long</span> lower=(<span class="nu">1ULL</span>&lt;&lt;lane)<span class="nu">-1ULL</span>;
+    <span class="kw">for</span>(<span class="kw">int</span> e=<span class="nu">0</span>;e&lt;E;++e) {
+        <span class="kw">unsigned</span> <span class="kw">long</span> <span class="kw">long</span> peers=__ballot(key==e);
+        <span class="kw">if</span>(key==e) {
+            <span class="kw">int</span> within=__popcll(peers &amp; lower);
+            packed[bases[blockIdx.x*E+e]+within]=r;
+        }
+    }
+}</code></pre>
+<p>本例专家 1 在 lane 3、6、7 上有票。对 lane 6，只保留编号小于 6 的位，再通过 <code>__popcll</code> 数出一票，得到上面手算的名次。末块不够 64 时，空 lane 被赋予 −1，仍随整个 wave 完成投票。打包后的专家区间既可执行分组 GEMM，也能用 packed 中保存的原序号将专家结果送回门控合并阶段。</p>
+<h3>适用范围与检查</h3>
+<p>对 E 个专家，该实现在每个块投票 E 次，计数及前缀表为 ceil(R/64)×E 个整数，写回每条合法路由一次。驱动既检查上面的完整顺序，也用 70 个路由跨过 64 的边界，检查同一专家在后块的第一个槽是否接在前块末尾。专家数很大时，循环扫描所有专家和本例单线程前缀会成为新的开销，可对真实路由按专家号做稳定基数排序，或者把计数的前缀并行化。</p>
+<h3>同输入的设备计时</h3><p>在 ROCm 主机解压实验包，先用 <code>./advanced</code> 做数值对照。对 2048 条路由和 8 位专家，计时覆盖朴素排序名次、以及计数到写回的完整三次启动。可把专家号全改成 0 或换成均匀分布，比较专家失衡时两种写法的耗时。 运行 <code>./benchmark route</code>。</p><p><a href="examples/operators.zip">完整实验包</a> · <a href="examples/benchmark.hip">六组计时实现</a></p><p><a href="examples/route-stable.hip">本节完整 HIP 源码</a> · <a href="examples/advanced.hip">设备对照驱动</a> · <a href="examples/advanced_reference.py">CPU 数值与访存对照</a></p>
+<p class="sources"><a href="https://rocm.docs.amd.com/projects/HIP/en/docs-7.2.4/how-to/hip_cpp_language_extensions.html">HIP 的 wave 投票与位操作</a> · <a href="https://rocm.docs.amd.com/projects/rocPRIM/en/docs-7.2.4/device_ops/sort.html">rocPRIM 的设备级排序</a></p></section>
 
 <section data-part="通信与并行训练" id="fsdp"><h2>训练显存、状态分片与恢复</h2>
 <p>训练既要存模型权重，还要存梯度、优化器状态和反向要用的激活。把其中一项除以卡数，算出的只是这一项的本地占用。举一个混合精度 Adam 教学习惯用法：低精度权重和低精度梯度各 2 字节，FP32 主权重、一阶矩和二阶矩各 4 字节。每参数合计 16 字节。具体实现的参数精度、主副本和梯度累积方式会改变这张账。</p>
@@ -840,6 +1380,10 @@ saved = [(<span class="nu">0</span>, [<span class="nu">10</span>,<span class="nu
     <span class="kw">return</span> dst
 <span class="kw">assert</span> [restore(i,i+<span class="nu">2</span>) <span class="kw">for</span> i in range(<span class="nu">0</span>,<span class="nu">8</span>,<span class="nu">2</span>)] == [[<span class="nu">10</span>,<span class="nu">11</span>],[<span class="nu">12</span>,<span class="nu">13</span>],[<span class="nu">14</span>,<span class="nu">15</span>],[<span class="nu">16</span>,<span class="nu">17</span>]]</code></pre></figure>
 <p>若模型参数和 Adam 的矩使用不同的分片布局，应对每个张量分别求区间交集。恢复后只比较参数值还不足以发现一阶矩或二阶矩错位。让恢复前后的两条训练路径再跑同一批数据，才能把矩的错位反映到下一次权重更新中。</p>
+<h3>恢复后的第一步 Adam 更新</h3>
+<p>给分片中的一个标量单独做验算。取 Adam 的两个衰减系数都为 0.5，学习率 0.1，初始一阶矩、二阶矩都是 0。第一步梯度为 2，结束时一阶矩为 1，二阶矩为 2。检查点在这一步写出参数、两个矩以及步号 1。</p>
+<p>目标卡恢复后，第二步恰好收到梯度 0。一阶矩仍然留下 0.5，二阶矩留下 1；第 2 步两个偏差修正因子都是 1−0.5²=0.75。忽略极小的 ε，参数这一步仍要减约 0.0577。若只恢复权重、把一阶矩错误清零，这一步就不会得到这次更新。这个短例能在一次重启后同时检验参数编号、状态和步号。</p>
+<figure><img class="diagram-light" src="figures/worked-adam-restore.svg" width="600" height="188" alt="梯度变为零后，前一步保留的 Adam 状态仍参与更新"><figcaption>梯度变为零后，前一步保留的 Adam 状态仍参与更新</figcaption></figure>
 <p class="sources"><a href="https://rocm.docs.amd.com/en/docs-7.2.3/how-to/rocm-for-ai/training/scale-model-training.html">AMD · ROCm 上的 FSDP 训练</a> · <a href="https://github.com/pytorch/tutorials/blob/main/recipes_source/distributed_checkpoint_recipe.rst">PyTorch · 分布式检查点和重分片恢复</a></p>
 </section>
 
@@ -868,12 +1412,16 @@ print(y, loss.item(), A.grad, B.grad)
 <span class="kw">assert</span> torch.equal(A.grad, torch.tensor([[-<span class="nu">14.</span>],[-<span class="nu">21.</span>]]))
 <span class="kw">assert</span> torch.equal(B.grad, torch.tensor([[<span class="nu">2.</span>,-<span class="nu">1.</span>]]))</code></pre></figure>
 <p>原始 W 在这个例子中没有开启梯度，反向后优化器只需保存 A、B 的更新状态。部署时若要合并，可先将列 A 乘行 B，得到两行 [4,1]、[−4,−1]，再加单位矩阵 W 得到两行 [5,1]、[−4,0]。用输入 [2,3] 左乘这张合并权重，两个输出是 <math xmlns="http://www.w3.org/1998/Math/MathML"><mn>2</mn><mo>×</mo><mn>5</mn><mo>+</mo><mn>3</mn><mo>×</mo><mo>(</mo><mo>−</mo><mn>4</mn><mo>)</mo><mo>=</mo><mo>−</mo><mn>2</mn></math> 和 <math xmlns="http://www.w3.org/1998/Math/MathML"><mn>2</mn><mo>×</mo><mn>1</mn><mo>+</mo><mn>3</mn><mo>×</mo><mn>0</mn><mo>=</mo><mn>2</mn></math>，与双支路前向一致。</p>
+<h3>微批长度与有效监督词</h3>
+<p>把两条样本装进同一批。第一条回答有 1 个受监督词，其正确词概率是 1/2；第二条有 3 个，概率依次为 1/4、1/2、1/2。若目标是让每个回答词占相同权重，四个词的负对数损失相加得到 5×ln 2，再除以 4，约为 0.8664。提示和填充即便占了许多位置，也没有进入这个分母。</p>
+<p>若显存只允许一条条计算，第一条微批的平均损失要乘 1/4，第二条乘 3/4，再累加反向梯度。若简单把两个平均数对半相加，单词样本里的词获得 1/2 权重，而长样本内每词只占 1/6。旧模型、适配器和优化器都一样，损失归一化方式却改变了训练的目标。</p>
+<table><caption>按有效目标词汇总两条训练样本</caption><thead><tr><th>样本</th><th>监督位置数</th><th>负对数损失之和</th><th>占整批权重</th></tr></thead><tbody><tr><td>甲</td><td>1</td><td>ln 2</td><td>1/4</td></tr><tr><td>乙</td><td>3</td><td>4 × ln 2</td><td>3/4</td></tr></tbody></table>
 <p class="sources"><a href="https://rocm.docs.amd.com/en/docs-6.4.1/how-to/rocm-for-ai/fine-tuning/single-gpu-fine-tuning-and-inference.html">AMD · Llama 2 单卡微调实例</a> · <a href="https://huggingface.co/docs/peft/en/developer_guides/lora">PEFT · LoRA 参数与适配器</a></p>
 </section>
 
 <section data-part="通信与并行训练" id="rl"><h2>verl 的采样、奖励与策略更新</h2>
 <p>监督微调有标准回答，强化学习可以只给回答打分。AMD 的 verl 教程把 rollout（用当前策略生成一批回答）、奖励计算和参数更新组织在同一训练任务中。负责推理的服务需要模型权重与 KV 缓存，负责更新的训练进程还要保留激活、梯度和优化器状态。使用不同 GPU 组时，两组要明确哪一版策略生成了哪一批数据。</p>
-<p>以组相对策略优化（GRPO）为例，对同一道题采样四个回答，得分分别为 [0，1，1，2]，组平均为 1。扣除平均后，相对得分是 [−1，0，0，1]。若示例按总体标准差归一化，四个偏差的平方和为 2，除以 4 再开方约 0.707，归一化后约为 [−1.414，0，0，1.414]。实现采用的标准差约定和稳定项应按训练配置核对。</p>
+<p>以组相对策略优化（GRPO）为例，对同一道题采样四个回答，得分分别为 [0，1，1，2]，组平均为 1。扣除平均后，相对得分是 [−1，0，0，1]。本节采用 AMD 版 verl 的默认设置，组内样本标准差用四个偏差的平方和 2 除以 3 再开方，约为 0.8165。归一化后得到 [−1.225，0，0，1.225]，默认分母再加一个很小的稳定量。</p>
 <p>从一次交互中取出三段内容：用户提示、模型生成的调用指令、工具返回的文本。调用指令是策略做出的选择，工具返回则来自外部环境。保存 token、各位置的旧策略对数概率和动作掩码后，更新进程可以只对需要训练的模型生成位置计算损失。若在采样和训练时分别重新分词、又改变了聊天模板，同一数组下标就可能落到不同 token 上。</p>
 <p>记录完整的一轮耗时要含生成、奖励、训练和新版权重同步。举例：三份回答用 10 毫秒生成，另一份用 50 毫秒，若以完整问题组为单位计算相对优势，前三份就绪仍要等最后一份。排查这类长尾时先比较生成长度和每步耗时，再看调度队列、工具响应及卡间负载。</p>
 <h3>同一个问题的四份答案</h3>
@@ -897,6 +1445,10 @@ print(contribution(<span class="nu">.7</span>,<span class="nu">.5</span>,advanta
 <h3>AMD 实现里的组内统计</h3>
 <p>AMD 版 verl 的 <code>compute_grpo_outcome_advantage</code> 先沿 token 轴把每条回答的奖励加成一个数，再按题目 ID 找齐同组回答。组内至少两条时，它调用 <code>torch.std</code>，取上面按样本数减一计算的标准差。归一化后的每个回答得到一个优势，再沿 token 轴广播，乘回答掩码。若每题只采一条，这个版本单独设均值 0、标准差 1。<a href="https://github.com/AMD-Ecosystem/verl/blob/8873d043647be521ca93870141947a037ebe0f61/verl/trainer/ppo/core_algos.py#L268-L329">AMD verl · 组内优势源码</a>。</p>
 <p>在 <code>compute_policy_loss_vanilla</code> 里，概率比和裁剪目标都逐 token 计算。上例比值 1.4 时，负优势仍按 1.4 计算；对更极端的比值，启用的双重裁剪会进一步限制负优势项。默认按词取均值时，最后一层归约用掩码统计有效词数。<a href="https://github.com/AMD-Ecosystem/verl/blob/8873d043647be521ca93870141947a037ebe0f61/verl/trainer/ppo/core_algos.py#L1329-L1362">AMD verl · 策略损失源码</a>。</p>
+<h3>同一条回答中两次选择的策略损失</h3>
+<p>取高分回答中两个受训练的位置，共用优势 1.225。第一个词的旧、新概率分别为 0.5、0.7，概率比 1.4，裁剪上限 1.2 使其收益约为 1.470。第二个词的旧、新概率为 0.4、0.36，概率比 0.9，收益约为 1.103。虽然整条回答共用一个奖励，策略对这两个具体选择改变了多少，仍要逐词计算。</p>
+<p>若这次小批只有这两个模型动作以及两个不参与更新的环境位置，按有效动作平均的策略损失为 −(1.470+1.103)/2，约 −1.286。日志里的平均损失和每一步新概率分别对应不同数值；要复现场景，还需保留两次动作各自的前缀与采样时旧概率。</p>
+<table><caption>按动作位置汇总一条回答</caption><thead><tr><th>位置来源</th><th>掩码</th><th>新旧比</th><th>计入收益</th></tr></thead><tbody><tr><td>用户提示</td><td>0</td><td>—</td><td>—</td></tr><tr><td>模型第一次选择</td><td>1</td><td>1.4</td><td>1.470</td></tr><tr><td>工具返回</td><td>0</td><td>—</td><td>—</td></tr><tr><td>模型第二次选择</td><td>1</td><td>0.9</td><td>1.103</td></tr></tbody></table>
 <p class="sources"><a href="https://rocm.docs.amd.com/projects/verl/en/docs-26.06/what-is-verl.html">AMD · ROCm 上的 verl 训练流程与 GRPO</a></p>
 </section>
 
@@ -921,6 +1473,21 @@ print(contribution(<span class="nu">.7</span>,<span class="nu">.5</span>,advanta
 <h3>请求时间线上的两种等待</h3>
 <p>沿前表继续算。若客户端时刻 0 发出请求，0.3 毫秒前 GPU 尚未开始，2.8 毫秒两项设备工作结束，结果整理再用 0.2 毫秒，则用户在 3.0 毫秒得到结果。只把复制从 1.5 缩到 0.8 毫秒，它会在 2.1 毫秒结束，此时矩阵乘到 2.3 才结束。最终完成时间为 2.5 毫秒，虽然复制省下 0.7 毫秒，用户只省下 0.5 毫秒。若想进一步缩短这次请求，就看 2.3 毫秒那个仍未结束的依赖。</p>
 <p>服务并发时，一个调度轮次可能包含多条请求，一条长请求也会跨许多轮次。可在工作进程的调度入口通过 ROCTx 为 prefill 或 decode 轮次记上名称，并在日志里保存这轮包含的请求号。采集时加 <code>--marker-trace</code>。先找目标请求经历的调度轮，再沿 CPU 提交关联到 GPU。主机入队标记结束时，GPU 可能还在执行上一轮；设备起止时间仍要读设备轨道。</p>
+<h3>同一设备上多个执行区间的并集</h3>
+<p>把前表换成纳秒后，两个活动区间是 [300000,2300000] 与 [1300000,2800000]。先把第一个区间的 200 万纳秒全计入。第二个区间向右只多覆盖了 50 万纳秒，合计 250 万。若又发现第三条记录 [1500000,1800000]，它完全落在已覆盖区间内，活动总长仍是 250 万纳秒。</p>
+<p>用下面的函数处理选定窗口内同一块卡的 kernel 与复制记录。要算利用时间比例，把结果除以该观测窗口的长度。要算单请求尾延迟，还须先用请求号、调度轮和等待关系挑出真正挡住返回的工作；同卡另一条独立请求能填满空档，却不会自动成为本请求的依赖。</p>
+<pre><code class="language-python"><span class="kw">def</span> <span class="fn">active_time_ns</span>(intervals):
+    covered = <span class="nu">0</span>
+    end = <span class="kw">None</span>
+    <span class="kw">for</span> begin, stop in sorted(intervals):
+        <span class="kw">if</span> end is <span class="kw">None</span> or begin &gt;= end:
+            covered += stop - begin            <span class="cm"># 另一段活动开始</span>
+        <span class="kw">elif</span> stop &gt; end:
+            covered += stop - end              <span class="cm"># 只加向右伸出的部分</span>
+        end = stop <span class="kw">if</span> end is <span class="kw">None</span> <span class="kw">else</span> max(end, stop)
+    <span class="kw">return</span> covered
+
+<span class="kw">assert</span> active_time_ns([(<span class="nu">300000</span>, <span class="nu">2300000</span>), (<span class="nu">1300000</span>, <span class="nu">2800000</span>)]) == <span class="nu">2500000</span></code></pre>
 <p class="sources"><a href="https://rocm.docs.amd.com/projects/rocprofiler-sdk/en/docs-7.0.2/how-to/using-rocprofv3.html">AMD · rocprofv3 的采集选项与 CSV 字段</a> · <a href="https://rocm.docs.amd.com/en/docs-7.1.0/how-to/rocm-for-ai/inference-optimization/vllm-optimization.html">AMD · ROCm 推理服务性能分析</a></p>
 </section>
 
@@ -943,6 +1510,18 @@ rocprof-compute analyze -p workloads/affine_base/MI300X/</code></pre>
 <p>在输出中定位 affine 函数，查全局内存读写指令附近映射的源行。核主体若只有一次加载和一次存储，继续追前面的地址计算：相邻 lane 的地址是只差一个 FP32，还是隔了一整行。相同的加载指令也可以产生完全不同的访存事务数。使用矩阵指令的核再查 MFMA 及其依赖的 LDS 读取。优化器可能移动、合并或展开源语句，核级计数器指向的是整个 dispatch；缩小到哪条语句，仍要结合反汇编和只改一处的对照实验。</p>
 <h3>优化前后的三项记录</h3>
 <p>以转置为例，保留相同输入和输出布局，只改变 LDS 行距。先对所有输出格子做转置索引校验，再比较相同 dispatch 的 LDS 冲突；最后在关闭计数器收集的程序里比较总用时。若冲突下降而耗时几乎一样，可回时间线确认 HBM 搬运是否占据大部分时间。以服务为目标时，还要确认这次被缩短的核位于请求必经的等待路径上。</p>
+<h3>取行核的有效字节与访存事务</h3>
+<p>回到前面的 gather_rows。设每个特征行宽 16 个 FP32，从一张大表取 1024 行。每项只读一次、写一次，特征的有效载荷各为 1024×16×4=65536 字节。编号表有 1024 个 32 位编号，逻辑上只含 4096 字节。程序按每个输出格独立寻址，多个线程会读相同编号；缓存、广播和合并访问决定硬件产生多少事务。</p>
+<p>保持输出的 1024 行和权重不变，分别令索引顺序访问 0 至 1023、反复访问同一行、随机访问不同页。第一种可作连续载入参照；第二种检查缓存重用；第三种暴露地址分散造成的等待。记录实际设备时间、HBM 读写流量、缓存命中，以及有效输出行数。若随机行慢而有效字节和全局写地址均相同，应沿输入地址和缓存路径核查。</p>
+<table><caption>同一个 gather 内核的三个对照输入</caption><thead><tr><th>索引排列</th><th>特征输出字节</th><th>输入地址特征</th></tr></thead><tbody><tr><td>连续编号</td><td>65536 B</td><td>相邻行连续</td></tr><tr><td>重复同一编号</td><td>65536 B</td><td>同一缓存行反复使用</td></tr><tr><td>随机行号</td><td>65536 B</td><td>跨行跨度取决于编号表</td></tr></tbody></table>
+<h3>两份矩阵内核的编译资源记录</h3>
+<p>取前面的 mfma_direct 与 mfma_block。在本课用 ROCm 7.2.4 的 HIP 头文件和 LLVM 19.1.7、以 -O2 为 gfx90a 与 gfx942 生成的目标文件里，下表各项在两种架构上都得到相同记录。group_segment_fixed_size 是一个工作组静态预留的 LDS 字节数。vgpr_count 和 agpr_count 是编译器的资源字段；在这种累加寄存器布局上，不能把两个字段相加来推算新的寄存器总数。</p>
+<div class="table-wrap"><table><thead><tr><th>编译元数据</th><th>直接读全局内存</th><th>先分块写 LDS</th></tr></thead><tbody><tr><td>group_segment_fixed_size</td><td>0 B</td><td>768 B</td></tr><tr><td>vgpr_count / agpr_count</td><td>52 / 4</td><td>52 / 4</td></tr><tr><td>vgpr_spill_count / sgpr_spill_count</td><td>0 / 0</td><td>0 / 0</td></tr><tr><td>wavefront_size</td><td>64</td><td>64</td></tr></tbody></table></div>
+<p>768 B 可以和源码逐项对上。A 的片有 16 行、4 列，B 的片有 4 行、32 列，每项占 4 字节。把二者相加得到的容量正好与工作组字段吻合。四个累加寄存器对应每个 lane 保留的四个输出。</p>
+<math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><mrow><mo stretchy="false">&#x00028;</mo><mn>16</mn><mo>&#x000B7;</mo><mn>4</mn><mo>&#x0002B;</mo><mn>4</mn><mo>&#x000B7;</mo><mn>32</mn><mo stretchy="false">&#x00029;</mo><mo>&#x000B7;</mo><mn>4</mn><mtext>&#x000A0;</mtext><mi>&#x00042;</mi><mo>&#x0003D;</mo><mn>768</mn><mtext>&#x000A0;</mtext><mi>&#x00042;</mi></mrow></math>
+<pre><code class="language-bash">hipcc -O2 --offload-arch=gfx942 --genco mfma-block.hip -o mfma.hsaco
+/opt/rocm/llvm/bin/llvm-readobj --notes mfma.hsaco</code></pre>
+<p>在 HIP 代码对象的 amdhsa.kernels 清单内，按 .name 找两个 kernel，再读取上表字段。换编译器或优化选项后，直接记录本次编译的数值。若测得分块版减少了全局请求，这份元数据可以排除本次编译发生 VGPR 溢出这个解释；它新增了 LDS 写入、LDS 读取和块内同步，下一步要对照这三项的等待与实际耗时。</p>
 <p class="sources"><a href="https://rocm.docs.amd.com/projects/rocprofiler-compute/en/docs-7.2.0/how-to/profile/mode.html">AMD · ROCm Compute Profiler 采集模式</a> · <a href="https://rocm.docs.amd.com/projects/rocprofiler-compute/en/latest/how-to/analyze/cli.html">AMD · 性能指标、工作负载比较与 Roofline</a> · <a href="https://rocm.docs.amd.com/projects/rocprofiler-compute/en/latest/conceptual/cdna/cdna-performance-model.html">AMD · CDNA 性能模型</a> · <a href="https://rocm.docs.amd.com/projects/HIP/en/docs-7.2.1/understand/compilers.html">AMD · 设备代码对象与反汇编</a></p>
 </section>
 
@@ -954,6 +1533,18 @@ rocprofv3 --att --kernel-include-regex affine -d affine-att -- ./affine</code></
 <p>在生成的设备端 <code>.s</code> 文件中找到 affine，先跟随下标计算到全局加载，再找使用加载结果的向量算术和最终存储。常见的 <code>global_load_*</code> 发起全局读取，<code>s_waitcnt</code> 等待某类未完成的操作达到要求，向量指令使用对应的 VGPR。编译器会合并表达式、移动指令，一行 C++ 可能对应多个位置；源码行号给出查找起点。</p>
 <p>线程跟踪需要安装该版本要求的解码组件并使用支持的硬件。在 ROCprof Compute Viewer 中打开跟踪输出，选目标 dispatch、计算单元和一个波前，从时间轴跳到 Source and ISA 视图。若耗时集中在等待指令，沿依赖回到发起加载的位置，检查地址是否跨行、同一个线程是否必须等上次结果才能算下一地址。再观察同一时间其他波前是否能发射独立指令。</p>
 <p>例如图算子按邻接表求和：先读行偏移得到某顶点的邻居区间，再读邻居编号，最后按编号读特征值。把两个不相关顶点的邻居工作并排安排，可能让前一条链等待特征时另一条链继续。验证时同时保存顶点度数分布、边数和输入排列。先逐顶点对比输出，再看特征读取处的等待、整 kernel 时间和端到端时间；重排邻居若改变浮点加法次序，用约定的误差容限比较。</p>
+<h3>带一次预取的邻接表循环</h3>
+<p>沿用上例中顶点 0 的邻居 [2,1]。原循环先得到邻居 2 的特征并累加，再进入第二条边。将两条边成对处理时，可以先从连续的列号数组读出 2 和 1，再分别发起对 feature[2] 和 feature[1] 的读取。后一条特征读取没有使用前一条特征的结果。仍按原来的 30、20 顺序累加，答案为 50。</p>
+<p>下面保留奇数边的尾项，适用于带权 CSR，实际的机器指令安排由编译器决定。对比两种编译产物时，查看第二个特征加载是否到了第一次累加之前，再看多保存的编号和特征值用了多少额外寄存器。即使源程序并排写了两次加载，仍要以选定架构的反汇编和采样解释执行次序。</p>
+<pre><code class="language-cpp"><span class="kw">int</span> e = first;
+<span class="kw">while</span> (e + <span class="nu">1</span> &lt; last) {
+    <span class="kw">int</span> j0 = cols[e], j1 = cols[e+<span class="nu">1</span>];
+    <span class="kw">float</span> x0 = feature[j0], x1 = feature[j1];
+    sum += weights[e] * x0;
+    sum += weights[e+<span class="nu">1</span>] * x1;
+    e += <span class="nu">2</span>;
+}
+<span class="kw">if</span> (e &lt; last) sum += weights[e] * feature[cols[e]];</code></pre>
 <details><summary>练习 · 周期数与业务收益</summary><p>一次前向原用 5 毫秒，其中图规约占 1 毫秒。假设各段串行且其他段不变，规约耗时降到 0.4 毫秒，则整步变为 4.4 毫秒，整步加速约 1.14 倍。用这笔账判断继续优化该 kernel 是否值得。</p></details>
 <h3>三层间接寻址的真实依赖</h3>
 <p>取三个顶点。把各顶点在邻接表中的起点依次写成 [0,2,3,5]，邻居按行放成 [2,1,0,1,0]，三个顶点的标量特征为 [10,20,30]。线程负责顶点 0 时先读第 0、1 项偏移，知道该读邻居数组的区间 [0,2)。只有得到邻居编号 2、1 后，才能计算到特征数组第 2、1 项的地址。顶点 0 最终写 30+20=50；顶点 1 的邻居为 0，写 10；顶点 2 的邻居为 1、0，写 30。</p>
@@ -972,6 +1563,11 @@ rocprofv3 --att --kernel-include-regex affine -d affine-att -- ./affine</code></
 <p>在 Source and ISA 中沿同一波前向前追踪。先找到读取特征结果的向量加法，记下它读取的寄存器；向前找把数据写进该寄存器的内存指令，再看两者之间等待了哪些未完成操作。对于 gfx942，<code>s_waitcnt vmcnt(0)</code> 要求相应计数归零才让后续依赖指令继续。同一计数可以包含多笔在途读取，所以不能把一次等待的全部周期简单分给紧邻它的那一行。把两条地址链并排后，检查等待前是否出现更多独立加载，以及寄存器增量是否使同时驻留的波前数下降。</p>
 <h3>同一张图上的对照</h3>
 <p>保留上述三个顶点的输出作为最小校验，再准备度数差异较大的图做实际跟踪。若一次改动只给每个线程增加独立工作，比较时应维持边表、输入顺序和输出精度相同；若要研究图重排，就单独记录重排前后的编号映射和重排成本。这样可以分清时间变化来自指令重排、邻居局部性，还是这次样本本来就有较少的边。</p>
+<h3>两条地址链的等待时间</h3>
+<p>把邻居编号看作地址线索，特征看作真正要取的数。下面的手算假定每笔读取发出后经过 5 个时间格返回，每格最多发出一笔，允许至少两笔同时在途。选两条边甲、乙，各读一个 32 位编号和一个 FP32 特征。图上每个色块的左边是发出，右边是返回。</p>
+<figure><img src="figures/amd-memory-time.svg" width="790" height="252" alt="串行两条地址链从 0 到 20，交错两条地址链从 0 到 11"><figcaption>同样四笔读取，交错发出让两条边的等待时间重叠</figcaption></figure>
+<p>先做完甲再做乙。第 0 格读甲编号，第 5 格取得编号并发出特征读取，第 10 格甲完成。轮到乙，第 10 格读编号，第 15 格读特征，第 20 格完成。现在让乙提前。第 1 格先读乙编号，第 5 格照旧读甲特征，第 6 格读乙特征。甲仍在第 10 格完成，乙在第 11 格完成。从第一笔发出到最后一笔返回由 20 格缩到 11 格，四笔数据的有效字节数都是 16。</p>
+<p>实际的 5 格要换成跟踪记录里的服务时间，缓存命中和未命中的延迟会不同。若时间线中连续出现可同时在途的读，等待仍久，接着看 HBM 通道是否持续繁忙。通道尚有空位而地址逐项依赖时，增加独立链可能有效；通道已能持续发出整段数据时，再加链不会减少传输的字节数，优先减少重复读取或改善相邻 lane 的地址排列。</p>
 <p class="sources"><a href="https://rocm.blogs.amd.com/software-tools-optimization/amdgcn-isa/README.html">AMD · AMDGPU 汇编、行号与寄存器</a> · <a href="https://rocm.blogs.amd.com/software-tools-optimization/thread-trace/README.html">AMD · Thread Trace 与 ROCprof Compute Viewer</a></p>
 </section>
 
@@ -1000,7 +1596,81 @@ print(pages, useful//<span class="nu">1024</span>, allocated//<span class="nu">1
 <p>现在三条请求各多生成一个 token，长度变为 19、32、34。实际有效量增加 768 KiB，但三条都还能写进已有块。再各生成一个，第二条从 32 到 33，第一次要打开自己的第三块，因此这一步新增一整块 4 MiB。只按每轮新增 token 数预测剩余并发，容易漏掉这种阶梯式变化。</p>
 <h3>首词与持续生成的验收</h3>
 <p>假设验收门限是首词不超过 500 毫秒、后续平均每词间隔不超过 30 毫秒。三条请求的首词依次为 400、650、450 毫秒，后续平均间隔依次为 25、20、40 毫秒。只有 A 同时达到两项目标。若测量窗口是 2 秒，按符合条件的请求数计算，这轮 goodput 为每秒 0.5 条，窗口里的原始完成率则是每秒 1.5 条。判断 B 时应回看排队与 prefill，判断 C 时应看 decode 步间隔、KV 池占用与调度。对两种改动使用同一组提示、到达时刻和输出长度，才好把变化归到具体配置。</p>
+<h3>固定 KV 池内的长度组合</h3>
+<p>沿用上面每 16 个位置占 4 MiB 的 32B 模型。假设给一批独立请求专留 64 MiB KV，池里就是 16 个物理块。若每条已有 33 个位置，每条取 3 块，五条共 15 块，余下 1 块。若相同并发下每条只用 32 个位置，每条只取 2 块，五条共 10 块，多出 6 块空闲。</p>
+<p>把 5 条长度为 32 的请求同时向前推进一步，有效 KV 只增加 5×256 KiB=1.25 MiB，本轮却要领 5 个 4 MiB 的新块。池的已分配量从 40 MiB 升到 60 MiB。做压力测试时，可专门保留这些同时跨块的到达模式，再回到典型流量检查分位数；否则平均长度相同，也可能漏掉瞬间的页分配压力。</p>
+<figure><img class="diagram-light" src="figures/worked-qwen-capacity.svg" width="600" height="188" alt="每个请求都从 32 变成 33 时，五条请求会同时跨越块边界"><figcaption>每个请求都从 32 变成 33 时，五条请求会同时跨越块边界</figcaption></figure>
 <p class="sources"><a href="https://rocm.blogs.amd.com/artificial-intelligence/qwen3-day0-amd/README.html">AMD · MI300X 上的 Qwen3 官方部署示例</a> · <a href="https://huggingface.co/Qwen/Qwen3-32B/blob/main/config.json">Qwen · Qwen3-32B 原始模型配置</a> · <a href="https://huggingface.co/Qwen/Qwen3-32B/blob/main/model.safetensors.index.json">Qwen · 原始权重索引</a> · <a href="https://huggingface.co/Qwen/Qwen3-8B/blob/main/config.json">Qwen · Qwen3-8B 原始模型配置</a></p>
+</section>
+
+<section id="port-hip" data-part="从 NVIDIA 迁移到 Instinct"><p class="part-title">从 NVIDIA 迁移到 Instinct</p><h2>CUDA 算子到 HIP 的迁移</h2>
+<p>一段 CUDA 归约在原卡上用 32 个线程合成一个小计。把它迁到 MI300X 时，CPU 端分配显存、传入一列数和等回结果的流程可以保留。真正需要重新决定的是一组线程合几项、每块会写出几个小计，以及第二轮要读多长的数组。把数字 32 留在掩码、步长或输出下标里的任何一处，都会改变结果。</p>
+<h3>运行时调用和内存所有者</h3>
+<p>先保留原程序可执行的一组数值用例。使用 HIPIFY 的 hipify-clang 扫描带编译参数的 CUDA 源文件；翻译后逐项核对流、事件、错误返回和库调用。以下是一对相同的操作，n 是 FP32 元素数，bytes 才是分配或复制的字节数。设备数组的释放发生在最后一次使用之后。</p>
+<table><caption>主机提交同一段向量的两种写法</caption><thead><tr><th>行为</th><th>原 CUDA 调用</th><th>AMD HIP 调用</th></tr></thead><tbody><tr><td>分配设备存储</td><td>cudaMalloc(&amp;d, bytes)</td><td>hipMalloc(&amp;d, bytes)</td></tr><tr><td>从主机复制</td><td>cudaMemcpy(d,h,bytes,cudaMemcpyHostToDevice)</td><td>hipMemcpy(d,h,bytes,hipMemcpyHostToDevice)</td></tr><tr><td>检查启动状态</td><td>cudaGetLastError()</td><td>hipGetLastError()</td></tr><tr><td>等待流完成</td><td>cudaStreamSynchronize(s)</td><td>hipStreamSynchronize(s)</td></tr><tr><td>释放设备数组</td><td>cudaFree(d)</td><td>hipFree(d)</td></tr></tbody></table>
+<h3>同一列数在两种波前宽度上的结果</h3>
+<p>给一块 64 个线程分配输入 1 到 64。在 32 路的设备上有两组，各自求出 528 和 1552。CDNA 的 64 路波前一次就能合出 2080。因此第一轮输出长度不同，而下一轮得到的总和相同。若模型规定的算法本来就需要两个独立的 32 项组，则应显式按 32 项分组并为两组各写一个结果。硬件组宽和算法分组解决的是两件不同的事。</p>
+<pre><code class="language-cpp"><span class="cm">// 启动 block.x 必须是硬件 warpSize 的整数倍。最后不足一组的输入以零参加。
+</span>__global__ <span class="kw">void</span> wave_sum(<span class="kw">const</span> <span class="kw">float</span>* in, <span class="kw">float</span>* partial, <span class="kw">int</span> n) {
+    <span class="kw">int</span> local=threadIdx.x, i=blockIdx.x*blockDim.x+local;
+    <span class="kw">int</span> lane=local%warpSize, wave=local/warpSize;
+    <span class="kw">float</span> x=i&lt;n ? in[i] : <span class="nu">0.0f</span>;
+    <span class="kw">for</span> (<span class="kw">int</span> d=warpSize/<span class="nu">2</span>; d&gt;<span class="nu">0</span>; d/=<span class="nu">2</span>) x+=__shfl_down(x,d,warpSize);
+    <span class="kw">if</span>(lane==<span class="nu">0</span>) partial[blockIdx.x*(blockDim.x/warpSize)+wave]=x;
+}</code></pre><p><a href="examples/wave-sum.hip">下载 HIP 内核</a></p>
+<p>在这个核里，每个有效 lane 都执行交换，无有效输入的线程也用零参与。主机用 hipGetDeviceProperties 读 warpSize；分配小计时按每块线程数除以这个值计算每块的输出数。处理超过一块的数据后，将各小计再次求和。若移植使用 __ballot 的代码，CDNA 对应的位掩码需容下 64 位；左移常量也应有同样的宽度。</p>
+<figure><img class="diagram-light" src="figures/worked-wave-port.svg" width="600" height="144" alt="在 32 路和 64 路设备上处理同一列，比较两轮归约的边界"><figcaption>在 32 路和 64 路设备上处理同一列，比较两轮归约的边界</figcaption></figure>
+<h3>编译目标与边界样本</h3>
+<p>基于 ROCm 环境的构建选择实际卡型。MI300X 对应 gfx942，MI350X 对应 gfx950。将本例的线程数设为 64，分别测试长度 1、31、32、33、63、64、65；长度 65 为第二块只留一个有效输入。输出长度、保护区域和 CPU 的求和结果要一并检查。涉及 CUDA 的内联 PTX 或手写 Tensor Core 指令时，先把算术与内存次序写清，再选择 HIP、rocWMMA 或 CK 的对应实现。</p>
+<p class="sources"><a href="https://rocm.docs.amd.com/projects/HIPIFY/en/docs-7.2.4/how-to/hipify-clang.html">AMD · hipify-clang 与编译参数</a> · <a href="https://rocm.docs.amd.com/projects/HIP/en/docs-7.2.4/how-to/hip_cpp_language_extensions.html">AMD · 波前、投票与交换</a> · <a href="https://rocm.docs.amd.com/projects/rocWMMA/en/docs-7.2.4/">AMD · rocWMMA 编程指南</a></p>
+</section>
+
+<section id="port-libraries" data-part="从 NVIDIA 迁移到 Instinct"><h2>数值库、图算子与卷积模型的迁移</h2>
+<p>库函数能接替一部分已有 CUDA 代码。先问原程序算的是哪张表，再把形状、轴、类型和临时空间一起带到新库。下面用三类负载追踪同一个问题：输出即使长度相同，每个位置是否仍然对应原来的数。</p>
+<h3>从 CUB 前缀和到 hipCUB 与 rocPRIM</h3>
+<p>如果 CUDA 工程已经用 cub::DeviceScan::InclusiveSum，可从 hipcub::DeviceScan::InclusiveSum 开始对照。传入 [2,1,0,3,4,1]，预期包含式前缀和为 [2,3,3,6,10,11]；排除当前位置的前缀和则为 [0,2,3,3,6,10]。先选定所需语义，再用空指针查询临时存储字节数。第一次查询只问空间大小，第二次传入已分配的空间才执行。头文件为 &lt;hipcub/hipcub.hpp&gt;，HIP_CHECK 检查每个调用的返回状态，定义见实验包 run_operators.hip。</p>
+<pre><code class="language-cpp"><span class="cm">// d_in 和 d_out 均为 6 个 int 的设备缓冲，s 是调用者使用的 HIP 流。
+</span><span class="kw">size_t</span> bytes=<span class="nu">0</span>;
+HIP_CHECK(hipcub::DeviceScan::InclusiveSum(nullptr,bytes,d_in,d_out,<span class="nu">6</span>,s));
+<span class="kw">void</span>* scratch=nullptr;
+HIP_CHECK(hipMalloc(&amp;scratch,bytes));
+HIP_CHECK(hipcub::DeviceScan::InclusiveSum(scratch,bytes,d_in,d_out,<span class="nu">6</span>,s));
+HIP_CHECK(hipStreamSynchronize(s));
+HIP_CHECK(hipFree(scratch));</code></pre>
+<p>在 ROCm 7.2.4 的实现中，InclusiveSum 指定加法后转给 InclusiveScan，后者进入 rocprim::inclusive_scan。复用同一片临时区时，要等上一笔使用它的流完成。若调用方要同时启动两笔、两条流互不等待，就要给它们各自准备工作区。</p>
+<h3>cuSPARSE 管线中的 CSR 与 hipSPARSE</h3>
+<p>原图有 3 个顶点，行偏移 [0,2,2,5]、列号 [0,2,0,1,2] 和数值 [2,1,1,3,2]。迁到 hipSPARSE 时用 hipsparseCreateCsr 记录 3 行、3 列、5 个非零项，两类索引均为 32 位、以 0 开始；再用 hipsparseCreateDnVec 描述长度均为 3 的输入和输出。乘积系数为 1，旧输出系数为 0。</p>
+<p>输入 [4,5,6]，结果逐行应为 [14,0,31]。特别保留中间空行：若把 4 个行偏移错当 3 个，第三行的结束位置将无法从描述符所指的数组读取。hipSPARSE 的 AMD 实现会把描述符和算法参数转换给 rocSPARSE。复核后再根据真实图的行长分布评估是否改用平台原生的分阶段 SpMV。</p>
+<h3>从 cuDNN 卷积到 MIOpen 的窗口核对</h3>
+<p>一个视觉模型移植后，先固定 NCHW 的单通道 3×3 图像、2×2 权重和 stride=1、pad=0。把图像填 1 至 9，使用权重 [−1,0;0,1]，预期四项全为 4；再把权重换成 [1,0;0,0]，输出应是 [1,2;4,5]。这样既检查核方向，也能发现窗口滑动、行列交换的错误。</p>
+<p>用 miopenSet4dTensorDescriptor 声明输入、权重、输出的形状，用卷积描述符记录 padding、stride、dilation；再按本节前面 MIOpen 即时模式的流程选方案并执行。源平台挑选出的算法编号和工作区应在目标卡重新查询。对 NHWC 模型要把真实维序或步长交给描述符，输入字节保持原排列时不能仅将标签改为 NCHW。</p>
+<table><caption>平台迁移时可独立检查的三组量</caption><thead><tr><th>负载</th><th>保持一致的对象</th><th>可复算的首个检查点</th></tr></thead><tbody><tr><td>扫描</td><td>输入次序，包含或排除当前元素</td><td>前三项 [2,3,3]</td></tr><tr><td>图聚合</td><td>行偏移、列号基准、边权</td><td>空行输出 0</td></tr><tr><td>卷积</td><td>维序、权重方向、步长和补零</td><td>只有左上权重为 1 时输出 [1,2;4,5]</td></tr></tbody></table>
+<p class="sources"><a href="https://github.com/ROCm/rocm-libraries/blob/dabb6df2b988f8eabed1e2fecefaaf4e818bc7ef/projects/hipcub/hipcub/include/hipcub/backend/rocprim/device/device_scan.hpp#L50-L65">hipCUB · InclusiveSum 到加法扫描</a> · <a href="https://github.com/ROCm/rocm-libraries/blob/dabb6df2b988f8eabed1e2fecefaaf4e818bc7ef/projects/hipcub/hipcub/include/hipcub/backend/rocprim/device/device_scan.hpp#L197-L220">hipCUB · rocPRIM 后端调用</a> · <a href="https://github.com/ROCm/rocm-libraries/blob/dabb6df2b988f8eabed1e2fecefaaf4e818bc7ef/projects/hipsparse/library/src/amd_detail/generic/hipsparse_spmv.cpp#L309-L380">hipSPARSE · AMD 通用 SpMV</a> · <a href="https://rocm.docs.amd.com/projects/MIOpen/en/docs-7.2.4/how-to/find-and-immediate.html">MIOpen · 卷积方案与即时执行</a></p>
+</section>
+
+<section id="port-framework" data-part="从 NVIDIA 迁移到 Instinct"><h2>训练、推理服务与性能记录的迁移</h2>
+<p>把一个 NVIDIA 上的模型服务迁到 Instinct，可以逐层保留前一层已经确认的结果。先用相同权重、分词器和 token ID 在单卡上检查一个算子，再检查一层的输出、一个训练步或一轮解码。此时每次比较的对象都足够小，发现差值可以定位到某个张量。</p>
+<h3>框架张量与本机扩展</h3>
+<p>ROCm 版 PyTorch 保留 torch.cuda 和设备名 "cuda"。torch.version.hip 指出构建后端，不能拿字符串 "cuda" 判断物理卡品牌。纯 PyTorch 算子可先复用原 Python 代码，涉及自定义扩展则要为目标 gfx 架构重新构建 HIP 设备代码。CUDA 的 cubin、内联 PTX 和已编好的扩展共享库不能直接由 AMD 设备执行。</p>
+<pre><code class="language-python"><span class="kw">import</span> torch
+<span class="kw">import</span> torch.nn.functional <span class="kw">as</span> F
+<span class="kw">assert</span> torch.cuda.is_available() and torch.version.hip
+x = torch.tensor([<span class="nu">0.</span>,<span class="nu">1.</span>,<span class="nu">2.</span>], dtype=torch.float32)
+ref = F.softmax(x.to(torch.float64), dim=<span class="nu">0</span>).float()
+gpu = F.softmax(x.to(<span class="st">"</span><span class="st">cuda</span><span class="st">"</span>), dim=<span class="nu">0</span>).cpu()
+torch.testing.assert_close(gpu, ref, rtol=<span class="nu">1e-5</span>, atol=<span class="nu">1e-6</span>)
+print(torch.cuda.get_device_name(<span class="nu">0</span>), torch.version.hip, gpu.tolist())</code></pre>
+<p>这个检查让 CPU 用 FP64 计算三项概率，GPU 用 FP32 处理完全相同的数组。结果约为 [0.0900,0.2447,0.6652]。把同样的方法换成前面的转置、带空行的 CSR、含历史偏移的 attention，可以分别检查布局、索引和掩码。处理 BF16、FP8 时要核对新旧硬件支持的具体编码，再根据输入范围、累加精度和下游输出确定误差范围。</p>
+<h3>分布式训练的一步等价</h3>
+<p>两卡用 torchrun 启动，按每台机器各自的 LOCAL_RANK 选设备。PyTorch 把分布式后端名写成 "nccl"，ROCm 构建通过 RCCL 完成这次集体通信。先把两个 rank 的输入固定为 [1,2]、[3,4]，做 SUM 后每卡应为 [4,6]。换到模型时保留同批样本、掩码、梯度归一化与学习率，逐个核对前向损失、归约后的一项梯度及更新后的同一参数。</p>
+<p>检查点若依赖原卡数和文件命名，记录全局参数编号与各分片覆盖区间。先在相同卡数上恢复一步，比较模型和优化器的状态；再改变卡数测试重分片。若只有两机运行时变慢，把单机和跨机分别采集：通信库安装、网卡选择、GPU 到网卡的路径和实际消息大小都会影响结果。</p>
+<h3>长提示服务的正确性与时延</h3>
+<p>用同一提示的 token ID、相同位置编码和同一生成设置提交两次请求。先记录首步 logits 与前几名的分差；接近并列时，精度细微变化就可能改变贪心 token，后续前缀也会随之不同。再固定一段已知前缀逐位置比对两端的 logits，分开检查 prefill 与 decode，最后用相同请求到达时刻、提示长度和真实生成长度核对服务。</p>
+<p>例如定义首词不超过 500 毫秒、平均后续词间隔不超过 30 毫秒。并发升高后若只出现首词超时，先在 rocprofv3 的请求区间里找调度等待、prefill kernel 和 KV 分配；若后续词变慢，则追 decode 轮次、KV 读取和跨卡通信。对 GPU 热点再用 ROCm Compute Profiler 取 HBM 流量、LDS 冲突和矩阵指令统计。源平台 Nsight 的计数器名、波前定义和采样分母不同，迁移报告要对齐物理含义和单位。</p>
+<figure><img class="diagram-light" src="figures/worked-port-steps.svg" width="600" height="144" alt="训练和服务各自沿真实依赖逐层比对，便于定位首个出现差异的位置"><figcaption>训练和服务各自沿真实依赖逐层比对，便于定位首个出现差异的位置</figcaption></figure>
+<h3>算子实验的复算与设备运行</h3>
+<p>本课的实验文件集中在 <a href="examples/operators.zip">HIP 算子实验包</a>。解压后运行 <code>python reference.py</code> 可以在 CPU 上独立复算这些小输入；在安装 ROCm 的主机上，使用与显卡相应的编译目标构建 <code>run_operators.hip</code>。例如 MI300X 用 <code>hipcc -std=c++17 -O2 --offload-arch=gfx942 run_operators.hip -o run_operators</code>，再执行 <code>./run_operators</code>。进阶算例另运行 <code>python advanced_reference.py</code> 验算。MI300X 上执行 <code>hipcc -std=c++17 -O2 --offload-arch=gfx942 advanced.hip -o advanced</code>，再运行 <code>./advanced</code>；MI200 对应目标为 <code>gfx90a</code>。编译计时工具使用 <code>hipcc -std=c++17 -O2 --offload-arch=gfx942 benchmark.hip -o benchmark</code>，再执行如 <code>./benchmark transpose</code>。它先预热三轮，在默认流的一对 HIP 事件之间执行二十轮，记录平均耗时。两个设备对照程序会逐项检查输出，返回的是正确性结果。测速度时改用代表业务的尺寸，预热后用设备事件测量多轮执行，另留一份关闭采集工具的端到端计时。</p>
+<p class="sources"><a href="https://docs.pytorch.org/docs/stable/notes/hip.html">PyTorch · ROCm 的设备接口与精度</a> · <a href="https://rocm.docs.amd.com/projects/rccl/en/docs-7.2.4/">RCCL · 分布式集合通信</a> · <a href="https://rocm.docs.amd.com/projects/rocprofiler-sdk/en/docs-7.2.4/how-to/using-rocprofv3.html">AMD · 系统 trace 和设备采集</a> · <a href="https://rocm.docs.amd.com/projects/rocprofiler-compute/en/docs-7.2.4/how-to/profile/mode.html">AMD · ROCm Compute Profiler 采集</a></p>
 </section>
 
 </main></div><script>const root=document.documentElement, mode=document.querySelector('#display-mode'), toc=document.querySelector('.side>details');
@@ -1084,4 +1754,4 @@ window.addEventListener('hashchange', scheduleSection);
 window.addEventListener('pageshow', scheduleSection);
 const layoutChanges = new ResizeObserver(sizeControls);
 for (const element of [header, sidebar, document.querySelector('main')]) layoutChanges.observe(element);
-for(const table of document.querySelectorAll('main table')){if(!table.closest('.tablewrap,.table-scroll')){const wrap=document.createElement('div');wrap.className='tablewrap';table.before(wrap);wrap.appendChild(table)}}for(const formula of document.querySelectorAll('main math[display="block"]')){if(!formula.closest('.equation,.tablewrap')){const wrap=document.createElement('div');wrap.className='equation';formula.before(wrap);wrap.appendChild(formula)}}</script></body></html>
+for(const table of document.querySelectorAll('main table')){if(!table.closest('.tablewrap,.table-scroll')){const wrap=document.createElement('div');wrap.className='tablewrap';table.before(wrap);wrap.appendChild(table)}}for(const formula of document.querySelectorAll('main math[display="block"]')){if(!formula.closest('.equation,.tablewrap')){const wrap=document.createElement('div');wrap.className='equation';formula.before(wrap);wrap.appendChild(formula)}}</script><script type="application/json" id="aira-cards">{"instinct":{"fact":"FP32 的二行二列权重占 16 字节，两个批次可以共用同一份设备权重。","question":"每批输入和权重各占 16 字节，权重首次传入后留在设备，两批总共向设备写多少字节？","answer":"输入两次共 32 字节，加一次权重 16 字节，共 48 字节。"},"cdna":{"fact":"MI300X 的 LDS 每 CU 有 32 个 bank，MI350X 有 64 个，每个 bank 的字宽均为 4 字节。","question":"行主序 FP32 矩阵每行 32 项。字地址 0、32 分别落入 MI300X 和 MI350X 的哪些 LDS bank？","answer":"MI300X 对 32 取余，两个地址都落在 bank 0。MI350X 对 64 取余，分别落在 bank 0 和 bank 32。"},"wave":{"fact":"在 wave64 中，一个 32 位 VGPR 给 64 个 lane 各留 4 字节，整个 wave 的该项数据共占 256 字节。","question":"若一个 wave64 的每个 lane 新增 16 个同时存活的 32 位数，活跃数据多大？","answer":"每个 lane 多 16 × 4 = 64 字节，64 个 lane 合计 4096 字节。实际寄存器分配还要按芯片的分配粒度取整。"},"transpose-layout":{"fact":"转置交接位置不变，给 32 个 FP32 的 LDS 行增加一格后，同列相邻两行的 bank 编号相差 1。","question":"35×37 的输入中 X[1,34] 的值在转置结果哪个线性槽？","answer":"转置结果宽为 35，坐标变成 [34,1]，线性槽是 34×35+1=1191。"},"hip-axpy":{"fact":"一行 130 列时，64-lane wave 中的 lane 0 读取列 0、64 和 128。","question":"lane 1 与 lane 2 分别读取哪些列？","answer":"lane 1 读取 1、65、129。lane 2 读取 2、66，下一项 130 已超过最后一列 129。"},"streams":{"fact":"CPU 读取异步下载的结果，需要等回传完成。","question":"最后一批在 11 毫秒算完、紧接着回传 2 毫秒，端到端终点在哪里？","answer":"主机能读到最后一批的时刻为 13 毫秒。"},"lds-reduce":{"fact":"跨块扫描时，一块的所有局部前缀都要加上之前各块的总和。","question":"第二块的局部前缀为 [4,5]，第一块总和是 6，第二块应写出什么？","answer":"写出 [10,11]，两个位置分别从 4 和 5 加上块前偏移 6。"},"scan-cooperation":{"fact":"树形下行将父进位直接交给左子树，把父进位加左子树总数交给右子树。","question":"总数为 13 的八项例子，左、右半段小计分别是 6 和 7，右半段收到多少进位？","answer":"根的外部进位是 0，右子树需要加左子树的小计 6，因此收到 6。"},"tile-gemm":{"fact":"同一个 A 元素可以参与同一输出行多个列的点积。","question":"第一行两个输出在第二轮是 [25,28]，下一轮 A 元素是 3，B 的对应行是 [11,12]，最后得到什么？","answer":"分别加 33 和 36，得到 [58,64]。"},"mfma-workgroup":{"fact":"两个 wave 共享 64 个 A 元素，分别读取自己的 64 个 B 元素。","question":"wave 1 的 lane 17 会写输出片的哪四格？","answer":"lane 17 对应 x=1、y=1。wave 1 的列起点是 16，因此写第 17 列、第 4、5、6、7 行。"},"libraries":{"fact":"步幅为 1 的 2×2 卷积生成完整 8×8 输出块，需要 9×9 输入片。","question":"如果每个输出都独立读取四个像素，共发出多少次输入读取，整块共享后是多少？","answer":"独立读取 64×4=256 个像素，块内复用后读 9×9=81 个输入像素。"},"sparse":{"fact":"四个 lane 可共用一条边的列号和权重，各读邻居的一项特征。","question":"边权为 3，邻居四项特征是 (5,−1,2,0)，这条边给四个通道贡献什么？","answer":"逐项乘 3，得到 (15,−3,6,0)，再与同行其他边的贡献相加。"},"pytorch":{"fact":"残差加法与 RMSNorm 融合后，归一化结果和留给后续残差支路的和分别写回。","question":"例子中相加得到 (0,4,0,0)，增益为 (1,3,1,1)，ε=0，第二列归一化输出是多少？","answer":"均方根为 2，第二列先得到 4/2=2，再乘 3 得到 6。"},"triton":{"fact":"有限分数的空槽按负无穷参加最大值规约，取指数以后恰好给分母贡献零。","question":"把 (0,1,2) 改为 (1000,1001,1002)，稳定 softmax 的结果有什么变化？","answer":"各项减去最大值后都是 (−2,−1,0)，三个概率保持相同。"},"attention":{"fact":"带历史缓存的查询行 r 的因果上界要加上历史长度 past。","question":"已有两个位置，又输入两个查询；第一个新查询可读哪些零起始键行？","answer":"它位于全局位置 2，可读 0、1、2 三行。"},"attention-tiles":{"fact":"四个查询和四个键形成 16 个分数；这些分数由所有值列共用。","question":"末行从最大值 ln6 换到 ln12，已有分子 7 和分母 2，新增值为 4，结果是多少？","answer":"旧状态各减半，加新权重 1。结果是 (3.5+4)/(1+1)=3.75。"},"precision":{"fact":"分组量化的尺度应沿导出时定义的组轴读取。","question":"两列整数点积均为 6，尺度依次是 0.25、2，输出是什么？","answer":"两列分别计算 6×0.25 和 6×2，得到 [1.5,12]。"},"quant-wave":{"fact":"一行 66 个浮点数分作 64 项与 2 项两组，编码结果占 74 字节。","question":"步长为 2，输入 −63，按样例中点舍入规则，编码、解码各得多少？","answer":"−63/2=−31.5，中点向远离零的方向舍入为 −32，解码为 −64。"},"kv-pages":{"fact":"两条请求可以共享同一物理前缀页，换页后各自按自己的页表读数据。","question":"示例中请求 A 的长度是 3，位置 3 对应物理槽还留着 (99,99)，批量读回得到什么？","answer":"位置 3 超出请求 A 的有效前缀，本例约定补成 (0,0)，不会读取陈旧值。"},"serve":{"fact":"每步批量同时受 token 预算和可分配 KV 页数约束。","question":"每页 4 个位置，一条请求刚写满 4 个位置，下一步只生成 1 个词，需要几个新页？","answer":"需要一个新页，因为第 5 个位置已跨过现有页的末尾。"},"pd":{"fact":"解码首轮开始前，目标页中的必要 KV 和首词信息须已到齐。","question":"三批各传 2 毫秒，第 3、5、9 毫秒就绪，单通道可连续传输，最早何时收齐？","answer":"第一批到 5 毫秒，第二批到 7 毫秒，第三批在 9 毫秒才就绪，到第 11 毫秒收齐。"},"draft":{"fact":"链式草稿能交付的候选数等于连续命中的前缀长度。","question":"100 次验证中第一位命中 80 条、前两位都中 40 条、三位全中 20 条，全部请求未提前终止，合计交付多少词？","answer":"候选前缀贡献 140 个，每轮再交付一个目标词，总计 240 个。"},"rccl":{"fact":"四卡环形 AllReduce 可分为三次发片求和和三次发片汇集。","question":"每卡的 32 字节均分四片，完成两阶段时每卡共发多少字节？","answer":"每片 8 字节，共发六片，即 48 字节。"},"parallel":{"fact":"行并行的局部乘积先按同一输出坐标相加。","question":"两卡的两行局部乘积为 [26,22] 和 [−16,−14]，归约后各行再加偏置 3，得到什么？","answer":"逐行相加得 [10,8]，分别加一次 3 得 [13,11]。"},"moe":{"fact":"写 slot[packed[p]]=p 后，每条原路由都能反查其打包槽。","question":"打包顺序为原路由 (0,2,1,3)，token 0 的原路由为 0 与 1，需要读哪两个打包槽？","answer":"它们分别出现在打包槽 0、2。分别乘各自的原门控权重后求和。"},"routing-pack":{"fact":"组内名次是本 lane 前面、与它投给同一专家的路由数。","question":"原路由 6 属于专家 1。它之前同专家有一条，专家 1 从槽 2 开始，它去哪个槽？","answer":"写槽 3；其他专家的路由不计入组内名次。"},"fsdp":{"fact":"Adam 检查点需要保存一阶矩、二阶矩和步号。","question":"两个衰减系数均为 0.5，旧矩为 1、2，本步梯度为零，更新后的矩各是多少？","answer":"一阶矩为 0.5×1=0.5，二阶矩为 0.5×2=1。"},"finetune":{"fact":"提示和 padding 被忽略时，跨微批平均的权重取各微批实际监督词数。","question":"两条微批分别有 1、3 个有效回答词，各自产生平均损失，按词加权时系数是多少？","answer":"分别乘 1/4、3/4，才能让四个词贡献相同。"},"rl":{"fact":"组内优势可以对一条回答共享，新旧策略概率比仍逐个动作计算。","question":"两个有效动作各贡献 1.470、1.103，另有两个环境词被遮住，最小化的 token-mean 策略损失是多少？","answer":"只用两个有效词作分母，损失约为 −1.286。"},"timeline":{"fact":"同一设备同时进行的工作只给活动时间并集贡献一次。","question":"两个活动区间为 0.3–2.3 和 1.3–2.8 毫秒，它们一共覆盖多长时间？","answer":"同一时间只计一次，两段首尾连成 0.3–2.8 毫秒，共 2.5 毫秒。"},"counters":{"fact":"逻辑有效字节由输出形状确定，实际内存事务还受索引分布与缓存影响。","question":"取 1024 行，每行 16 个 FP32，三种不同索引的输出各写多少有效字节？","answer":"三种都写 1024×16×4=65536 字节。"},"isa":{"fact":"独立地址链能让编译器安排多笔同时在途的特征读取。","question":"一行有 5 条边，每轮处理 2 条，哪条会交给尾项分支？","answer":"前四条分两轮处理，最后下标 first+4 的一条进入尾项分支。"},"qwen-design":{"fact":"实际要为每条独立请求分别向上取整分配 KV 页。","question":"16 个页的池里有 5 条相互独立、每条 33 个位置的请求，每页 16 个位置，还余几页？","answer":"每条需要三页，五条合计十五页，还余一页。"},"port-hip":{"fact":"源程序按 32 路划分输出时，改成波前宽度后还要重算每块的小计个数。","question":"同一块 64 个线程对 1 至 64 求和，32 路硬件的两个小计与 64 路硬件的单个小计分别是多少？","answer":"32 路产生 528 和 1552，64 路产生 2080，合并后的总和都是 2080。"},"port-libraries":{"fact":"同一数组上的包含式扫描与排除式扫描输出长度相同，内容会错开一个位置。","question":"对 [2,1,0,3] 使用 hipCUB InclusiveSum，结果是什么？临时指针为空的首次调用做了什么？","answer":"结果为 [2,3,3,6]。首次查询所需临时字节，使用已分配指针的第二次调用执行扫描。"},"port-framework":{"fact":"同一前缀的 logits 可以逐位置比较；某一步选择不同后，两条自由生成路径的后续输入随之不同。","question":"迁移模型在第 3 步贪心 token 首次不同，继续检查后面的 logits 时应怎样准备输入？","answer":"给两端喂相同的已知 token 前缀逐位置比较，并查看第 3 步前两名分差，从而分清数值偏差和前缀变化。"}}</script><script defer src="../../assets/aira/aira.js?v=e3341d7a1c9b" data-art-version="07c6f097ff7b"></script></body></html>

@@ -1,0 +1,73 @@
+.aira {
+  --aira-width:198px;
+  --aira-paper: #fcfcff;
+  --aira-ink: #23283f;
+  --aira-edge: #aab6cf;
+  --aira-tint: #edf3fc;
+  position: fixed; pointer-events: none;
+  right: .5rem;
+  bottom: .5rem;
+  z-index: 8;
+  width: max-content;
+  color: var(--aira-ink);
+  font: 16px/1.5 "Times New Roman", SimHei, "Microsoft YaHei", sans-serif;
+  text-align: left;
+}
+[data-mode="dark"] .aira, [data-theme="dark"] .aira, [data-appearance="dark"] .aira {
+  --aira-paper: #292435;
+  --aira-ink: #fbf2fc;
+  --aira-edge: #b9a1c3;
+  --aira-tint: #38364c;
+}
+.aira[hidden], .aira [hidden], html.toc-overlay .aira,
+body:has(dialog[open]) .aira { display: none !important; }
+.aira button { cursor: pointer; color: inherit; font: inherit; }
+.aira :is(button, select):focus-visible {
+  outline: 3px solid #4385b3; outline-offset: 2px;
+}
+.aira .aira-toggle {
+  display: block; pointer-events: auto; width: calc(var(--aira-width) * var(--aira-pose-scale, 1)); height: auto; aspect-ratio: 144 / 160;
+  position: relative; margin: 0; padding: 0; border: 0; background: transparent;
+  touch-action: none; cursor: grab; border-radius: .5rem;
+  -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
+}
+.aira[data-dragging="yes"] .aira-toggle { cursor: grabbing; }
+.aira .aira-art, .aira .aira-eyes, .aira .aira-duster, .aira .aira-poster {
+  display: block; position: absolute; inset: 0; width: 100%; height: 100%;
+  background-repeat: no-repeat; background-position: center; background-size: 100% 100%;
+  image-rendering: pixelated; pointer-events: none;
+}
+.aira .aira-duster, .aira .aira-poster { object-fit: contain; }
+.aira[data-rest="yes"] .aira-toggle {
+  width: auto; aspect-ratio: auto; min-height: 32px; height: auto; border: 1px solid var(--aira-edge);
+  background: var(--aira-paper); border-radius: 1rem; padding: .14rem .65rem; cursor: pointer;
+}
+.aira .aira-bubble {
+  position: fixed; pointer-events: auto; box-sizing: border-box; width: min(20rem, calc(100vw - 16px));
+  max-height: min(50vh, 26rem); overflow: auto; overscroll-behavior: contain;
+  background: var(--aira-paper); border: 1px solid var(--aira-edge);
+  box-shadow: 0 3px 16px #26203624; border-radius: .7rem;
+  padding: .65rem .8rem;
+}
+.aira .aira-bar, .aira .aira-actions { display: flex; gap: .4rem; align-items: center; }
+.aira .aira-bar { justify-content: space-between; }
+.aira .aira-bar strong { font-size: .95rem; }
+.aira .aira-bubble button {
+  padding: .16rem .58rem; background: var(--aira-tint); border: 1px solid var(--aira-edge);
+  border-radius: .35rem; font-size: .86rem; line-height: 1.45;
+}
+.aira .aira-bubble .aira-message {
+  margin: .45rem 0 .6rem; font-size: 1rem; line-height: 1.55; text-indent: 0;
+  color: var(--aira-ink); white-space: pre-wrap; overflow-wrap: anywhere;
+}
+.aira .aira-sr {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip-path: inset(50%); white-space: nowrap;
+}
+@media(max-width:600px) {
+  .aira { --aira-width:132px; }
+  .aira .aira-bubble button { min-height: 32px; }
+}
+@media print { .aira { display: none !important; } }
+
+.aira .aira-duster, .aira .aira-poster { max-width:none; max-height:none; object-fit:fill; }

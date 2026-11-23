@@ -29,6 +29,7 @@ from symbols import prepare_symbol_notes
 from listings import language_of
 from PIL import Image
 from source_highlight import css as syntax_css, language_label, styled_lines
+from aira import reading_companion
 
 
 def markup(node):
@@ -128,8 +129,15 @@ def practice(q, names, route):
 
 def contents(ch, prefix):
     copy = deepcopy(ch)
+    for table in copy.xpath('.//div[@class="table-wrap"][table]'):
+        table.set("class", "tablewrap")
     for math in copy.iter(MATH + "math"):
         aligned_dimensions(math)
+    for math in copy.xpath('.//p/*[local-name()="math"]'):
+        wrapper = ET.Element("span", {"class": "formula"})
+        math.addprevious(wrapper)
+        wrapper.tail, math.tail = math.tail, None
+        wrapper.append(math)
     # MathML Core uses explicit operators for fences, including ceiling and floor.
     for fenced in copy.xpath('.//*[local-name()="mfenced"]'):
         ns = "{http://www.w3.org/1998/Math/MathML}"
@@ -251,6 +259,9 @@ def reader(title, eyebrow, lead, download, aside, body, prefix):
 
 def build(chapters, out):
     files = {}
+    cards = json.loads((HERE / "aira-cards.json").read_text("utf8"))
+    page_cards = {}
+    handbook_cards = {}
     accelerator_links = (HERE / "accelerator-links.html").read_text("utf8").strip()
     book = []
     index = []
@@ -262,6 +273,12 @@ def build(chapters, out):
         prepare_line_refs(ch)
         prepare_symbol_notes(ch)
         slug = ch.get("slug")
+        stops = [s.get("id") for topic in topics(ch) for s in reading_stops(topic)]
+        chapter_cards = {key: cards[key] for key in stops}
+        page_cards[chapter_url(ch)] = {"main": chapter_cards[stops[0]], **chapter_cards} if i else chapter_cards
+        if i:
+            handbook_cards["ch-" + slug[:2]] = chapter_cards[stops[0]]
+            handbook_cards.update(chapter_cards)
         title = ch.get("title")
         lead = text(ch.find("lead"))
         group = ch.get("group")
@@ -381,8 +398,14 @@ def build(chapters, out):
     for name, data in GENERATED.items():
         write(out / "assets/figures" / name, data)
     appearance = (HERE / "appearance.html").read_text("utf8").strip()
+    page_cards["handbook.html"] = handbook_cards
+    page_cards["index.html"] = {
+        f"module-{i}": cards[f"module-{i}"] for i in range(1, len(groups) + 1)
+    }
     for name, page in files.items():
         page = page.replace("{{APPEARANCE}}", appearance)
+        if name in page_cards:
+            page = reading_companion(page, "../" if name.startswith("lessons/") else "", page_cards[name])
         if name in ("roadmap.html", "handbook.html"):
             page = page.replace(f'<a href="{name}">', f'<a aria-current="page" href="{name}">', 1)
         for asset in ("course.css", "course.js", "appearance.js", "index-data.js"):
