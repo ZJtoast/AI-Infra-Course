@@ -326,6 +326,25 @@ print(out[<span class="nu">0</span>, <span class="nu">0</span>], out[<span class
 <p><code>num_scalar_prefetch=1</code> 将第一个实参 <code>ids</code> 作为预取输入提供给两个索引映射以及核函数。在源映射里读 <code>ids[i]</code>，可以在核开始计算前确定该搬哪片数据。剩下的 <code>src</code> 才对应 <code>in_specs</code> 里的普通输入窗口。输出映射继续用程序号 <code>i</code>，所以最上面第一格从 0 变为 1024，第 8 行第一格从 1024 变为 0。</p>
 <h3>尾块中的有效元素</h3>
 <p>如果输入只有 13 行、130 列，而每块仍取 8 行、128 列，右下块只有 5 行、2 列是真实输入。可以先用 <code>jnp.pad(x, ((0, 3), (0, 126)))</code> 把输入补到 16 行、256 列，用四个完整窗口执行，再取 <code>out[:13, :130]</code>。对逐元素运算，补出来的格子只影响自身，最后切掉即可。若核函数要沿列求最大值，负数行补零会把最大值抬高，这时应按有效位置遮挡填充项或给它们填负无穷。若做整行平均，还要用真实的 130 列当分母。</p>
+<h3>核函数里的程序编号</h3>
+<p>窗口映射告诉搬运单元要取哪块数据。有时计算本身也依赖块号。例如要给四个窗口盖上不同的编号，可以直接在核函数里读取当前网格坐标。网格第 0 轴对应块行，第 1 轴对应块列，每行有两块，故块的编号等于块行乘 2 加块列。</p>
+<figure><figcaption>四个窗口的编号印记</figcaption><pre><code class="language-python"><span class="kw">import</span> jax
+<span class="kw">import</span> jax.numpy <span class="kw">as</span> jnp
+<span class="kw">from</span> jax.experimental <span class="kw">import</span> pallas <span class="kw">as</span> pl
+
+<span class="kw">def</span> <span class="fn">mark</span>(ref, dst):
+    i, j = pl.program_id(<span class="nu">0</span>), pl.program_id(<span class="nu">1</span>)
+    dst[...] = ref[...] + (<span class="nu">2</span> * i + j)
+
+window = pl.BlockSpec((<span class="nu">8</span>, <span class="nu">128</span>), <span class="kw">lambda</span> i,j: (i,j))
+mark_blocks = pl.pallas_call(mark, grid=(<span class="nu">2</span>,<span class="nu">2</span>), in_specs=(window,),
+    out_specs=window, out_shape=jax.ShapeDtypeStruct((<span class="nu">16</span>,<span class="nu">256</span>), jnp.int32),
+    interpret=<span class="kw">True</span>)
+x = jnp.zeros((<span class="nu">16</span>,<span class="nu">256</span>), jnp.int32)
+y = mark_blocks(x)
+<span class="kw">assert</span> y[::<span class="nu">8</span>,::<span class="nu">128</span>].tolist() == [[<span class="nu">0</span>,<span class="nu">1</span>],[<span class="nu">2</span>,<span class="nu">3</span>]]
+print(y[::<span class="nu">8</span>,::<span class="nu">128</span>])</code></pre></figure>
+<p>输入全为零，输出左上 8 行、128 列仍为 0，右上为 1，左下为 2，右下为 3。最后的切片每隔 8 行、128 列取一个位置，恰好各取一个窗口的左上角。试着只改成 <code>pl.program_id(0)</code>，上下两行窗口会分别标成 0 和 1。核内的 <code>ref[0,0]</code> 永远表示所选窗口的左上角；块号来自网格，局部行列来自窗口内部。</p>
 <p class="sources"><a href="https://docs.jax.dev/en/latest/pallas/design/design.html">BlockSpec 与局部引用</a> · <a href="https://docs.jax.dev/en/latest/pallas/tpu/details.html">TPU 窗口与向量布局</a></p>
 </section>
 <section id="tpu-07" data-part="JAX 与 Pallas 算子"><h2>Pallas 分块矩阵乘与 FP32 部分和</h2>
@@ -452,6 +471,51 @@ b = run(a)
 <span class="kw">assert</span> jnp.array_equal(b, <span class="nu">2</span>*a + <span class="nu">1</span>)
 print(b[<span class="nu">0</span>, <span class="nu">0</span>], b[-<span class="nu">1</span>, -<span class="nu">1</span>])</code></pre></figure>
 <p><code>scratch_shapes</code> 的两项按顺序成为 <code>slot</code> 和 <code>ready</code>。信号量在搬运引擎与消费者之间传递完成状态，输入数值本身写到槽里。左上角 0 和右下角 1023 搬入后，逐项做加倍再加一，应分别得到 1 和 2047。这个程序只有一个槽，读之前立即等待。扩展为图中的双缓冲时，要把下一片的启动安排在当前片计算前，为两个在途槽分别跟踪完成状态。<code>pltpu.emit_pipeline</code> 还能依据网格与输入输出窗口安排各次传输，适用于连续迭代中重复同一搬运模式的核。</p>
+<h3>三片输入的双缓冲核</h3>
+<p>让同一个核负责 24 行、128 列，沿行切成三片。三个片依次使用槽 0、槽 1、槽 0。每个槽装 8 行 FP32 数据，占 <math xmlns="http://www.w3.org/1998/Math/MathML"><mn>8</mn><mo>×</mo><mn>128</mn><mo>×</mo><mn>4</mn><mo>=</mo><mn>4096</mn></math> 字节，两个输入槽共 8 KiB；这里另有输出窗口。DMA 信号量也跟槽配对。下面的循环次数固定为三，Python 会在追踪时展开这三轮。</p>
+<figure><figcaption>提前搬下一片，随后计算当前片</figcaption><pre><code class="language-python"><span class="kw">import</span> jax
+<span class="kw">import</span> jax.numpy <span class="kw">as</span> jnp
+<span class="kw">from</span> jax.experimental <span class="kw">import</span> pallas <span class="kw">as</span> pl
+<span class="kw">from</span> jax.experimental.pallas <span class="kw">import</span> tpu <span class="kw">as</span> tpu
+
+tile = (<span class="nu">8</span>, <span class="nu">128</span>)
+shape = (<span class="nu">24</span>, <span class="nu">128</span>)
+
+<span class="kw">def</span> <span class="fn">three_tiles</span>(src, out, slot0, slot1, sem0, sem1):
+    slots, sems = (slot0, slot1), (sem0, sem1)
+
+    <span class="kw">def</span> <span class="fn">load</span>(k):
+        s = k % <span class="nu">2</span>
+        rows = pl.ds(k * tile[<span class="nu">0</span>], tile[<span class="nu">0</span>])
+        dma = tpu.make_async_copy(src.at[rows, :], slots[s], sems[s])
+        dma.start()
+        <span class="kw">return</span> dma
+
+    current = load(<span class="nu">0</span>)
+    <span class="kw">for</span> k in range(<span class="nu">3</span>):
+        current.wait()
+        <span class="kw">if</span> k + <span class="nu">1</span> &lt; <span class="nu">3</span>:
+            following = load(k + <span class="nu">1</span>)
+        rows = pl.ds(k * tile[<span class="nu">0</span>], tile[<span class="nu">0</span>])
+        out[rows, :] = <span class="nu">2</span> * slots[k % <span class="nu">2</span>][...] + <span class="nu">1</span>
+        <span class="kw">if</span> k + <span class="nu">1</span> &lt; <span class="nu">3</span>:
+            current = following
+
+run = pl.pallas_call(
+    three_tiles, grid=(<span class="nu">1</span>,),
+    in_specs=(pl.BlockSpec(shape, <span class="kw">lambda</span> i: (<span class="nu">0</span>, <span class="nu">0</span>), memory_space=tpu.HBM),),
+    out_specs=pl.BlockSpec(shape, <span class="kw">lambda</span> i: (<span class="nu">0</span>, <span class="nu">0</span>)),
+    out_shape=jax.ShapeDtypeStruct(shape, jnp.float32),
+    scratch_shapes=(tpu.VMEM(tile, jnp.float32), tpu.VMEM(tile, jnp.float32),
+                    tpu.SemaphoreType.DMA, tpu.SemaphoreType.DMA),
+    interpret=tpu.InterpretParams(detect_races=<span class="kw">True</span>),
+)
+x = jnp.arange(<span class="nu">3072</span>, dtype=jnp.float32).reshape(shape)
+y = run(x)
+<span class="kw">assert</span> jnp.array_equal(y, <span class="nu">2</span>*x + <span class="nu">1</span>)
+print(y[::<span class="nu">8</span>, <span class="nu">0</span>].tolist(), y[<span class="nu">7</span>::<span class="nu">8</span>, -<span class="nu">1</span>].tolist())</code></pre></figure>
+<p>先单独启动第 0 片。第 0 轮通过 <code>current.wait()</code> 等槽 0 填好，把第 1 片交给槽 1 的 DMA，再读取槽 0 计算。第 1 轮，槽 0 已读完，可以把第 2 片搬进来；随后读取槽 1。最后一轮只处理槽 0。<code>pl.ds(8, 8)</code> 表示从行 8 开始连续取 8 行，所以中间片的首个输入是 1024，输出 2049。三片首尾输出依次为 (1, 2047)、(2049, 4095)、(4097, 6143)。</p>
+<p>解释模式启用竞争检测后，可核对三片是否取对、槽是否过早被改写。观察硬件上 DMA 与计算重叠了多久，需要看 TPU 的 XProf 时间线。规则的分块还可以交给 <code>pltpu.emit_pipeline</code>，让内层核只写当前窗口的计算；<code>BlockSpec</code> 的 <code>pipeline_mode=pl.Buffered(buffer_count=2)</code> 指定该参数的两个缓冲槽。</p>
 <p class="sources"><a href="https://docs.jax.dev/en/latest/pallas/tpu/pipelining.html">TPU 的流水与缓冲</a> · <a href="https://docs.jax.dev/en/latest/pallas/tpu/details.html">TPU 的 VMEM 约束</a> · <a href="https://github.com/jax-ml/jax/blob/f89b64d60e936e8612f15d8d5dd0c0003d5007fb/jax/_src/pallas/mosaic/primitives.py#L270-L307">Pallas 的 DMA 启动与等待</a></p>
 </section>
 <section id="tpu-08b" data-part="JAX 与 Pallas 算子"><h2>按行 softmax 的向量归约</h2>
