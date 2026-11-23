@@ -484,3 +484,36 @@ article a.line-location, article a.line-location:hover {color:inherit;font-weigh
 .toc-module > .chap { margin-inline-start:6px; padding-inline-start:3px; border-inline-start:2px solid var(--line) }
 .chap > a, .chap > strong { display:block; padding:4px 6px; font-size:13px }
 .chap > .toc { margin-inline-start:5px }
+@media screen {
+  :is(#reader-toc,#catalog-toc) a[aria-current="location"] {
+    color:var(--teal);
+    background:var(--selected);
+    box-shadow:inset 4px 0 var(--teal);
+    border-radius:4px;
+    font-weight:750;
+    text-decoration:none;
+  }
+  #reader-toc .chap > a[aria-current="location"] { padding-inline-start:11px }
+  #reader-toc .toc li:target { border-color:var(--line); background:transparent }
+}
+@media (forced-colors:active) {
+  :is(#reader-toc,#catalog-toc) a[aria-current="location"] { border-inline-start:4px solid Highlight; text-decoration:underline }
+}
+@media screen {
+  html:has(.catalog-layout) { scroll-padding-top:var(--catalog-anchor,82px) }
+  .catalog-layout { display:grid; grid-template-columns:clamp(154px,18vw,212px) minmax(0,1fr); align-items:start; gap:clamp(14px,2vw,28px); margin-top:15px }
+  .catalog-menu { position:sticky; top:var(--catalog-top,68px); z-index:1; background:var(--surface); border:1px solid var(--line); border-radius:8px; padding:5px; min-width:0 }
+  .catalog-menu summary { cursor:pointer; padding:6px 8px; color:var(--deep); font-weight:700; font-size:14px }
+  [data-current-module] { margin-inline-start:8px; font-size:13px; color:var(--teal) }
+  .catalog-menu[open] [data-current-module] { display:none }
+  #catalog-toc { max-height:calc(100dvh - var(--catalog-top,68px) - 64px); overflow:auto; overscroll-behavior:contain; scrollbar-width:thin }
+  #catalog-toc a { display:block; color:var(--muted); padding:7px 10px; line-height:1.5; font-size:14px; text-decoration:none }
+  #catalog-toc a:hover { background:var(--tint); color:var(--teal) }
+  .catalog-groups .group:first-child { margin-top:0 }
+}
+@media screen and (max-width:700px) {
+  .catalog-layout { display:block }
+  .catalog-menu { margin-bottom:10px; box-shadow:0 2px 6px color-mix(in srgb,var(--deep) 8%,transparent) }
+  .catalog-menu[open] #catalog-toc { position:absolute; inset:100% -1px auto; padding:5px; background:var(--surface); border:1px solid var(--line); border-radius:0 0 7px 7px }
+}
+@media print { .catalog-menu { display:none } }

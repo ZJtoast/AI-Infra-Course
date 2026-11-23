@@ -107,6 +107,96 @@ function initBookChapters() {
   window.addEventListener("hashchange", displayChapter);
 }
 initBookChapters();
+function initReadingPosition(panel, article, header, options = {}) {
+  // The book renders one chapter at a time. Only search the stops of that chapter.
+  const chapters = new Map();
+  const byAnchor = new Map();
+  for (const link of panel.querySelectorAll('a[href^="#"]')) {
+    const target = document.getElementById(link.hash.slice(1));
+    if (!target || (!article.contains(target) && target.id !== "main")) continue;
+    const chapter = target.closest(".book-chapter");
+    if (!chapters.has(chapter)) chapters.set(chapter, []);
+    const entry = {link, target};
+    chapters.get(chapter).push(entry);
+    byAnchor.set(target, entry);
+  }
+  let stops = [];
+  let current;
+  let requested;
+  let frame = 0;
+
+  function reveal() {
+    if (!current || panel.hidden) return;
+    const link = current.link;
+    for (let group = link.closest("details"); group && panel.contains(group); group = group.parentElement.closest("details")) {
+      group.open = true;
+    }
+    if (!link.getClientRects().length) return;
+    const row = link.getBoundingClientRect();
+    const bounds = panel.getBoundingClientRect();
+    // Move only the table of contents. The document and keyboard focus stay in place.
+    if (row.top < bounds.top + 6) panel.scrollTop += row.top - bounds.top - 6;
+    else if (row.bottom > bounds.bottom - 6) panel.scrollTop += row.bottom - bounds.bottom + 6;
+  }
+  function select(entry) {
+    if (!entry || entry === current) return;
+    current?.link.removeAttribute("aria-current");
+    current = entry;
+    current.link.setAttribute("aria-current", "location");
+    options.onSelect?.(current.link);
+    reveal();
+  }
+  function update() {
+    frame = 0;
+    if (!stops.length) return;
+    const scrollTop = window.scrollY;
+    const lastScroll = Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
+    // A short final section can share its maximum scroll position with its neighbour.
+    if (requested) {
+      const {target} = requested;
+      const margin = parseFloat(getComputedStyle(target).scrollMarginTop) || 0;
+      const padding = parseFloat(getComputedStyle(document.documentElement).scrollPaddingTop) || 0;
+      const top = target.getBoundingClientRect().top + scrollTop - padding - margin;
+      if (Math.abs(scrollTop - Math.max(0, Math.min(lastScroll, top))) <= 3) {
+        select(requested);
+        return;
+      }
+      requested = null;
+    }
+    const line = (options.readingTop?.() ?? header.getBoundingClientRect().bottom) + 32;
+    let lo = 0, hi = stops.length;
+    while (lo < hi) {
+      const mid = Math.floor((lo + hi) / 2);
+      if (stops[mid].target.getBoundingClientRect().top <= line) lo = mid + 1;
+      else hi = mid;
+    }
+    const atEnd = lastScroll > 0 && scrollTop >= lastScroll - 2;
+    select(stops[atEnd ? stops.length - 1 : Math.max(0, lo - 1)]);
+  }
+  function queue() {
+    if (!frame) frame = requestAnimationFrame(update);
+  }
+  function navigation() {
+    stops = chapters.get(article.querySelector(":scope > .book-chapter:not([hidden])")) || [];
+    let target;
+    try { target = document.getElementById(decodeURIComponent(location.hash.slice(1))); } catch { /* Invalid fragment. */ }
+    requested = byAnchor.get(target);
+    if (requested) select(requested);
+    queue();
+  }
+  window.addEventListener("scroll", queue, {passive: true});
+  window.addEventListener("hashchange", navigation);
+  window.addEventListener("pageshow", navigation);
+  window.addEventListener("resize", queue);
+  new ResizeObserver(queue).observe(article);
+  // Activating a second link to the same fragment does not fire hashchange.
+  panel.addEventListener("click", event => {
+    const link = event.target.closest('a[href^="#"]');
+    if (link && link.hash === location.hash) navigation();
+  });
+  navigation();
+  return reveal;
+}
 function initReaderSidebar() {
   const layout = document.querySelector(".reader .layout");
   if (!layout) return;
@@ -132,6 +222,8 @@ function initReaderSidebar() {
   let width = 0;
   let drag = null;
   let frame = 0;
+  let drawerTarget = null;
+  const revealReadingPosition = initReadingPosition(panel, article, header);
 
   function applyWidth(value) {
     width = Math.max(limits.min, Math.min(limits.max, Math.round(value)));
@@ -166,6 +258,7 @@ function initReaderSidebar() {
     toggle.setAttribute("aria-expanded", String(open));
     toggle.textContent = open ? "收起目录" : "展开目录";
     if (persist && !compact.matches) remember("desktop-open", open);
+    if (open) revealReadingPosition();
   }
   function closeDrawer() {
     display(false);
@@ -182,6 +275,10 @@ function initReaderSidebar() {
     const target = document.getElementById(location.hash.slice(1));
     if (target && panel.contains(target)) returnToIndex(target);
     else if (target && article.contains(target) && compact.matches && shown) display(false);
+    if (drawerTarget && target === drawerTarget) {
+      drawerTarget.focus({preventScroll: true});
+      drawerTarget = null;
+    }
   }
   function finishDrag(event) {
     if (!drag || event.pointerId !== drag.id) return;
@@ -245,7 +342,8 @@ function initReaderSidebar() {
     else if (panel.contains(link) && compact.matches) {
       display(false);
       target.setAttribute("tabindex", "-1");
-      target.focus({preventScroll: true});
+      if (target.closest("[hidden]")) drawerTarget = target;
+      else target.focus({preventScroll: true});
     }
   });
   compact.addEventListener("change", () => {
@@ -259,6 +357,49 @@ function initReaderSidebar() {
   followFragment();
 }
 initReaderSidebar();
+
+function initHomeCatalog() {
+  const panel = document.getElementById("catalog-toc");
+  if (!panel) return;
+  const groups = document.querySelector(".catalog-groups");
+  const menu = panel.closest("details");
+  const summary = menu.querySelector("summary");
+  const label = summary.querySelector("[data-current-module]");
+  const header = document.querySelector(".top");
+  const compact = matchMedia("(max-width: 700px)");
+  function measure() {
+    const top = Math.ceil(header.getBoundingClientRect().height) + 8;
+    document.documentElement.style.setProperty("--catalog-top", top + "px");
+    const space = compact.matches ? summary.offsetHeight + 8 : 0;
+    document.documentElement.style.setProperty("--catalog-anchor", top + space + "px");
+  }
+  function selectLayout() {
+    menu.open = !compact.matches;
+    measure();
+  }
+  selectLayout();
+  compact.addEventListener("change", selectLayout);
+  new ResizeObserver(measure).observe(header);
+  new ResizeObserver(measure).observe(summary);
+  initReadingPosition(panel, groups, header, {
+    onSelect(link) { label.textContent = link.textContent; },
+    readingTop() { return compact.matches ? Math.max(header.getBoundingClientRect().bottom, summary.getBoundingClientRect().bottom) : header.getBoundingClientRect().bottom; }
+  });
+  panel.addEventListener("click", event => {
+    const link = event.target.closest('a[href^="#"]');
+    if (link && compact.matches && !event.ctrlKey && !event.metaKey && !event.altKey && !event.shiftKey) {
+      menu.open = false;
+      document.getElementById(link.hash.slice(1))?.focus({preventScroll: true});
+    }
+  });
+  menu.addEventListener("keydown", event => {
+    if (event.key === "Escape" && menu.open) {
+      menu.open = false;
+      summary.focus({preventScroll: true});
+    }
+  });
+}
+initHomeCatalog();
 
 document.addEventListener("click", async e => {
   const toggle = e.target.closest("[data-toggle-notes]");

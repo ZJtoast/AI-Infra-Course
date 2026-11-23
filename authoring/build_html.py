@@ -346,9 +346,12 @@ def build(chapters, out):
         "{{METRICS}}",
         "".join(f"<span><b>{n}</b> {label}</span>" for n, label in counts),
     ).replace(
+        "<!--MODULE-LINKS-->",
+        "".join(link(f"#module-{i}", group) for i, group in enumerate(groups, 1)),
+    ).replace(
         "<!--GROUPS-->",
         "".join(
-            f'<section class="group" id="module-{i}"><div class="grouphead"><small>模块 {i}</small><h2>{escape(g)}</h2></div><div class="grouprows">'
+            f'<section class="group" id="module-{i}" tabindex="-1"><div class="grouphead"><small>模块 {i}</small><h2>{escape(g)}</h2></div><div class="grouprows">'
             + "".join(map(row, items))
             + "</div></section>"
             for i, (g, items) in enumerate(groups.items(), 1)
