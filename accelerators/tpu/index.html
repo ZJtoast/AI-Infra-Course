@@ -1,6 +1,24 @@
 <!doctype html>
-<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="referrer" content="no-referrer"><meta name="color-scheme" content="light dark"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'; script-src 'unsafe-inline'; font-src 'self'; base-uri 'none'; form-action 'none'"><title>Google TPU 架构与 AI 系统</title><style>@font-face{font-family:BookLatin;src:local("Times New Roman"),local("Liberation Serif");unicode-range:U+0020-024F,U+1E00-1EFF}*{box-sizing:border-box}html{color-scheme:light dark;scroll-padding-top:5rem;--paper:light-dark(#f3f7fc,#101821);--sheet:light-dark(#fff,#182430);--ink:light-dark(#101820,#e6edf4);--muted:light-dark(#43596b,#b3c4d4);--line:light-dark(#b6c9d8,#526475);--accent:light-dark(#165b94,#98d2ff);--tint:light-dark(#eaf3fa,#22384c);--shade:light-dark(#133753,#264b68);--code:light-dark(#eff4f8,#111c26)}html[data-mode=light]{color-scheme:light}html[data-mode=dark]{color-scheme:dark}body{background:var(--paper);color:var(--ink);margin:0;font:1.08rem/1.8 BookLatin,SimHei,"Microsoft YaHei",sans-serif;overflow-wrap:anywhere}a{color:var(--accent);text-underline-offset:.17em}header{position:sticky;top:0;background:var(--sheet);border-bottom:1px solid var(--line);z-index:3}.toolbar,.layout{width:min(100% - 2rem,81rem);margin-inline:auto}.toolbar{min-height:3.35rem;display:flex;align-items:center;justify-content:space-between;gap:1rem}.toolbar a{font-weight:bold;text-decoration:none}.toolbar select{background:var(--sheet);color:var(--ink);border:1px solid var(--line);border-radius:.3rem;padding:.3rem;font:inherit;font-size:.9rem}.layout{display:grid;grid-template-columns:minmax(13rem,17rem) minmax(0,56rem);gap:clamp(1rem,3vw,3rem);justify-content:center;align-items:start}.side{position:sticky;top:4.1rem;max-height:calc(100vh - 5rem);overflow:auto;scrollbar-width:thin;margin-top:1rem;padding:.5rem .7rem .8rem 0}.side>details>summary{font-weight:700;list-style:none;color:var(--shade)}.side .part{margin:.65rem 0 .3rem;font-weight:bold;color:var(--muted);font-size:.95rem}.side ul{border-inline-start:1px solid var(--line);padding:0 0 0 .7rem;margin:0;list-style:none}.side li{margin:.12rem 0}.side a{display:block;text-decoration:none;padding:.12rem .38rem;color:var(--ink);font-size:.96rem;line-height:1.45;border-radius:.22rem}.side a:hover,.side a[aria-current]{background:var(--tint);color:var(--accent)}main{min-width:0;margin:1rem 0 4rem;background:var(--sheet);border:1px solid var(--line);border-radius:.65rem;padding:0 clamp(1rem,3.4vw,3.4rem) 2rem}.intro{padding:2.15rem 0 1.1rem}.intro h1{font-size:clamp(1.85rem,4.4vw,3.35rem);font-weight:700;line-height:1.18;letter-spacing:-.025em;margin:.15rem 0 .65rem;color:var(--ink)}.intro p{color:var(--muted);margin:0}h2{font-size:clamp(1.4rem,2.4vw,1.85rem);line-height:1.35;margin:1.05rem 0 .7rem}h3{font-size:1.18rem;line-height:1.5;margin:1.15rem 0 .4rem}section{border-top:1px solid var(--line);padding:.6rem 0 1.65rem}p{margin:.68rem 0}main p{text-indent:2em}strong,b{font-weight:700}.sources{display:flex;align-items:baseline;gap:.3rem .55rem;flex-wrap:wrap;font-size:.94rem;text-indent:0;color:var(--muted);margin-top:1rem}.sources a{color:var(--accent)}figure{margin:1.2rem 0}figcaption,caption{color:var(--muted);font-size:1rem;line-height:1.55;padding:.35rem 0}img,svg{display:block;max-width:100%;height:auto;margin-inline:auto}svg text{font-family:BookLatin,SimHei,"Microsoft YaHei",sans-serif}.tablewrap,.table-scroll,.equation{max-width:100%;overflow-x:auto;margin:1rem 0}table{border-collapse:collapse;margin:.85rem auto;font:inherit;font-size:1.02rem;line-height:1.5}th,td{padding:.42em .65em;border:1.5px solid var(--line);background:transparent;text-align:center;vertical-align:middle}th{font-weight:700}pre{background:var(--code);border:1px solid var(--line);border-radius:.4rem;max-width:100%;overflow:auto;padding:.85rem 1rem;margin:.7rem 0;font-size:.95rem;line-height:1.6;tab-size:4}code{font-family:Consolas,"Cascadia Code",monospace;font-size:.93em}p code,li code,td code{color:var(--accent)}pre code{font-size:inherit;white-space:pre}math{font-size:1.13em}math[display=block]{font-size:1.24em;margin:.9rem 0}main details{border:1px solid var(--line);border-radius:.4rem;margin:1rem 0;padding:.45rem .8rem}summary{cursor:pointer}main details summary{color:var(--accent);font-weight:700}.flowrow{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:.4rem;margin:.5rem auto}.flowrow span{padding:.25rem .6rem;background:var(--tint);border:1px solid var(--line);border-radius:.25rem}.part-title{margin:1.6rem 0 .4rem;color:var(--accent);font-weight:bold;font-size:1rem;letter-spacing:.06em;text-indent:0}.skip{position:absolute;left:-9999px}.skip:focus{left:1rem;top:.1rem;background:var(--sheet);z-index:9}:focus-visible{outline:2px solid var(--accent);outline-offset:3px}.kw{color:light-dark(#763094,#eba7fc);font-weight:600}.st{color:light-dark(#276b36,#9be4aa)}.cm{color:light-dark(#506477,#acc1cf);font-style:italic}.nu{color:light-dark(#8c4822,#ffbd97)}.fn{color:var(--accent)}.lab{border-left:3px solid var(--accent);background:var(--tint);padding:.65rem 1rem;margin:1rem 0}.lab input{accent-color:var(--accent);max-width:100%}.lab output{font-variant-numeric:tabular-nums}.diagram-light{background:#fff;border-radius:.35rem;padding:.35rem}
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="referrer" content="no-referrer"><meta name="color-scheme" content="light dark"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'; script-src 'unsafe-inline'; font-src 'self'; base-uri 'none'; form-action 'none'"><title>Google TPU 架构与 AI 系统</title><style>@font-face{font-family:BookLatin;src:local("Times New Roman"),local("Liberation Serif");unicode-range:U+0020-024F,U+1E00-1EFF}*{box-sizing:border-box}html{color-scheme:light dark;scroll-padding-top:5rem;--paper:light-dark(#f3f7fc,#101821);--sheet:light-dark(#fff,#182430);--ink:light-dark(#101820,#e6edf4);--muted:light-dark(#43596b,#b3c4d4);--line:light-dark(#b6c9d8,#526475);--accent:light-dark(#165b94,#98d2ff);--tint:light-dark(#eaf3fa,#22384c);--shade:light-dark(#133753,#264b68);--code:light-dark(#eff4f8,#111c26)}html[data-mode=light]{color-scheme:light}html[data-mode=dark]{color-scheme:dark}body{background:var(--paper);color:var(--ink);margin:0;font:1.08rem/1.8 BookLatin,SimHei,"Microsoft YaHei",sans-serif;overflow-wrap:anywhere}a{color:var(--accent);text-underline-offset:.17em}header{position:sticky;top:0;background:var(--sheet);border-bottom:1px solid var(--line);z-index:3}.toolbar,.layout{width:min(100% - 2rem,81rem);margin-inline:auto}.toolbar{min-height:3.35rem;display:flex;align-items:center;justify-content:space-between;gap:1rem}.toolbar a{font-weight:bold;text-decoration:none}.toolbar select{background:var(--sheet);color:var(--ink);border:1px solid var(--line);border-radius:.3rem;padding:.3rem;font:inherit;font-size:.9rem}.layout{display:grid;grid-template-columns:minmax(13rem,17rem) minmax(0,56rem);gap:clamp(1rem,3vw,3rem);justify-content:center;align-items:start}.side{position:sticky;top:4.1rem;max-height:calc(100vh - 5rem);overflow:auto;scrollbar-width:thin;margin-top:1rem;padding:.5rem .7rem .8rem 0}.side>details>summary{font-weight:700;list-style:none;color:var(--shade)}.side .part{margin:.65rem 0 .3rem;font-weight:bold;color:var(--muted);font-size:.95rem}.side ul{border-inline-start:1px solid var(--line);padding:0 0 0 .7rem;margin:0;list-style:none}.side li{margin:.12rem 0}.side a{display:block;text-decoration:none;padding:.12rem .38rem;color:var(--ink);font-size:.96rem;line-height:1.45;border-radius:.22rem}.side a:hover { background:var(--tint); color:var(--accent) }
+.side a[aria-current="location"] {
+  background:var(--tint); color:var(--accent); font-weight:700;
+  box-shadow:inset .22rem 0 var(--accent);
+}
+@media (forced-colors:active) {
+  .side a[aria-current="location"] { outline:2px solid Highlight; outline-offset:-2px }
+}main{min-width:0;margin:1rem 0 4rem;background:var(--sheet);border:1px solid var(--line);border-radius:.65rem;padding:0 clamp(1rem,3.4vw,3.4rem) 2rem}.intro{padding:2.15rem 0 1.1rem}.intro h1{font-size:clamp(1.85rem,4.4vw,3.35rem);font-weight:700;line-height:1.18;letter-spacing:-.025em;margin:.15rem 0 .65rem;color:var(--ink)}.intro p{color:var(--muted);margin:0}h2{font-size:clamp(1.4rem,2.4vw,1.85rem);line-height:1.35;margin:1.05rem 0 .7rem}h3{font-size:1.18rem;line-height:1.5;margin:1.15rem 0 .4rem}section{border-top:1px solid var(--line);padding:.6rem 0 1.65rem}p{margin:.68rem 0}main p{text-indent:2em}strong,b{font-weight:700}.sources{display:flex;align-items:baseline;gap:.3rem .55rem;flex-wrap:wrap;font-size:.94rem;text-indent:0;color:var(--muted);margin-top:1rem}.sources a{color:var(--accent)}figure{margin:1.2rem 0}figcaption,caption{color:var(--muted);font-size:1rem;line-height:1.55;padding:.35rem 0}img,svg{display:block;max-width:100%;height:auto;margin-inline:auto}svg text{font-family:BookLatin,SimHei,"Microsoft YaHei",sans-serif}.tablewrap,.table-scroll,.equation{max-width:100%;overflow-x:auto;margin:1rem 0}table{border-collapse:collapse;margin:.85rem auto;font:inherit;font-size:1.02rem;line-height:1.5}th,td{padding:.42em .65em;border:1.5px solid var(--line);background:transparent;text-align:center;vertical-align:middle}th{font-weight:700}pre{background:var(--code);border:1px solid var(--line);border-radius:.4rem;max-width:100%;overflow:auto;padding:.85rem 1rem;margin:.7rem 0;font-size:.95rem;line-height:1.6;tab-size:4}code{font-family:Consolas,"Cascadia Code",monospace;font-size:.93em}p code,li code,td code{color:var(--accent)}pre code{font-size:inherit;white-space:pre}math{font-size:1.13em}math[display=block]{font-size:1.24em;margin:.9rem 0}main details{border:1px solid var(--line);border-radius:.4rem;margin:1rem 0;padding:.45rem .8rem}summary{cursor:pointer}main details summary{color:var(--accent);font-weight:700}.flowrow{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:.4rem;margin:.5rem auto}.flowrow span{padding:.25rem .6rem;background:var(--tint);border:1px solid var(--line);border-radius:.25rem}.part-title{margin:1.6rem 0 .4rem;color:var(--accent);font-weight:bold;font-size:1rem;letter-spacing:.06em;text-indent:0}.skip{position:absolute;left:-9999px}.skip:focus{left:1rem;top:.1rem;background:var(--sheet);z-index:9}:focus-visible{outline:2px solid var(--accent);outline-offset:3px}.kw{color:light-dark(#763094,#eba7fc);font-weight:600}.st{color:light-dark(#276b36,#9be4aa)}.cm{color:light-dark(#506477,#acc1cf);font-style:italic}.nu{color:light-dark(#8c4822,#ffbd97)}.fn{color:var(--accent)}.lab{border-left:3px solid var(--accent);background:var(--tint);padding:.65rem 1rem;margin:1rem 0}.lab input{accent-color:var(--accent);max-width:100%}.lab output{font-variant-numeric:tabular-nums}.diagram-light{background:#fff;border-radius:.35rem;padding:.35rem}
 @media(max-width:850px){html{scroll-padding-top:3.8rem}.layout{display:block;width:min(100% - 1rem,47rem)}.side{position:static;max-height:none;padding:.4rem .75rem;background:var(--sheet);border:1px solid var(--line);border-radius:.4rem}.side>details>summary{list-style:revert;cursor:pointer}.side nav{max-height:48vh;overflow:auto}.toolbar{width:calc(100% - 1.25rem)}main{margin-top:.6rem}.intro{padding:1.3rem 0 .85rem}section{padding-bottom:1rem}.tablewrap table{min-width:min-content}main details{padding:.4rem .55rem}}
+@media (max-width:850px) {
+  html { scroll-padding-top:calc(var(--header-height,3.35rem) + var(--toc-height,2.7rem) + .6rem) }
+  .side { position:sticky; top:var(--header-height,3.35rem); z-index:2; overflow:visible }
+  .side > details > summary { color:var(--ink) }
+  .side nav {
+    position:absolute; inset-inline:-1px; top:100%; padding:.25rem .75rem .65rem;
+    max-height:min(48vh,calc(100dvh - var(--header-height,3.35rem) - var(--toc-height,2.7rem) - 1rem));
+    background:var(--sheet); border:1px solid var(--line); border-radius:0 0 .4rem .4rem;
+    overscroll-behavior:contain;
+  }
+}
 @media print{html{color-scheme:light}header,.side,.skip,.lab input{display:none}.layout,main{display:block;width:auto;border:0;margin:0;padding:0}.sources{display:block}pre{white-space:pre-wrap}pre code{white-space:pre-wrap}figure,table,details{break-inside:avoid}}</style></head>
 <body id="top"><a class="skip" href="#reader">跳到正文</a><header><div class="toolbar"><a href="../../index.html">AI Infra Course</a><select id="display-mode" aria-label="阅读主题"><option value="auto">跟随系统</option><option value="light">浅色主题</option><option value="dark">深色主题</option></select></div></header><div class="layout"><aside class="side"><details open><summary>本页目录</summary><nav aria-label="Google TPU 课程目录"><div class="part">芯片与数据通路</div><ul><li><a href="#tpu-01">一层神经网络里的 TPU</a></li><li><a href="#tpu-02">脉动阵列的逐拍乘加</a></li><li><a href="#tpu-03">高带宽内存、片上缓冲与芯片代际</a></li><li><a href="#tpu-03b">第八代 TPU 的训练互连与推理互连</a></li><li><a href="#tpu-04">分块复用与显存带宽上界</a></li></ul><div class="part">JAX 与 Pallas 算子</div><ul><li><a href="#tpu-05">JAX 的张量计算与 XLA 编译</a></li><li><a href="#tpu-05b">TorchTPU 的逐算子调试与图编译</a></li><li><a href="#tpu-06">Pallas 的程序网格与数组窗口</a></li><li><a href="#tpu-07">Pallas 分块矩阵乘与 FP32 部分和</a></li><li><a href="#tpu-08">片上双缓冲与窗口大小</a></li><li><a href="#tpu-08b">按行 softmax 的向量归约</a></li></ul><div class="part">多芯片计算</div><ul><li><a href="#tpu-09">TPU 切片、ICI 与数据中心网络</a></li><li><a href="#tpu-10">JAX 设备网格与全局数组的分片</a></li><li><a href="#tpu-11">矩阵分片的归约与集体通信</a></li><li><a href="#tpu-11b">手动分片矩阵乘的局部核与求和</a></li><li><a href="#tpu-12">SparseCore 的嵌入表查找与合并</a></li></ul><div class="part">注意力与推理服务</div><ul><li><a href="#tpu-13">分块注意力的分母与值向量</a></li><li><a href="#tpu-14">长序列的上下文并行与因果负载</a></li><li><a href="#tpu-15">预填充、逐词解码与 KV 容量</a></li><li><a href="#tpu-16">vLLM JAX 的服务进程与变长批次</a></li><li><a href="#tpu-17">独立预填充池与解码池的 KV 交接</a></li><li><a href="#tpu-17b">前缀复用与分离服务的容量边界</a></li><li><a href="#tpu-17c">草稿验证的交付词数与成本</a></li></ul><div class="part">训练系统与性能诊断</div><ul><li><a href="#tpu-18">MaxText 的训练步与目标词</a></li><li><a href="#tpu-18b">Flax NNX 的图像分类与参数更新</a></li><li><a href="#tpu-19">数据并行、状态分片与重计算</a></li><li><a href="#tpu-19b">MaxText 的流水阶段与微批间隙</a></li><li><a href="#tpu-20">Qwix 的量化尺度与点积</a></li><li><a href="#tpu-21">专家路由、变长矩阵乘与回写</a></li><li><a href="#tpu-22">Orbax 检查点与可恢复的训练进度</a></li><li><a href="#tpu-22b">Tunix 的采样、组内奖励与策略更新</a></li></ul><div class="part">实测方法与部署算例</div><ul><li><a href="#tpu-23">XProf 的稳定步骤与时间线采集</a></li><li><a href="#tpu-24">XProf 的热点、内存峰值与诊断顺序</a></li><li><a href="#tpu-25">跨主机输入、批次对齐与设备饥饿</a></li><li><a href="#tpu-26">训练与推理的单芯片预算</a></li><li><a href="#tpu-27">矩阵乘优化前后的对照实验</a></li><li><a href="#tpu-28">Llama 3 70B 在 v5e 上的解码预算</a></li><li><a href="#tpu-29">Llama 3 70B 在 v5p 上的训练量估算</a></li></ul></nav></details></aside><main id="reader"><div class="intro"><h1>Google TPU 架构与 AI 系统</h1><p>从一块矩阵在 TensorCore 中的乘加，读到 JAX 分片、Pallas 内核和多芯片上的训练与推理。</p></div>
 <section id="tpu-01" data-part="芯片与数据通路"><p class="part-title">芯片与数据通路</p><h2>一层神经网络里的 TPU</h2>
@@ -1486,8 +1504,82 @@ print(round(work_per_token * step_tokens / step_seconds / (<span class="nu">6144
 </main></div><script>const root=document.documentElement, mode=document.querySelector('#display-mode'), toc=document.querySelector('.side>details');
 try{const m=localStorage.getItem('accelerator-reader-mode');if(['light','dark'].includes(m)){root.dataset.mode=m;mode.value=m}}catch{}
 mode.addEventListener('change',()=>{root.dataset.mode=mode.value;try{localStorage.setItem('accelerator-reader-mode',mode.value)}catch{}});
-const mobile=matchMedia('(max-width:850px)');function fit(){toc.open=!mobile.matches}fit();mobile.addEventListener('change',fit);
-const links=new Map([...toc.querySelectorAll('a')].map(a=>[a.hash.slice(1),a]));let highlighted;function select(id){if(highlighted)highlighted.removeAttribute('aria-current');highlighted=links.get(id);if(highlighted)highlighted.setAttribute('aria-current','location')}function follow(){select(location.hash.slice(1));}window.addEventListener('hashchange',follow);follow();
-toc.addEventListener('click',e=>{if(mobile.matches&&e.target.closest('a'))toc.open=false});
-if('IntersectionObserver'in window){const seen=new Map;const observer=new IntersectionObserver(es=>{for(const e of es){if(e.isIntersecting)seen.set(e.target.id,e.target);else seen.delete(e.target.id)}const first=[...seen.values()].sort((a,b)=>a.getBoundingClientRect().top-b.getBoundingClientRect().top)[0];if(first)select(first.id)},{rootMargin:'-8% 0px -52% 0px'});document.querySelectorAll('main section[id]').forEach(e=>observer.observe(e))}
+const mobile = matchMedia('(max-width:850px)');
+const sidebar = toc.closest('.side');
+const header = document.querySelector('header');
+const nav = toc.querySelector('nav');
+const links = [...nav.querySelectorAll('a[href^="#"]')];
+const sections = links.map(link => document.getElementById(link.hash.slice(1)));
+let current;
+let frame;
+
+function revealCurrent() {
+  if (!current || !toc.open) return;
+  const panel = mobile.matches ? nav : sidebar;
+  const box = panel.getBoundingClientRect();
+  const item = current.getBoundingClientRect();
+  if (item.top < box.top) panel.scrollTop += item.top - box.top;
+  else if (item.bottom > box.bottom) panel.scrollTop += item.bottom - box.bottom;
+}
+
+function updateSection() {
+  frame = 0;
+  const readingLine = parseFloat(getComputedStyle(root).scrollPaddingTop) + 1;
+  // The last section whose top has reached the space below the reading controls.
+  let low = 0, high = sections.length;
+  while (low < high) {
+    const mid = (low + high) >>> 1;
+    if (sections[mid].getBoundingClientRect().top <= readingLine) low = mid + 1;
+    else high = mid;
+  }
+  const atBottom = Math.ceil(scrollY + innerHeight) >= root.scrollHeight;
+  const next = links[atBottom ? links.length - 1 : Math.max(0, low - 1)];
+  if (next === current) return;
+  current?.removeAttribute('aria-current');
+  current = next;
+  current.setAttribute('aria-current', 'location');
+  revealCurrent();
+}
+
+function scheduleSection() {
+  if (!frame) frame = requestAnimationFrame(updateSection);
+}
+
+function sizeControls() {
+  root.style.setProperty('--header-height', header.offsetHeight + 'px');
+  if (mobile.matches) root.style.setProperty('--toc-height', sidebar.offsetHeight + 'px');
+  scheduleSection();
+}
+
+function fit() {
+  toc.open = !mobile.matches;
+  sizeControls();
+}
+fit();
+mobile.addEventListener('change', fit);
+toc.addEventListener('toggle', revealCurrent);
+toc.addEventListener('click', event => {
+  const link = event.target.closest('a[href^="#"]');
+  if (!link || event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+  if (mobile.matches) toc.open = false;
+  // Let the native link navigate and record history. Move keyboard focus into its destination.
+  const heading = document.getElementById(link.hash.slice(1)).querySelector('h2');
+  requestAnimationFrame(() => {
+    heading.tabIndex = -1;
+    heading.focus({preventScroll:true});
+    scheduleSection();
+  });
+});
+toc.addEventListener('keydown', event => {
+  if (event.key === 'Escape' && mobile.matches && toc.open) {
+    toc.open = false;
+    toc.querySelector('summary').focus({preventScroll:true});
+  }
+});
+window.addEventListener('scroll', scheduleSection, {passive:true});
+window.addEventListener('resize', sizeControls);
+window.addEventListener('hashchange', scheduleSection);
+window.addEventListener('pageshow', scheduleSection);
+const layoutChanges = new ResizeObserver(sizeControls);
+for (const element of [header, sidebar, document.querySelector('main')]) layoutChanges.observe(element);
 for(const table of document.querySelectorAll('main table')){if(!table.closest('.tablewrap,.table-scroll')){const wrap=document.createElement('div');wrap.className='tablewrap';table.before(wrap);wrap.appendChild(table)}}for(const formula of document.querySelectorAll('main math[display="block"]')){if(!formula.closest('.equation,.tablewrap')){const wrap=document.createElement('div');wrap.className='equation';formula.before(wrap);wrap.appendChild(formula)}}</script></body></html>
