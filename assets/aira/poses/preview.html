@@ -35,7 +35,17 @@ const rows=JSON.parse($("rows").textContent),native=JSON.parse($("media").textCo
 const groups=[...new Set(rows.map(r=>r[2]))],ctx=$("screen").getContext("2d");
 for(const name of groups)$("group").add(new Option(name,name));
 const cache=new Map();
-function img(path){if(!cache.has(path)){const im=new Image();cache.set(path,new Promise((resolve,reject)=>{im.onload=()=>resolve(im);im.onerror=()=>{cache.delete(path);reject(Error("无法读取动作图片"));};im.src=path;}));}return cache.get(path);}
+function img(path){
+ const cached=cache.get(path);
+ if(cached){cache.delete(path);cache.set(path,cached);return cached;}
+ const im=new Image();im.decoding="async";
+ const ready=new Promise((ok,fail)=>{im.onload=()=>ok();im.onerror=fail;im.src=path;})
+  .then(async()=>{if(im.decode)await im.decode();return im;})
+  .catch(()=>{if(cache.get(path)===ready)cache.delete(path);throw Error("无法读取动作图片");});
+ cache.set(path,ready);
+ if(cache.size>12)cache.delete(cache.keys().next().value);
+ return ready;
+}
 let selected,ends=[],duration=0,position=0,playing=false,last=0,raf=0,stamp=0,drawn=-1;
 function list(){
  const q=$("query").value.trim().toLowerCase(),g=$("group").value,nav=$("list");nav.replaceChildren();let hits=0;
@@ -67,7 +77,8 @@ async function paint(n){
  if(n===drawn)return;drawn=n;const id=selected[0],token=++stamp,film=native[id],view=$("direction").value;
  try{let image,overlay,w,h,x,y;
  const f=$("rev").checked?24-n:n;
- if(film){const page=Math.floor(n/12);image=await img("data:image/webp;base64,"+film.sheets[page]);w=360;h=336;x=n%4*w;y=Math.floor(n%12/4)*h;}
+ if(film){const page=Math.floor(n/12);image=await img("data:image/webp;base64,"+film.sheets[page]);w=360;h=336;x=n%4*w;y=Math.floor(n%12/4)*h;
+ if(playing && n%12>=6 && film.sheets[page+1])img("data:image/webp;base64,"+film.sheets[page+1]).catch(()=>{});}
  else{image=await img(id+".webp");if(view&&!$("dirlabel").hidden)overlay=await img(id+"-"+view+".webp");w=image.naturalWidth/5;h=image.naturalHeight/5;x=f%5*w;y=Math.floor(f/5)*h;}
  if(token!==stamp)return;
  const c=$("screen"),scale=AiraFraming.scale(id,f);
@@ -88,6 +99,6 @@ $("query").oninput=list;$("group").onchange=list;$("play").onclick=()=>playing?h
 $("direction").onchange=$("rev").onchange=()=>{drawn=-1;paint(Number($("seek").value));};
 document.addEventListener("visibilitychange",()=>{if(document.hidden)halt();});
 window.addEventListener("hashchange",()=>{const row=rows.find(r=>r[0]===location.hash.slice(1));if(row&&row!==selected)choose(row);});
-choose(rows.find(r=>r[0]===location.hash.slice(1))||rows[0]);
+list();choose(rows.find(r=>r[0]===location.hash.slice(1))||rows[0]);
 </script>
 </body></html>
