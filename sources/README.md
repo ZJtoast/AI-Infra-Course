@@ -57,7 +57,7 @@
 - [vllm-project/vllm](https://github.com/vllm-project/vllm/tree/93eeae695f5178eddff728fe50eb18e30c90c33a)　[LICENSE](https://github.com/vllm-project/vllm/blob/93eeae695f5178eddff728fe50eb18e30c90c33a/LICENSE)
 - [volcano-sh/volcano](https://github.com/volcano-sh/volcano/tree/9cca912a5e90fad0f05cf8f72c9d2b8cd0cdf133)　[LICENSE](https://github.com/volcano-sh/volcano/blob/9cca912a5e90fad0f05cf8f72c9d2b8cd0cdf133/LICENSE)
 
-## 第四课注意力内核的固定版本
+## 注意力内核的源码版本
 
 - [Dao-AILab/flash-attention · 6d48e14a](https://github.com/Dao-AILab/flash-attention/blob/6d48e14a6c2f551db96f0badc658a6279a929df3/LICENSE)
 - [Dao-AILab/flash-attention · f63c472c](https://github.com/Dao-AILab/flash-attention/blob/f63c472c4dc19237c0635d6a629df065ff64796e/LICENSE)

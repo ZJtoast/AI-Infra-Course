@@ -20,8 +20,8 @@
   }
 }
 @media print{html{color-scheme:light}header,.side,.skip,.lab input{display:none}.layout,main{display:block;width:auto;border:0;margin:0;padding:0}.sources{display:block}pre{white-space:pre-wrap}pre code{white-space:pre-wrap}figure,table,details{break-inside:avoid}}</style><link rel="stylesheet" href="../../assets/aira/aira.css?v=dc2057b169f7"></head>
-<body id="top"><a class="skip" href="#reader">跳到正文</a><header><div class="toolbar"><a href="../../index.html">AI Infra Course</a><select id="display-mode" aria-label="阅读主题"><option value="auto">跟随系统</option><option value="light">浅色主题</option><option value="dark">深色主题</option></select></div></header><div class="layout"><aside class="side"><details open><summary>本页目录</summary><nav aria-label="Google TPU 课程目录"><div class="part">芯片与数据通路</div><ul><li><a href="#tpu-01">一层神经网络里的 TPU</a></li><li><a href="#tpu-02">脉动阵列的逐拍乘加</a></li><li><a href="#tpu-03">高带宽内存、片上缓冲与芯片代际</a></li><li><a href="#tpu-03b">第八代 TPU 的训练互连与推理互连</a></li><li><a href="#tpu-04">分块复用与显存带宽上界</a></li></ul><div class="part">JAX 与 Pallas 算子</div><ul><li><a href="#tpu-05">JAX 的张量计算与 XLA 编译</a></li><li><a href="#tpu-05b">TorchTPU 的逐算子调试与图编译</a></li><li><a href="#tpu-06">Pallas 的程序网格与数组窗口</a></li><li><a href="#tpu-07">Pallas 分块矩阵乘与 FP32 部分和</a></li><li><a href="#tpu-08">片上双缓冲与窗口大小</a></li><li><a href="#tpu-08b">按行 softmax 的向量归约</a></li><li><a href="#tpu-row-sums">跨列块的行归约与部分和</a></li><li><a href="#tpu-rms">RMSNorm 的行统计与通道增益</a></li><li><a href="#tpu-convolution">二维卷积的图像窗口与权重轴</a></li><li><a href="#tpu-pooling">滑窗最大池化与重叠梯度</a></li></ul><div class="part">多芯片计算</div><ul><li><a href="#tpu-09">TPU 切片、ICI 与数据中心网络</a></li><li><a href="#tpu-10">JAX 设备网格与全局数组的分片</a></li><li><a href="#tpu-11">矩阵分片的归约与集体通信</a></li><li><a href="#tpu-11b">手动分片矩阵乘的局部核与求和</a></li><li><a href="#tpu-12">SparseCore 的嵌入表查找与合并</a></li><li><a href="#tpu-gather">推荐特征的 gather 与 scatter-add</a></li></ul><div class="part">注意力与推理服务</div><ul><li><a href="#tpu-13">分块注意力的分母与值向量</a></li><li><a href="#tpu-splash">SplashAttention 的因果块与归一化边界</a></li><li><a href="#tpu-14">长序列的上下文并行与因果负载</a></li><li><a href="#tpu-15">预填充、逐词解码与 KV 容量</a></li><li><a href="#tpu-16">vLLM JAX 的服务进程与变长批次</a></li><li><a href="#tpu-17">独立预填充池与解码池的 KV 交接</a></li><li><a href="#tpu-17b">前缀复用与分离服务的容量边界</a></li><li><a href="#tpu-17c">草稿验证的交付词数与成本</a></li></ul><div class="part">训练系统与性能诊断</div><ul><li><a href="#tpu-18">MaxText 的训练步与目标词</a></li><li><a href="#tpu-18b">Flax NNX 的图像分类与参数更新</a></li><li><a href="#tpu-19">数据并行、状态分片与重计算</a></li><li><a href="#tpu-19b">MaxText 的流水阶段与微批间隙</a></li><li><a href="#tpu-20">Qwix 的量化尺度与点积</a></li><li><a href="#tpu-21">专家路由、变长矩阵乘与回写</a></li><li><a href="#tpu-22">Orbax 检查点与可恢复的训练进度</a></li><li><a href="#tpu-22b">Tunix 的采样、组内奖励与策略更新</a></li></ul><div class="part">实测方法与部署算例</div><ul><li><a href="#tpu-23">XProf 的稳定步骤与时间线采集</a></li><li><a href="#tpu-24">XProf 的热点、内存峰值与诊断顺序</a></li><li><a href="#tpu-25">跨主机输入、批次对齐与设备饥饿</a></li><li><a href="#tpu-26">训练与推理的单芯片预算</a></li><li><a href="#tpu-27">矩阵乘优化前后的对照实验</a></li><li><a href="#tpu-28">Llama 3 70B 在 v5e 上的解码预算</a></li><li><a href="#tpu-29">Llama 3 70B 在 v5p 上的训练量估算</a></li></ul><div class="part">NVIDIA 工作负载的 TPU 迁移</div><ul><li><a href="#tpu-port-training">PyTorch 训练步的设备与编译后端</a></li><li><a href="#tpu-port-vision">图像模型的卷积权重与通道布局</a></li><li><a href="#tpu-port-kernel">Triton 指针内核与 Pallas 窗口内核</a></li><li><a href="#tpu-port-distributed">NCCL 与 TorchTPU 的进程组归约</a></li><li><a href="#tpu-port-graph">图神经网络的邻居聚合与变长边表</a></li><li><a href="#tpu-port-attention">语言模型注意力的轴次序与因果掩码</a></li><li><a href="#tpu-port-serving">vLLM 推理服务的模型、请求与吞吐验收</a></li></ul></nav></details></aside><main id="reader"><div class="intro"><h1>Google TPU 架构与 AI 系统</h1><p>从一块矩阵在 TensorCore 中的乘加，读到 JAX 分片、Pallas 内核和多芯片上的训练与推理。</p></div>
-<section id="tpu-01" data-part="芯片与数据通路"><p class="part-title">芯片与数据通路</p><h2>一层神经网络里的 TPU</h2>
+<body id="top"><a class="skip" href="#reader">跳到正文</a><header><div class="toolbar"><a href="../../index.html">AI Infra Course</a><select id="display-mode" aria-label="阅读主题"><option value="auto">跟随系统</option><option value="light">浅色主题</option><option value="dark">深色主题</option></select></div></header><div class="layout"><aside class="side"><details open><summary>本页目录</summary><nav aria-label="Google TPU 课程目录"><div class="part">芯片与数据通路</div><ul><li><a href="#tpu-01">TPU 上的线性层计算</a></li><li><a href="#tpu-02">脉动阵列的逐拍乘加</a></li><li><a href="#tpu-03">高带宽内存、片上缓冲与芯片代际</a></li><li><a href="#tpu-03b">第八代 TPU 的训练互连与推理互连</a></li><li><a href="#tpu-04">分块复用与显存带宽上界</a></li></ul><div class="part">JAX 与 Pallas 算子</div><ul><li><a href="#tpu-05">JAX 的张量计算与 XLA 编译</a></li><li><a href="#tpu-05b">TorchTPU 的逐算子调试与图编译</a></li><li><a href="#tpu-06">Pallas 的程序网格与数组窗口</a></li><li><a href="#tpu-07">Pallas 分块矩阵乘与 FP32 部分和</a></li><li><a href="#tpu-08">片上双缓冲与窗口大小</a></li><li><a href="#tpu-08b">按行 softmax 的向量归约</a></li><li><a href="#tpu-row-sums">跨列块的行归约与部分和</a></li><li><a href="#tpu-rms">RMSNorm 的行统计与通道增益</a></li><li><a href="#tpu-convolution">二维卷积的图像窗口与权重轴</a></li><li><a href="#tpu-pooling">滑窗最大池化与重叠梯度</a></li></ul><div class="part">多芯片计算</div><ul><li><a href="#tpu-09">TPU 切片、ICI 与数据中心网络</a></li><li><a href="#tpu-10">JAX 设备网格与全局数组的分片</a></li><li><a href="#tpu-11">矩阵分片的归约与集体通信</a></li><li><a href="#tpu-11b">手动分片矩阵乘的局部核与求和</a></li><li><a href="#tpu-12">SparseCore 的嵌入表查找与合并</a></li><li><a href="#tpu-gather">推荐特征的 gather 与 scatter-add</a></li></ul><div class="part">注意力与推理服务</div><ul><li><a href="#tpu-13">分块注意力的分母与值向量</a></li><li><a href="#tpu-splash">SplashAttention 的因果块与归一化边界</a></li><li><a href="#tpu-14">长序列的上下文并行与因果负载</a></li><li><a href="#tpu-15">预填充、逐词解码与 KV 容量</a></li><li><a href="#tpu-16">vLLM JAX 的服务进程与变长批次</a></li><li><a href="#tpu-17">独立预填充池与解码池的 KV 交接</a></li><li><a href="#tpu-17b">前缀复用与分离服务的容量边界</a></li><li><a href="#tpu-17c">草稿验证的交付词数与成本</a></li></ul><div class="part">训练系统与性能诊断</div><ul><li><a href="#tpu-18">MaxText 的训练步与目标词</a></li><li><a href="#tpu-18b">Flax NNX 的图像分类与参数更新</a></li><li><a href="#tpu-19">数据并行、状态分片与重计算</a></li><li><a href="#tpu-19b">MaxText 的流水阶段与微批间隙</a></li><li><a href="#tpu-20">Qwix 的量化尺度与点积</a></li><li><a href="#tpu-21">专家路由、变长矩阵乘与回写</a></li><li><a href="#tpu-22">Orbax 检查点与可恢复的训练进度</a></li><li><a href="#tpu-22b">Tunix 的采样、组内奖励与策略更新</a></li></ul><div class="part">实测方法与部署算例</div><ul><li><a href="#tpu-23">XProf 的稳定步骤与时间线采集</a></li><li><a href="#tpu-24">XProf 的热点、内存峰值与诊断顺序</a></li><li><a href="#tpu-25">跨主机输入、批次对齐与设备饥饿</a></li><li><a href="#tpu-26">训练与推理的单芯片预算</a></li><li><a href="#tpu-27">矩阵乘优化前后的对照实验</a></li><li><a href="#tpu-28">Llama 3 70B 在 v5e 上的解码预算</a></li><li><a href="#tpu-29">Llama 3 70B 在 v5p 上的训练量估算</a></li></ul><div class="part">NVIDIA 工作负载的 TPU 迁移</div><ul><li><a href="#tpu-port-training">PyTorch 训练步的设备与编译后端</a></li><li><a href="#tpu-port-vision">图像模型的卷积权重与通道布局</a></li><li><a href="#tpu-port-kernel">Triton 指针内核与 Pallas 窗口内核</a></li><li><a href="#tpu-port-distributed">NCCL 与 TorchTPU 的进程组归约</a></li><li><a href="#tpu-port-graph">图神经网络的邻居聚合与变长边表</a></li><li><a href="#tpu-port-attention">语言模型注意力的轴次序与因果掩码</a></li><li><a href="#tpu-port-serving">vLLM 推理服务的模型、请求与吞吐验收</a></li></ul></nav></details></aside><main id="reader"><div class="intro"><h1>Google TPU 架构与 AI 系统</h1><p>从一块矩阵在 TensorCore 中的乘加，读到 JAX 分片、Pallas 内核和多芯片上的训练与推理。</p></div>
+<section id="tpu-01" data-part="芯片与数据通路"><p class="part-title">芯片与数据通路</p><h2>TPU 上的线性层计算</h2>
 <p>给语言模型两个词，每个词暂用三个数表示。线性层把三个数混合成两个新数，下一层据此继续计算。Google 的张量处理器（TPU）专门为这类重复出现的数组运算设计。主机 CPU 负责读取样本、运行 Python、提交任务。TPU 接手已经编译好的计算，在芯片旁的高带宽内存（HBM）里保存输入、权重和结果。</p>
 <p>把两个词写成矩阵 <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mi>X</mi></mrow></math> 的两行，把混合规则写成权重 <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mi>W</mi></mrow></math> 的两列。每个输出由一行输入和一列权重对位相乘再相加。下式的示例数值取自教学设定，两行分别对应两个词。</p>
 <div class="equation"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><mrow><mi>X</mi><mo>&#x0003D;</mo><mo>&#x00028;</mo><mtable><mtr><mtd><mn>1</mn></mtd><mtd><mn>2</mn></mtd><mtd><mn>3</mn></mtd></mtr><mtr><mtd><mn>0</mn></mtd><mtd><mn>1</mn></mtd><mtd><mn>2</mn></mtd></mtr></mtable><mo>&#x00029;</mo><mo>&#x0002C;</mo><mspace width="1em" /><mi>W</mi><mo>&#x0003D;</mo><mo>&#x00028;</mo><mtable><mtr><mtd><mn>1</mn></mtd><mtd><mn>0</mn></mtd></mtr><mtr><mtd><mn>2</mn></mtd><mtd><mo>&#x02212;</mo><mn>1</mn></mtd></mtr><mtr><mtd><mn>0</mn></mtd><mtd><mn>1</mn></mtd></mtr></mtable><mo>&#x00029;</mo><mo>&#x0002C;</mo><mspace width="1em" /><mi>X</mi><mi>W</mi><mo>&#x0003D;</mo><mo>&#x00028;</mo><mtable><mtr><mtd><mn>5</mn></mtd><mtd><mn>1</mn></mtd></mtr><mtr><mtd><mn>2</mn></mtd><mtd><mn>1</mn></mtd></mtr></mtable><mo>&#x00029;</mo></mrow></math></div>
@@ -57,9 +57,9 @@ print(jax.make_jaxpr(layer)(x, w, b))</code></pre></figure>
 <p>将本例代进去：<code>a</code> 是 X，秩为 2，因此左边取轴 1。<code>b</code> 是 W，秩也为 2，<code>b_is_mat</code> 为真，参与整数运算相当于 1，所以右边取轴 0。两个矩阵没有额外批次轴。打印出的 <code>dimension_numbers=(([1], [0]), ([], []))</code> 就是这个选择。第一对括号里的两条轴各长 3；沿这两条轴求和，才得到表中四个格子。</p>
 <p>在同一段输出里，紧跟点积的 <code>broadcast_in_dim</code> 把偏置标到输出轴 1，<code>add</code> 对两行实施相同偏移，ReLU 内部的 <code>max</code> 则逐格与零比较。这里观察的是程序表达的计算。到了 TPU 上，矩阵乘单元可以成批完成点积，向量单元适合处理后续逐元素计算。要知道编译后的程序有没有把中间结果写回 HBM，需要进一步看编译结果和设备记录。</p>
 <h3>输入改动与误差定位</h3>
-<details><summary>验算：把乙的第三个输入从 2 改成 4，哪些输出会变？</summary><p>甲的输入与权重都未变，输出仍为 [2, 2]。乙的第 0 列给第三分量的权重是 0，点积仍为 2，加偏置为 −1，激活后为 0。乙的第 1 列给第三分量的权重是 1，点积从 1 增至 3，加偏置后为 4，输出变为 [0, 4]。程序里把 x 的最后一项改成 4，并相应修改断言即可验证。</p></details>
+<details><summary>输入特征变化对输出的影响</summary><p>把乙的第三个输入从 2 改成 4，哪些输出会变？</p><p>甲的输入与权重都未变，输出仍为 [2, 2]。乙的第 0 列给第三分量的权重是 0，点积仍为 2，加偏置为 −1，激活后为 0。乙的第 1 列给第三分量的权重是 1，点积从 1 增至 3，加偏置后为 4，输出变为 [0, 4]。程序里把 x 的最后一项改成 4，并相应修改断言即可验证。</p></details>
 <p>如果第一轮看见乙的第 0 格是 −1，说明点积和偏置已走完，接下来应查激活；如果点积本身已经错，先打印 <code>x @ w</code> 并查表中的行列配对。逐阶段保留一次小输入的中间值，比只盯最终张量更容易定位出错的那一行。</p>
-<h3>主机取回一个预测值</h3><p>把这一层封装成 JAX 函数后，Python 可以先拿到一个指向设备结果的数组对象。打印数组中的具体数值时，主机得等 TPU 做完乘加、偏置和激活，再从设备取回数值。若要量出这一层实际耗时，在返回的数组上调用 <code>block_until_ready()</code>，把计时终点放到计算完成之后。只想把结果交给设备上的下一层时，直接传这个数组即可。</p>
+<h3>JAX 设备结果的主机读取与同步</h3><p>把这一层封装成 JAX 函数后，Python 可以先拿到一个指向设备结果的数组对象。打印数组中的具体数值时，主机得等 TPU 做完乘加、偏置和激活，再从设备取回数值。若要量出这一层实际耗时，在返回的数组上调用 <code>block_until_ready()</code>，把计时终点放到计算完成之后。只想把结果交给设备上的下一层时，直接传这个数组即可。</p>
 <p class="sources"><a href="https://docs.cloud.google.com/tpu/docs/system-architecture-tpu-vm">Google Cloud 的 TPU 系统结构</a> · <a href="https://jax-ml.github.io/scaling-book/tpus/">JAX TPU 教材的芯片结构图</a> · <a href="https://github.com/jax-ml/jax/blob/jax-v0.12.1/jax/_src/numpy/tensor_contractions.py#L273-L277">JAX 0.12.1 的 matmul 实现</a></p>
 </section>
 <section id="tpu-02" data-part="芯片与数据通路"><h2>脉动阵列的逐拍乘加</h2>
@@ -92,7 +92,7 @@ active = []
 <h3>填充、排空与分块形状</h3>
 <p>四个单元一共经历四拍，共有 16 个“格 × 拍”位置，真正乘加的次数按拍数是 1、3、3、1，共 8 次。教学阵列这个独立小任务的有效占用是 8/16。若保留同一阵列而将归约长度从 2 加到 8，每格要积 8 项，右下格比左上格晚 2 拍完成，共 10 拍，32 次有效乘加占 40 个位置。这说明长一点的连续工作可以摊薄开始与结束的空档。</p>
 <p>回到 TPU 的矩阵乘，程序提供输入形状和缩并维度，后端决定真实硬件的布局、装载及调度。模型里的 50% 和 80% 都以这幅输出驻留示意为前提。要排查真实矩阵乘的效率，先看工作负载的行数、列数与归约长度，再看编译器采用的分块和设备记录。仅凭 MXU 的阵列边长，算不出这个 Python 程序在 v6e 上要跑多少拍。</p>
-<details><summary>练习：第 3 拍为何读不到 A 的第一行第三个数？</summary><p>左上格在第 3 拍对应程序的 tick=2，row=col=0，得到 k=2。第一行只有下标 0、1，因此该格已经完成，只保留 19。右下格在同一拍的 k=0，刚好开始第一项。</p></details>
+<details><summary>脉动阵列的输入时序</summary><p>第 3 拍为何读不到 A 的第一行第三个数？</p><p>左上格在第 3 拍对应程序的 tick=2，row=col=0，得到 k=2。第一行只有下标 0、1，因此该格已经完成，只保留 19。右下格在同一拍的 k=0，刚好开始第一项。</p></details>
 <p>还可以从阵列边界数一遍数据。两张 2×2 矩阵共有八个输入数，每个数从对应边界进入一次；跨到相邻格后再参加一次乘加，八次乘加共用掉十六个操作数。若把两列权重分开计算且丢弃先前的输入，同一行的两个输入就得再取一次。这正是把相邻输出放进同一块阵列能省下的读取。</p>
 <div id="new-lab-tpu-02">
 <h3>MXU 中沿列传递的部分和</h3>
@@ -111,12 +111,12 @@ active = []
 <div class="tablewrap"><table><thead><tr><th>云端芯片</th><th>单芯片 BF16 峰值（TFLOP/s）</th><th>单芯片 HBM 容量</th><th>HBM 带宽（GB/s）</th><th>读数时的硬件背景</th></tr></thead><tbody><tr><td>v5e</td><td>197</td><td>16 GiB</td><td>819</td><td>单 TensorCore，二维芯片互连</td></tr><tr><td>v5p</td><td>459</td><td>95 GiB</td><td>2,765</td><td>双 TensorCore，面向较大规模训练的三维互连</td></tr><tr><td>v6e（Trillium）</td><td>918</td><td>32 GiB</td><td>1,638</td><td>单 TensorCore，两个 256 × 256 MXU</td></tr><tr><td>TPU7x（Ironwood）</td><td>2,307</td><td>192 GiB</td><td>7,380</td><td>双 TensorCore，适合容纳更大的权重和缓存</td></tr></tbody></table></div>
 <p>峰值按一颗物理芯片计，带宽列使用十进制 GB/s，容量列沿用各云端规格表的 GiB。比如同一份 18 GiB 的权重可以装入单颗 v6e 的理论容量，却比单颗 v5e 的全部 HBM 还大。模型运行还需给缓存、激活和临时缓冲留空间。若查的是 JAX 的硬件表，要先看表头的 <em>per TensorCore</em>。例如表中 7X 每个 TensorCore 的 VMEM 为 64 MiB，芯片内有两核，单个核内的缓冲方案仍应按 64 MiB 安排。</p>
 <p>JAX 的 Pallas 硬件表还分别列出第八代 8I 和 8T。两者每芯片分别有两个和一个 TensorCore，每个 TensorCore 的 VMEM 分别为 192 MiB 和 128 MiB。移植一个双缓冲内核时，先按目标核容量重新计算两个输入槽、输出和临时变量的总和，然后再比较它们的计算峰值。</p>
-<h3>从设备数组到运算单元的一个窗口</h3>
+<h3>矩阵分块的显存读取与片上缓冲</h3>
 <p>以两个 BF16 输入矩阵的逐项加法为例。设每个矩阵有 1,024 行、1,024 列，元素占 2 字节，因此每个完整输入占 2 MiB。只计算左上角 128 行、128 列时，每个输入窗口是 16,384 个数，占 32 KiB。两扇输入窗口送入 VMEM 后，向量指令取出对应位置相加，把结果装进输出窗口，最后把这 32 KiB 送回设备数组。若左输入固定为 3、右输入固定为 4，输出窗口的每格应是 7。</p>
 <p>在一行分成多个列块的矩阵中，左上角的 128 × 128 个数在行优先的整块数组里分散为 128 段。相邻两段的起点隔着原矩阵一整行的跨度。本例是一行 1,024 个元素，跨度为 2,048 字节。将窗口在逻辑上看作一个方块，并不要求它在 HBM 中恰好是一整段连续字节。Pallas 的块规格描述这个窗口的位置与形状，后端据此安排搬运。</p>
 <div class="tablewrap"><table><caption>按同一块数据的生命周期核算字节</caption><thead><tr><th scope="col">核算对象</th><th scope="col">计算方法</th><th scope="col">结果</th></tr></thead><tbody><tr><td>两个 HBM 输入的有效读取</td><td><math xmlns="http://www.w3.org/1998/Math/MathML"><mn>2</mn><mo>×</mo><mn>1024</mn><mo>×</mo><mn>1024</mn><mo>×</mo><mn>2</mn></math></td><td>4 MiB</td></tr><tr><td>一个 HBM 输出的有效写回</td><td><math xmlns="http://www.w3.org/1998/Math/MathML"><mn>1024</mn><mo>×</mo><mn>1024</mn><mo>×</mo><mn>2</mn></math></td><td>2 MiB</td></tr><tr><td>一个窗口的两份输入和一份输出</td><td><math xmlns="http://www.w3.org/1998/Math/MathML"><mn>3</mn><mo>×</mo><mn>128</mn><mo>×</mo><mn>128</mn><mo>×</mo><mn>2</mn></math></td><td>96 KiB</td></tr><tr><td>两份输入各准备两槽，输出留一槽</td><td><math xmlns="http://www.w3.org/1998/Math/MathML"><mo>(</mo><mn>2</mn><mo>×</mo><mn>2</mn><mo>+</mo><mn>1</mn><mo>)</mo><mo>×</mo><mn>32</mn></math></td><td>160 KiB</td></tr></tbody></table></div>
 <p>前两项按整道算子的总流量计，后两项按某一时刻的片上占用计。如果下一块要等上一块算完才开始搬入，运算单元会闲着。双缓冲把下一块放入另一槽，代价是两份输入各多占 32 KiB。要是计算本身已很短，先测出搬运窗口与计算窗口重叠了多少，再决定是否值得继续加槽。</p>
-<h3>按 TensorCore 查询片上容量</h3>
+<h3>单个 TensorCore 的片上存储容量</h3>
 <figure><figcaption>JAX 0.12.1 的硬件规格查询，查询型号表可在 CPU 上运行</figcaption><pre><code class="language-python"><span class="kw">from</span> jax.experimental.pallas <span class="kw">import</span> tpu <span class="kw">as</span> pltpu
 
 <span class="kw">for</span> chip in [pltpu.ChipVersion.TPU_V5E, pltpu.ChipVersion.TPU_V5P,
@@ -127,7 +127,7 @@ active = []
 <h3>容量上限与带宽下界</h3>
 <p>先用容量判断任务能否装下，再用带宽估算搬一次要多久。假设权重为 18 GiB，v6e 的 32 GiB 物理 HBM 中，用户可分配 31.25 GiB。扣除权重剩 13.25 GiB，再预留 3 GiB 给运行时及工作区，给缓存和其他常驻张量的预算为 10.25 GiB。若一次前向真的必须从 HBM 读完这 18 GiB 权重，按 1,638 GB/s 读取的理想时间约为 11.8 毫秒。这里先用 <math xmlns="http://www.w3.org/1998/Math/MathML"><mn>18</mn><mo>×</mo><mn>1024</mn><mo>×</mo><mn>1024</mn><mo>×</mo><mn>1024</mn></math> 换成字节，再除每秒 1,638×10⁹ 字节。容量用 GiB、带宽用 GB/s，两者的换算基数不同。</p>
 <p>多个词一起参与矩阵乘时，可以让一片权重服务多行输入。总 HBM 容量没有变化，分摊到每个词的权重流量却会改变。下一次看设备规格时，把“常驻多少、此次搬多少、哪些片能重复使用”分别写在三个位置，才容易说明换芯片或改变分块究竟改善哪一项。</p>
-<details><summary>练习：输出也改成双槽，但运算改用 FP32</summary><p>每个窗口有 16,384 个元素，FP32 每窗 64 KiB。两路输入加一路输出，每路两槽，总计 6 × 64 = 384 KiB。整矩阵一次读两份写一份的有效流量也翻倍，变为 12 MiB。槽数影响并发存活的数据量，数据类型同时影响流量和容量。</p></details>
+<details><summary>双缓冲与 FP32 输出的片上容量</summary><p>输出也改成双槽，但运算改用 FP32</p><p>每个窗口有 16,384 个元素，FP32 每窗 64 KiB。两路输入加一路输出，每路两槽，总计 6 × 64 = 384 KiB。整矩阵一次读两份写一份的有效流量也翻倍，变为 12 MiB。槽数影响并发存活的数据量，数据类型同时影响流量和容量。</p></details>
 <h3>同一线性层里的标量、向量和矩阵运算</h3>
 <p>算一层线性变换时，三种工作落在不同位置。先按块号找当前应读的输入行和权重列，这些小整数用来计算地址、控制循环，由标量单元处理。矩阵乘单元（MXU）负责成片的点积，一次产生一个输出块的许多部分和。随后加偏置、比较零值做 ReLU，这些操作只需把同一列的偏置逐项加到多行输出，再逐项取较大值，适合向量单元（VPU）。一个 TensorCore 同时拥有这几类部件。</p>
 <p>例如一行点积给出 (5, 1)，偏置是 (−3, 1)。这一行经过向量加法成为 (2, 2)，再取 ReLU 仍是 (2, 2)。矩阵乘输出在这里是下一段向量运算的输入。若两段能在同一片上窗口内衔接，只需把最终两项写回 HBM。量化、转置或布局转换若要求另一个物理排布，实际的数据路径还要看编译器为该形状生成的程序。</p>
@@ -149,9 +149,9 @@ active = []
 <p>Google 的 8t 侧重大规模预训练，使用三维环面互连。8i 的 Boardfly 将芯片先连成板，再按板和组扩大互连。官方结构图从 4 颗芯片组成的一块板画起，8 块板成一组，共 32 颗；36 组合在一起，对应 1,152 个物理芯片位置。Google 在同一说明中给出的活跃芯片上限是 1,024 颗。与单纯沿网格逐跳前进相比，组间长距离链路减少了跨组消息必须转发的次数。8i 也增加了用于集合通信的 CAE。面对一个逐层等待专家交换的推理作业，较短的传输路径和通信处理能力都值得单独量测。</p>
 <div class="tablewrap"><table><thead><tr><th>官方 8t、8i 技术介绍的单芯片口径</th><th>8t</th><th>8i</th></tr></thead><tbody><tr><td>主要负载</td><td>大规模预训练</td><td>采样、服务和推理</td></tr><tr><td>互连</td><td>三维环面</td><td>分层 Boardfly</td></tr><tr><td>HBM 带宽</td><td>6,528 GB/s</td><td>8,601 GB/s</td></tr><tr><td>片上 VMEM（官方表的 MB 记法）</td><td>128 MB</td><td>384 MB</td></tr></tbody></table></div>
 <p>若只读 1 GB 连续数据，按表中带宽下界分别约为 0.153 ms、0.116 ms。跨芯片发一条小消息还涉及固定延迟，不能用这组 HBM 带宽估计。Google 随后公布的 8tx 沿用 8t 芯片，面向机密计算配置系统；8i Max 采用双芯片系统面向大上下文。选型时先明确对照的是一颗芯片、一套系统还是整个机架。</p>
-<h3>从芯片坐标算出一条环面路径</h3>
+<h3>环面拓扑的芯片坐标与路由跳数</h3>
 <p>把 8t 的三维环面想成三组首尾相接的轨道，每颗芯片有三个坐标，每一步沿一个方向去相邻芯片。Google 用 8 × 8 × 16、共 1,024 颗芯片的布局比较两种拓扑。发端取 (0, 0, 0)，收端取 (7, 0, 0)。沿第一维正走要走七步，反走一步就能绕过边界到达。若收端改为 (4, 4, 8)，三个坐标都相隔各自环长的一半。最短路径也要走 4、4、8 步，共 16 跳。这里每跳是在两颗相邻芯片间经过一条边。</p>
-<figure><figcaption>给定两组坐标，按官方环面示例计算最短跳数</figcaption><pre><code class="language-python"><span class="kw">def</span> <span class="fn">hops</span>(start, end, lengths):
+<figure><figcaption>环面拓扑的最短路由跳数</figcaption><pre><code class="language-python"><span class="kw">def</span> <span class="fn">hops</span>(start, end, lengths):
     pieces = []
     <span class="kw">for</span> a, b, length in zip(start, end, lengths):
         forward = abs(a - b)                <span class="cm"># 直接走过的边数</span>
@@ -165,9 +165,9 @@ active = []
 <p>沿官方图 5 放大。先在一块板内圈出 4 颗芯片，每颗与另外三颗直接相连。再把一块板当成一个方框，8 个方框用铜缆互连形成一组；需要离开本组的流量还会进入光路交换机（OCS）。所以“组间直连”描述的是组这一层级，消息仍可能先从源芯片到合适的出口，再从目的组入口走到目标芯片。文档给出的同规模网络直径是 7 跳。</p>
 <div class="tablewrap"><table><caption>同一消息按目的位置划分的三种路线</caption><thead><tr><th scope="col">目的位置</th><th scope="col">路径先后</th><th scope="col">应观察的量</th></tr></thead><tbody><tr><td>同一块板</td><td>源芯片、板内 ICI、目的芯片</td><td>单条消息完成时间</td></tr><tr><td>同组的另一板</td><td>源板出口、组内铜缆、目的板</td><td>是否有多条流量争用同一出口</td></tr><tr><td>另一组</td><td>离开源组、通过组间光连接、进入目的组</td><td>远端最慢一条消息和整组等待时间</td></tr></tbody></table></div>
 <p>一颗芯片的矩阵乘做完以后，可能还只得到一部分输出。例如两颗芯片各算出同一输出行的部分和 [2, 4] 和 [3, 1]，逐项相加后才得到 [5, 5]，两端都需要这个结果时可用归约并分发的集合操作。8i 上的 CAE 专为这类归约与同步加速。另一个场景是专家模型把 token 送到持有相应专家的芯片，多对多交换的重点是每一份输入都能到达指定目的地。CAE 的归约与 Boardfly 的消息路径分别作用于不同步骤。</p>
-<h3>训练批量与逐词生成的通信账</h3>
+<h3>批量训练与逐词解码的通信开销</h3>
 <p>假设一层在算完本地部分后要等待一次跨芯片结果。一个大训练批次可以把同一次启动的固定成本分摊到很多行；在自回归生成中，本轮某层的结果常常是下一层的输入，最后一个词又决定下一个词。即使消息内容只有两行数，这次等待仍会落在关键路径上。诊断时固定消息大小，先比较邻近与跨组设备的单次延迟，再增加并发观察拥塞；随后看完整解码步中最慢的参与者到达和离开的时刻。</p>
-<details><summary>验算：从 16 跳降到 7 跳可以直接算出哪一项变化？</summary><p>网径少 9 跳，减少 9/16，即 56.25%。一次实际请求的时间还有软件下发、序列化、链路争用和计算。要得到请求的时延变化，须用相同模型、消息和并发实际测量。</p></details>
+<details><summary>路由跳数与传输时延</summary><p>从 16 跳降到 7 跳可以直接算出哪一项变化？</p><p>网径少 9 跳，减少 9/16，即 56.25%。一次实际请求的时间还有软件下发、序列化、链路争用和计算。要得到请求的时延变化，须用相同模型、消息和并发实际测量。</p></details>
 <p>要比较小消息与大消息，可以把同样多的有效字节拆开。例如交换 64 次、每次 1 KiB，与交换 1 次 64 KiB，总数据量都为 64 KiB。若每次依赖上一条的结果，前一种会经历 64 次启动等待；若各条相互独立，合批发送才有机会摊掉等待。选互连时应先还原应用里的依赖。</p>
 <div id="new-lab-tpu-03b">
 <h3>第八代系统的芯片、封装与网络</h3>
@@ -184,7 +184,7 @@ active = []
 <p>取 <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mi>M</mi><mo>&#x0003D;</mo><mn>1</mn><mo>&#x0002C;</mo><mtext>&#x000A0;</mtext><mi>K</mi><mo>&#x0003D;</mo><mi>N</mi><mo>&#x0003D;</mo><mn>1024</mn></mrow></math>，权重一项就有 2,097,152 字节。加上输入和输出各 2,048 字节，总量为 2,101,248 字节；2,097,152 次运算对应约 1 FLOP/byte。若三个维度都取 1024，三张矩阵各占 2 MiB，工作量变为 2,147,483,648 FLOP，强度约 341.3 FLOP/byte。区别来自同一块权重在片上服务了许多行。</p>
 <p>v5e 的规格给出 197 TFLOP/s 算力、819 GB/s 带宽。二者相除约为 240.5 FLOP/byte。这个交点左侧，理想带宽先限制速度；右侧，计算峰值先限制速度。真实程序会因重复读、对齐填充、同步或小块利用率而偏离上界。诊断时在 XProf 的 Roofline 里选中具体运算，再看它的算术强度与实际吞吐落在什么位置。</p>
 <details><summary>同一片 FP32 中间结果的写回代价</summary><p>大小为 1024 行、1024 列的 FP32 中间结果占 4 MiB。若从 HBM 写一次又读一次，两次额外搬运共 8 MiB。即使矩阵乘的 FLOP 数保持原值，整段算子的平均算术强度也会下降。</p></details>
-<h3>两行输入共用一块权重</h3>
+<h3>矩阵乘法中跨输入行的权重复用</h3>
 <p>拿两行输入来算。第一行是 (1, 2)，第二行是 (3, 4)。权重的第一行是 (5, 6)，第二行是 (7, 8)。把每行输入的第一个数乘权重的第一行，就得到第一轮的两个输出。第二轮用输入的第二个数乘权重的第二行，加到原来的位置。每轮都把刚取来的两个权重用在两行输入上。</p>
 <div class="tablewrap"><table><caption>同一输出块的两轮乘加</caption><thead><tr><th scope="col">输入行</th><th scope="col">第一轮的部分和</th><th scope="col">第二轮增加的量</th><th scope="col">最终输出</th></tr></thead><tbody><tr><td>(1, 2)</td><td><math xmlns="http://www.w3.org/1998/Math/MathML"><mo>(</mo><mn>1</mn><mo>×</mo><mn>5</mn><mo>,</mo><mn>1</mn><mo>×</mo><mn>6</mn><mo>)</mo><mo>=</mo><mo>(</mo><mn>5</mn><mo>,</mo><mn>6</mn><mo>)</mo></math></td><td><math xmlns="http://www.w3.org/1998/Math/MathML"><mo>(</mo><mn>2</mn><mo>×</mo><mn>7</mn><mo>,</mo><mn>2</mn><mo>×</mo><mn>8</mn><mo>)</mo><mo>=</mo><mo>(</mo><mn>14</mn><mo>,</mo><mn>16</mn><mo>)</mo></math></td><td><math xmlns="http://www.w3.org/1998/Math/MathML"><mo>(</mo><mn>19</mn><mo>,</mo><mn>22</mn><mo>)</mo></math></td></tr><tr><td>(3, 4)</td><td><math xmlns="http://www.w3.org/1998/Math/MathML"><mo>(</mo><mn>3</mn><mo>×</mo><mn>5</mn><mo>,</mo><mn>3</mn><mo>×</mo><mn>6</mn><mo>)</mo><mo>=</mo><mo>(</mo><mn>15</mn><mo>,</mo><mn>18</mn><mo>)</mo></math></td><td><math xmlns="http://www.w3.org/1998/Math/MathML"><mo>(</mo><mn>4</mn><mo>×</mo><mn>7</mn><mo>,</mo><mn>4</mn><mo>×</mo><mn>8</mn><mo>)</mo><mo>=</mo><mo>(</mo><mn>28</mn><mo>,</mo><mn>32</mn><mo>)</mo></math></td><td><math xmlns="http://www.w3.org/1998/Math/MathML"><mo>(</mo><mn>43</mn><mo>,</mo><mn>50</mn><mo>)</mo></math></td></tr></tbody></table></div>
 <p>若两行一起算，4 个权重各从 HBM 取一次。若分两次计算，每次只算一行且重新读取权重，就要取 8 个权重。两种排法都读 4 个输入、写 4 个输出。按 BF16 每个数 2 字节计，前者一共搬 24 字节，后者搬 32 字节。这 8 字节的差额来自重复读取同一份权重。</p>
@@ -234,7 +234,7 @@ print(executable(x, w, b).block_until_ready())   <span class="cm"># 等待结果
 <h3>数组表达式里的两行数据</h3>
 <p>先跟着第二行走一遍。输入 (0, 1, 2) 和权重的第一列 (1, 2, 0) 做点积，得到 2。和第二列 (0, −1, 1) 做点积，得到 1。给这两个位置分别加上 −3 和 1，得到 (−1, 2)。ReLU 把负数改为零，这一行最后留下 (0, 2)。第一行经过相同的三步得到 (5, 1)、(2, 2)、(2, 2)。</p>
 <p>在中间表示里找到 <code>dot_general</code>。它读取输入的第 1 轴和权重的第 0 轴，两个轴都有 3 个元素，刚好组成上面的三对乘数。剩下的两个轴分别选输入的行和权重的列。再找到 <code>broadcast_in_dim</code>，长度为 2 的偏置沿输出的列对齐，所以每行的第一格都加 −3，第二格都加 1。</p>
-<h3>追踪、降低与编译</h3>
+<h3>JAX 的追踪、中间表示转换与编译</h3>
 <p>JAX 第一次追踪这个函数时，用形状和类型代表各个数组。即使还不知道第二行的第一个数，它也知道这行能与权重的两列做点积。<code>jaxpr</code> 记下函数由哪些数组操作组成。下面接着使用前一段的 <code>layer</code>、权重和偏置。</p>
 <figure><figcaption>用同一份编译结果计算两组输入</figcaption><pre><code class="language-python">spec = jax.ShapeDtypeStruct((<span class="nu">2</span>, <span class="nu">3</span>), jnp.bfloat16)
 traced = jax.jit(layer).trace(spec, w, b)
@@ -333,7 +333,7 @@ print(y[<span class="nu">8</span>, <span class="nu">128</span>].block_until_read
 <p>把整张数组想成一张方格纸。网格编号选中一片方格，核函数里使用的行列编号从这片的左上角重新数起。对块 (1, 0) 而言，窗口内的 (2, 3) 就是整张纸上的 (10, 3)。全局行号由块行号乘 8 再加局部行号，列号同理由块列号乘 128 再加局部列号。</p>
 <div class="tablewrap"><table><caption>四个程序各自可见的窗口（行列均从零开始）</caption><thead><tr><th scope="col">程序坐标</th><th scope="col">全局行</th><th scope="col">全局列</th><th scope="col">左上角输入</th><th scope="col">加倍再加一</th></tr></thead><tbody><tr><td>(0, 0)</td><td>0 至 7</td><td>0 至 127</td><td>0</td><td>1</td></tr><tr><td>(0, 1)</td><td>0 至 7</td><td>128 至 255</td><td>128</td><td>257</td></tr><tr><td>(1, 0)</td><td>8 至 15</td><td>0 至 127</td><td>2048</td><td>4097</td></tr><tr><td>(1, 1)</td><td>8 至 15</td><td>128 至 255</td><td>2176</td><td>4353</td></tr></tbody></table></div>
 <p>表中的四组编号说明要覆盖哪些数据。每个程序都能独立算出自己负责的输出，所以计算结果与四个窗口的实际执行次序无关。在核函数里，<code>x_ref</code> 指向本次窗口，<code>x_ref[...]</code> 读取这里的值。<code>out_ref[...] = ...</code> 则把右侧算得的整块写回。把赋值写成 <code>out_ref = ...</code> 只会让 Python 名字指向另一个对象。</p>
-<h3>两个输入使用不同的窗口</h3>
+<h3>两个输入数组的分块窗口映射</h3>
 <p>把“加一”换成“加上所在列的编号”。输入仍分成四块。另准备一张 8 行、256 列的偏置表，每一行都从 0 数到 255。第 0 至 7 行和第 8 至 15 行需要相同的列偏置，所以它们可以指向同一片偏置表。这样，一个程序编号就要分别换算成输入块、偏置块和输出块的地址。</p>
 <figure><figcaption>同一列的两个程序读取同一片偏置</figcaption><pre><code class="language-python"><span class="kw">import</span> jax
 <span class="kw">import</span> jax.numpy <span class="kw">as</span> jnp
@@ -703,7 +703,7 @@ TILE = <span class="nu">128</span>
 <h3>搬运完成信号与槽的复用</h3>
 <p>Pallas 的 <code>pltpu.make_async_copy(src_ref, dst_ref, sem)</code> 接受源窗口、目标槽和 DMA 信号量，返回一份搬运描述。<code>start()</code> 把这次搬运提交给设备。核函数还能继续处理另一个槽。准备读取目标槽时，通过同一份描述的 <code>wait()</code> 等待写入完成。JAX 源码中，<code>start</code> 发出 <code>dma_start_p</code>，<code>wait_write</code> 发出 <code>dma_wait_p</code>。前者安排工作，后者建立“可以消费这块数据”的先后关系。</p>
 <p>例如图中时刻 3 发起片 1 的搬运，接着用槽 0 算片 0。到了时刻 8，计算切到槽 1 前先确认片 1 已就绪，再把空出来的槽 0 分配给片 2。若每次发起搬运后都马上等待，再开始处理旧槽，能与搬运重叠的那段计算也被推迟了。</p>
-<h3>两种耗时下的手算与复核</h3>
+<h3>双缓冲中搬运与计算的完成时间</h3>
 <figure><figcaption>两个槽、一个搬运通路和一个计算通路的时间模型</figcaption><pre><code class="language-python"><span class="kw">def</span> <span class="fn">pipeline</span>(tiles, copy_time, compute_time):
     free = [<span class="nu">0</span>, <span class="nu">0</span>]
     dma_done = compute_done = <span class="nu">0</span>
@@ -824,7 +824,7 @@ print(result[<span class="nu">0</span>, :<span class="nu">2</span>].block_until_
 <p>测试令每行第一列的指数权重为 2，余下 127 列各为 1。分母为 129，因此第一个结果约为 0.015504，第二个约为 0.007752。代码减去最大值后，实际使用的第一列权重是 1，其余是 1/2，分母改为 64.5，比值相同。更长的行若超出 VMEM 预算，可以按列分块保留最大值与分母，再按共同基准完成归一化；注意力一节将使用同一办法直接累计值向量。</p>
 <h3>每一行的最大值与分母</h3>
 <p>先把列数缩到四个。一行的四个分数取自然对数 ln 2、0、ln 4、0，直接取指数就得到 2、1、4、1。除以总和 8，结果依次为 1/4、1/8、1/2、1/8。实际实现先减去最大分数 ln 4，再取指数。四个权重都变为原来的四分之一，分母也缩小四倍，除完后每个位置的概率保持原值。这样最大的指数值为 1，即使在分数里同时加上 1000，计算也不会为了得到同一组概率而先求一个很大的指数。</p>
-<div class="tablewrap"><table><caption>同一行切成两段后，各段如何换用同一个基准</caption><thead><tr><th scope="col">列</th><th scope="col">原始指数</th><th scope="col">按本段最大值缩放</th><th scope="col">换用全行最大值 ln 4</th><th scope="col">最终概率</th></tr></thead><tbody><tr><td>0、1</td><td>2、1</td><td>1、1/2</td><td>1/2、1/4</td><td>1/4、1/8</td></tr><tr><td>2、3</td><td>4、1</td><td>1、1/4</td><td>1、1/4</td><td>1/2、1/8</td></tr></tbody></table></div>
+<div class="tablewrap"><table><caption>分段 softmax 的统一指数基准</caption><thead><tr><th scope="col">列</th><th scope="col">原始指数</th><th scope="col">按本段最大值缩放</th><th scope="col">换用全行最大值 ln 4</th><th scope="col">最终概率</th></tr></thead><tbody><tr><td>0、1</td><td>2、1</td><td>1、1/2</td><td>1/2、1/4</td><td>1/4、1/8</td></tr><tr><td>2、3</td><td>4、1</td><td>1、1/4</td><td>1、1/4</td><td>1/2、1/8</td></tr></tbody></table></div>
 <p>第一段以 ln 2 为基准，局部和为 1.5。第二段以 ln 4 为基准，局部和为 1.25。合并时第一段的每个权重再乘 1/2，它对全局分母的贡献变成 0.75。全局分母是 <math xmlns="http://www.w3.org/1998/Math/MathML"><mn>0.75</mn><mo>+</mo><mn>1.25</mn><mo>=</mo><mn>2</mn></math>。若把两个局部分母直接相加，会得到 2.75，原因就是两段原来使用了不同的最大值。</p>
 <h3>行轴、列轴与广播</h3>
 <p>代码里的 <code>axis=1</code> 让 128 列参加同一次归约，每一行各算各的。<code>keepdims=True</code> 保留下长度为 1 的列轴，所以相减时第 3 行只能取到第 3 行自己的最大值。若省略它，最大值会变成长度为 8 的一维数组，右对齐广播时会拿这 8 个数去对齐 128 列，形状就对不上了。</p>
@@ -999,7 +999,7 @@ part, total = row_sums(x)
 np.testing.assert_array_equal(np.asarray(part[:, <span class="nu">0</span>, <span class="nu">0</span>]), [<span class="nu">8128</span>, <span class="nu">24512</span>])
 np.testing.assert_array_equal(np.asarray(total), np.full(<span class="nu">16</span>, <span class="nu">32640</span>))</code></pre>
 <p>取程序坐标 (1,0)，输入是第 8–15 行的左半边。输出映射先给页号 0，再给行块号 1，因此这八个数进第 0 页的第 8–15 行。换到 (1,1)，行号相同却换到第 1 页。最后的求和只消去页轴，输入的 16 行各保留一个答案。本例列数须是 128 的倍数、行数须是 8 的倍数；尾块求和可在宿主侧补零。</p>
-<details><summary>某行全为 1，各阶段会写入什么数？</summary><p>每个 128 列窗口的小计都是 128，两页相加给该行写入 256。若误沿行轴求和，结果的长度将跟列块数或尾部单列有关。</p></details>
+<details><summary>跨窗口行归约的部分和与总和</summary><p>某行全为 1，各阶段会写入什么数？</p><p>每个 128 列窗口的小计都是 128，两页相加给该行写入 256。若误沿行轴求和，结果的长度将跟列块数或尾部单列有关。</p></details>
 <div id="new-lab-tpu-row-sums">
 <h3>块级小计的生命期与跨窗求和</h3>
 <p>给第 8 行单独加一个标记：只在第 128 列填 7，其他全为 0。这个数属于行块 1、列块 1，本地坐标 (0,0)。第一次设备计算应该只修改部分表的第 1 页第 8 行；最后合并后，输出第 8 行为 7，前后各行仍为零。若把每个列块直接写入最终输出，第一个块中的旧值可能被覆盖。</p>
@@ -1073,7 +1073,7 @@ gain = jnp.tile(jnp.array([<span class="nu">2.</span>, <span class="nu">1.</span
 expected = np.asarray(x) / np.sqrt(<span class="nu">12.5</span> + <span class="nu">1e-6</span>) * np.asarray(gain)
 np.testing.assert_allclose(rms(x, gain), expected, rtol=<span class="nu">1e-5</span>)</code></pre>
 <p>上述核用 JAX 0.12.1；在 TPU VM 运行时，一个网格位置同时处理八个词，输入和输出各有十六行。<code>inv[:, None]</code> 把八个行尺度各扩成一列，乘法将该尺度沿着这一行广播。<code>gain_ref[...][None, :]</code> 先从窗口读出长度 128 的权重，再把它看作一行，对八个词都生效。若将特征宽度切成跨设备的几份，求平方和与通道数时都要合并各份，再给每份广播同一行的尺度。</p>
-<details><summary>把某一行全改成零，输出与另一行会怎样？</summary><p>零行的平方和是 0，尺度倒数为 1000，输入仍全部乘成 0。另一行有自己的平方和，输出不会变化。</p></details>
+<details><summary>零输入行的 RMSNorm 输出</summary><p>把某一行全改成零，输出与另一行会怎样？</p><p>零行的平方和是 0，尺度倒数为 1000，输入仍全部乘成 0。另一行有自己的平方和，输出不会变化。</p></details>
 <div id="new-lab-tpu-rms">
 <h3>均方归约之后的两次广播</h3>
 <p>跟着局部窗里第 3 行第 9 列的元素走一遍。<code>x_ref</code> 取进八行各 128 列，平方和沿轴 1 归约，第 3 行的 128 个平方变成向量 <code>square_sum</code> 的第 3 项。转成 <code>inv[:,None]</code> 后，第 3 行的 128 个格都使用这个倒数；<code>gain_ref[...][None,:]</code> 在第 9 列提供训练得到的第 9 个增益。这两次广播分别按行和按列发生。</p>
@@ -1141,9 +1141,9 @@ y = horizontal_difference(image, kernel)
 np.testing.assert_array_equal(y[<span class="nu">0</span>, :, :, <span class="nu">0</span>], [[<span class="nu">3.</span>, <span class="nu">5.</span>], [<span class="nu">5.</span>, <span class="nu">7.</span>]])
 print(horizontal_difference.lower(image, kernel).as_text())  <span class="cm"># 查找 stablehlo.convolution</span></code></pre>
 <p><code>NHWC</code> 依次为图数、高、宽、输入通道；<code>HWIO</code> 依次为核高、核宽、输入通道、输出通道。此处图像形状为 (1,3,3,1)，权重为 (2,2,1,1)，输出为 (1,2,2,1)。若输入改为 RGB、保留两个输出特征，每个窗口要读 2×2×3 个输入，用两份各有 12 项的权重得到两列特征。<code>VALID</code> 只保留完整窗口，<code>lower</code> 的卷积记录可核对输入轴、输出轴、步幅与边缘补零。</p>
-<details><summary>步幅改成 (2,2) 后取到哪些窗口？</summary><p>两个方向都从 0 开始，下一次起点为 2，放不下 2 格宽的完整窗口。只剩左上窗口，输出为 3。</p></details>
+<details><summary>卷积步幅与输入窗口位置</summary><p>步幅改成 (2,2) 后取到哪些窗口？</p><p>两个方向都从 0 开始，下一次起点为 2，放不下 2 格宽的完整窗口。只剩左上窗口，输出为 3。</p></details>
 <div id="new-lab-tpu-convolution">
-<h3>从逐窗口卷积到 TPU 上的四次矩阵乘</h3>
+<h3>Pallas 卷积的分块矩阵乘法</h3>
 <p>前面用 <code>conv_general_dilated</code> 表达了卷积的数值关系。现在把默认卷积换成自己控制的窗口。令一条输出带有 8 个相邻像素，每个像素有 128 个输入通道、128 个输出通道。对权重的某一个空间偏移，8 个像素的输入组成 8×128 的矩阵，该偏移的权重是 128×128。交给 MXU 做一次矩阵乘，可以同时算出 8 个位置、每个位置 128 个通道的贡献。2×2 卷积一共有四个空间偏移，四张结果按元素相加。</p>
 <div class="equation"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><mrow><msub><mi>Y</mi><mrow><mi>y</mi><mo>&#x0002C;</mo><mi>x</mi><mo>&#x0002C;</mo><mi>o</mi></mrow></msub><mo>&#x0003D;</mo><munderover><mo>&#x02211;</mo><mrow><mi>u</mi><mo>&#x0003D;</mo><mn>0</mn></mrow><mrow><mn>1</mn></mrow></munderover><munderover><mo>&#x02211;</mo><mrow><mi>v</mi><mo>&#x0003D;</mo><mn>0</mn></mrow><mrow><mn>1</mn></mrow></munderover><munderover><mo>&#x02211;</mo><mrow><mi>c</mi><mo>&#x0003D;</mo><mn>0</mn></mrow><mrow><mn>127</mn></mrow></munderover><msub><mi>X</mi><mrow><mi>y</mi><mo>&#x0002B;</mo><mi>u</mi><mo>&#x0002C;</mo><mi>x</mi><mo>&#x0002B;</mo><mi>v</mi><mo>&#x0002C;</mo><mi>c</mi></mrow></msub><mspace width="0.167em" /><msub><mi>W</mi><mrow><mi>u</mi><mo>&#x0002C;</mo><mi>v</mi><mo>&#x0002C;</mo><mi>c</mi><mo>&#x0002C;</mo><mi>o</mi></mrow></msub></mrow></math></div>
 <p>y、x 是输出图的行与列，o 是输出通道。u、v 选择 2×2 窗内的偏移，c 遍历输入通道。教学核的每个程序负责固定的 y 和 8 个连续 x。对于偏移 (0,1)，最右输出位置 7 需要输入位置 8；这个像素已经在相邻输入窗中。</p>
@@ -1312,7 +1312,7 @@ np.testing.assert_array_equal(y[<span class="nu">0</span>, :, :, <span class="nu
 np.testing.assert_array_equal(dx[<span class="nu">0</span>, :, :, <span class="nu">0</span>], [[<span class="nu">0.</span>, <span class="nu">0.</span>, <span class="nu">0.</span>], [<span class="nu">0.</span>, <span class="nu">4.</span>, <span class="nu">0.</span>], [<span class="nu">0.</span>, <span class="nu">0.</span>, <span class="nu">0.</span>]])</code></pre>
 <p><code>reduce_window</code> 让每个窗口从负无穷开始，逐个同像素取较大值。即使整幅图只有负数，初值也不会抢走实际最大值。同一张输入图参加四个窗口，因此反向时对同一输入位置要累加多个贡献。教学图四个窗口的最大值都唯一；自行做有限差分时也可采用互不相等的像素，避免并列最大值的选择影响对照。</p>
 <table><thead><tr><th scope="col">窗口起点</th><th scope="col">四个候选值</th><th scope="col">入选坐标</th><th scope="col">该窗口贡献的梯度</th></tr></thead><tbody><tr><td>(0,0)</td><td>1、2、4、9</td><td>(1,1)</td><td>1</td></tr><tr><td>(0,1)</td><td>2、3、9、5</td><td>(1,1)</td><td>1</td></tr><tr><td>(1,0)</td><td>4、9、6、7</td><td>(1,1)</td><td>1</td></tr><tr><td>(1,1)</td><td>9、5、7、8</td><td>(1,1)</td><td>1</td></tr></tbody></table>
-<details><summary>把右下角的 8 改为 10，梯度怎样转移？</summary><p>只有右下窗口改变最大值，中央像素收到 3，右下角收到 1；输出的右下格变成 10。</p></details>
+<details><summary>最大池化中的最大值位置与梯度分配</summary><p>把右下角的 8 改为 10，梯度怎样转移？</p><p>只有右下窗口改变最大值，中央像素收到 3，右下角收到 1；输出的右下格变成 10。</p></details>
 <div id="new-lab-tpu-pooling">
 <h3>本地邻居与跨窗的最大像素</h3>
 <p>仍沿用卷积的两行输入窗，但最大池化没有权重，也不把通道混在一起。给定同一通道的四个像素，上面一行先选较大者，下面一行也选较大者，再在两者中选结果。一次向量最大值运算即可同时比较这 8 个相邻位置的 128 个通道。</p>
@@ -1578,7 +1578,7 @@ np.testing.assert_array_equal(np.asarray(rep), host)</code></pre></figure>
 <p><strong>AllReduce</strong> 对应位置相加，每颗设备最后都拿到完整和。若下一层只需要各自的行，可以做 <strong>ReduceScatter</strong>：两份部分和经过相加，设备 0 收第一行 <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mo stretchy="false">&#x00028;</mo><mn>5</mn><mo>&#x0002C;</mo><mn>1</mn><mo stretchy="false">&#x00029;</mo></mrow></math>，设备 1 收第二行 <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mo stretchy="false">&#x00028;</mo><mn>2</mn><mo>&#x0002C;</mo><mn>1</mn><mo stretchy="false">&#x00029;</mo></mrow></math>。归约前把同一偏置加给两份部分和会让偏置也被加两次。偏置应在结果的持有者上加一次。</p>
 <div class="tablewrap"><table><thead><tr><th>初始持有的数据</th><th>下一步需要的数据</th><th>通信语义</th></tr></thead><tbody><tr><td>不同列，点积已完整</td><td>每方拿到所有列</td><td>AllGather 拼接</td></tr><tr><td>相同位置的不同部分和</td><td>每方拿到所有和</td><td>AllReduce 求和并复制</td></tr><tr><td>相同位置的不同部分和</td><td>每方只拿一段和</td><td>ReduceScatter 求和并分段</td></tr></tbody></table></div>
 <p>在 XLA 优化后的 HLO 查找集体通信，再把操作数形状换算成字节。一次输出重分片可能还伴随布局转置或中间缓冲；看通信前后的消费方，能判断这笔复制能否借相邻层的布局消掉。</p>
-<h3>同一个输出位置的两种算法</h3>
+<h3>按输出列分片与按输入通道分片</h3>
 <p>盯住第一行第二列。按输出列分，持有第二列权重的设备从一开始就握有完整列 (0, −1, 1)，与完整输入行 (1, 2, 3) 做点积后直接得到 1。按通道分，两台设备都在为这同一格计算。前两个通道给出 −2，第三个通道给出 3，要把它们相加才得到 1。这个区别决定通信时究竟应当拼接还是求和。</p>
 <p>给输入补一列零，给权重补一行零，求和方向就从 3 变为 4。每台正好分到相邻的两个通道，最后补的那一项对任一输出都贡献零。</p>
 <h3>三个通信算子的本地结果</h3>
@@ -1670,7 +1670,7 @@ print(contributions(a, b))
     print(score(a, b), da, db)
     print(split_dot(a.at[<span class="nu">0</span>, <span class="nu">3</span>].add(<span class="nu">1</span>, out_sharding=a.sharding), b))</code></pre></figure>
 <p><code>contributions</code> 的输出规格把每台的一行沿第 0 轴放入全局数组。因此打印的第一行是 (5, −2)，第二行是 (4, 11)。这张两行的表便于逐台检查。真正的输出只有一行，<code>split_dot</code> 用 <code>psum</code> 把表的两行逐列求和。</p>
-<h3>一次输入变化沿分片程序的传播</h3>
+<h3>分片矩阵乘对单个输入变化的响应</h3>
 <p>把最后一个输入从 4 改为 5，只改变设备 1 的输入片。它使用的最后一行权重是 (1, 2)，所以局部结果从 (4, 11) 增为 (5, 13)。设备 0 仍是 (5, −2)，全局结果从 (9, 9) 变为 (10, 11)。程序在更新单个元素时指定 <code>out_sharding=a.sharding</code>，使新数组仍按原来的通道分布。</p>
 <h3>自动求导中的权重归属</h3>
 <p><code>score</code> 取第一列加第二列的两倍，原输入得到 27。最后一个输入增大 1 时，分数增加 <math xmlns="http://www.w3.org/1998/Math/MathML"><mn>1</mn><mo>+</mo><mn>2</mn><mo>×</mo><mn>2</mn><mo>=</mo><mn>5</mn></math>。同理，用每一行权重的第一列加两倍第二列，得到输入梯度 (1, 0, 2, 5)。<code>argnums=(0, 1)</code> 还要求返回权重梯度。第一行的输入系数是 1，对应权重梯度 (1, 2)，最后一行的系数为 4，对应 (4, 8)。<code>jax.set_mesh(mesh)</code> 把求导和更新输入时新产生的计算也放在同一个双设备网格的上下文中。</p>
@@ -1686,7 +1686,7 @@ print(contributions(a, b))
 <p>三种行号要分清。用户行号决定输出写到哪里，商品编号决定去嵌入表的哪一行取数，分区号决定向哪一方请求那行。把用户 A、B 编为 0、1。为便于手算，这里让偶数编号归分区 0，奇数编号归分区 1。把每个人的重复点击合并后，四条点击记录变成三项请求。</p>
 <div class="tablewrap"><table><caption>由点击到两行输出</caption><thead><tr><th scope="col">目标分区</th><th scope="col">用户行</th><th scope="col">商品编号</th><th scope="col">权重</th><th scope="col">读出的表行</th><th scope="col">加到用户行的值</th></tr></thead><tbody><tr><td>0</td><td>0</td><td>4</td><td>2</td><td>(2, 3)</td><td>(4, 6)</td></tr><tr><td>1</td><td>0</td><td>1</td><td>1</td><td>(1, 0)</td><td>(1, 0)</td></tr><tr><td>1</td><td>1</td><td>7</td><td>1</td><td>(0, 5)</td><td>(0, 5)</td></tr></tbody></table></div>
 <p>表中的权重是这次聚合时乘在向量上的系数。商品 4 的两次点击仍然影响输出两次。若用户 B 也点击了商品 4，两人可以用同一份商品向量，但两项贡献的目标用户不同，写回时仍要区分这两行。</p>
-<h3>反向梯度回到原表的位置</h3>
+<h3>嵌入表梯度的按行累加</h3>
 <p>假设上层传回两个用户向量的梯度，A 是 (1, 2)，B 是 (3, −1)。A 的向量含两倍商品 4，因此商品 4 的梯度是 (2, 4)。它还含一倍商品 1，商品 1 的梯度就是 (1, 2)。商品 7 只给 B 提供向量，得到 (3, −1)。下面把预处理、按分区查表、前向合并和反向累加写在同一个小程序里，便于沿一次请求核对去向。</p>
 <figure><figcaption>按用户去重，再按表行归属分发的数值模型</figcaption><pre><code class="language-python"><span class="kw">from</span> collections <span class="kw">import</span> Counter
 
@@ -1809,7 +1809,7 @@ np.testing.assert_array_equal(bag(table, ids), [<span class="nu">5.</span>, <spa
 np.testing.assert_array_equal(dt, [[<span class="nu">0.</span>, <span class="nu">0.</span>], [<span class="nu">2.</span>, -<span class="nu">1.</span>], [<span class="nu">4.</span>, -<span class="nu">2.</span>]])</code></pre>
 <p>损失对用户向量第一分量的权重为 2，对第二分量的权重为 −1，所以每次选中一行都会给它送回 (2,−1)。表第 0 行没人读，梯度保持零；第 1 行只读一次；第 2 行读两次。用 <code>bag.lower(table, ids).as_text()</code> 可以在 JAX/XLA 的设备程序中查到 gather。生产中的大表若要安排到专门的 SparseCore，还需建立设备网格、表分片和预处理后的索引。</p>
 <p>JAX TPU Embedding 在主机调用 <code>preprocess_sparse_dense_matmul_input</code>，按样本与目标分区整理 ID、权重和偏移。设备一侧的 <code>tpu_sparse_dense_matmul</code> 接收这些结果和已经分片的嵌入表。调整输入批次后查看每个分区收到的 ID 总数与去重数；如果总数高、去重数低，许多请求正在读取同一批热门行。</p>
-<details><summary>若聚合从和改成三次读取的平均，商品 2 的梯度会变多少？</summary><p>每笔梯度乘三分之一，商品 2 仍收到两笔，合为 (4/3,−2/3)。</p></details>
+<details><summary>求和聚合与平均聚合的嵌入梯度</summary><p>若聚合从和改成三次读取的平均，商品 2 的梯度会变多少？</p><p>每笔梯度乘三分之一，商品 2 仍收到两笔，合为 (4/3,−2/3)。</p></details>
 <div id="new-lab-tpu-gather">
 <h3>CSR 行指针与特征行的间接寻址</h3>
 <p>图上的每个点有一行特征。给目标点合并邻居信息时，只需要读与它相连的源点。CSR 用两张整数表表达这些连接。<code>ptr=[0,3,3,5]</code> 中相邻两个数给出一个左闭右开的边区间。<code>ids=[2,1,2,4,0]</code> 把区间内的每条边换成源点编号。目标 0 的区间是 [0,3)，因此读第 2、1、2 行。目标 1 的两个界限都是 3，它的输出行应为零。目标 2 从边 3 开始，读取第 4、0 行。</p>
@@ -1992,7 +1992,7 @@ print(out.tolist())</code></pre></figure>
 <p>给每一行保留三个量。m 是目前见过的最大合法分数，l 是以 m 为基准的指数权重和，a 是这些指数权重乘各行值后得到的 128 维分子。新块得到更大分数时，旧指数的基准要从旧 m 换成新 m′。每项都乘同一个比例，已累加的分子和分母可以一起缩放。记 J 为新块内这行允许看的键位置，sⱼ 是对应分数，vⱼ 是对应值行。</p>
 <div class="equation"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><mrow><msup><mi>m</mi><mi>&#x02032;</mi></msup><mo>&#x0003D;</mo><mo>max</mo><mo stretchy="false">&#x00028;</mo><mi>m</mi><mo>&#x0002C;</mo><msub><mo>max</mo><mrow><mi>j</mi><mo>&#x02208;</mo><mi>J</mi></mrow></msub><msub><mi>s</mi><mi>j</mi></msub><mo stretchy="false">&#x00029;</mo><mo>&#x0002C;</mo><mspace width="1em" /><mi>c</mi><mo>&#x0003D;</mo><mi>exp</mi><mo stretchy="false">&#x00028;</mo><mi>m</mi><mo>&#x02212;</mo><msup><mi>m</mi><mi>&#x02032;</mi></msup><mo stretchy="false">&#x00029;</mo></mrow></math></div>
 <div class="equation"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><mrow><msup><mi>&#x02113;</mi><mi>&#x02032;</mi></msup><mo>&#x0003D;</mo><mi>c</mi><mi>&#x02113;</mi><mo>&#x0002B;</mo><munder><mo>&#x02211;</mo><mrow><mi>j</mi><mo>&#x02208;</mo><mi>J</mi></mrow></munder><msup><mi>e</mi><mrow><msub><mi>s</mi><mi>j</mi></msub><mo>&#x02212;</mo><msup><mi>m</mi><mi>&#x02032;</mi></msup></mrow></msup><mo>&#x0002C;</mo><mspace width="2em" /><msup><mi>a</mi><mi>&#x02032;</mi></msup><mo>&#x0003D;</mo><mi>c</mi><mi>a</mi><mo>&#x0002B;</mo><munder><mo>&#x02211;</mo><mrow><mi>j</mi><mo>&#x02208;</mo><mi>J</mi></mrow></munder><msup><mi>e</mi><mrow><msub><mi>s</mi><mi>j</mi></msub><mo>&#x02212;</mo><msup><mi>m</mi><mi>&#x02032;</mi></msup></mrow></msup><msub><mi>v</mi><mi>j</mi></msub><mo>&#x0002C;</mo><mspace width="2em" /><mi>o</mi><mo>&#x0003D;</mo><mfrac><mrow><msup><mi>a</mi><mi>&#x02032;</mi></msup></mrow><mrow><msup><mi>&#x02113;</mi><mi>&#x02032;</mi></msup></mrow></mfrac></mrow></math></div>
-<h3>第 129 个位置与变化的最大值</h3>
+<h3>跨键块最大值变化时的权重换算</h3>
 <p>分块算注意力时，读到下一块才可能遇见整行最大的分数。这个算例特意把更大的分数放在第 129 个位置，用它检查前 128 个位置已经累加的权重怎样随新最大值一起换算。第 128 行查询的第一列为 8，第 128 行键的第一列为 2，其余查询和键元素均为零。前 128 个值行全部填 2，最后一行填 8。第 128 行能看见它自己。前一块的 128 个分数都是 0，最后一个位置的分数是 16 除以 √128，等于 √2。下图只追踪一个输出特征，其余 127 列完全相同。</p>
 <figure><svg xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="tpu-1310" viewBox="0 0 700 184" style="width:100%;max-width:760px;display:block;margin:auto"><title id="tpu-1310">第 128 行先读 128 个旧值，再读自己的值</title><rect x="4.0" y="5" width="172.0" height="42" fill="#d5eaf9" stroke="#668398" stroke-width="1.5"/><text x="90.0" y="26.0" text-anchor="middle" dominant-baseline="central" font-family="Times New Roman,SimHei,sans-serif" fill="#152f40" font-size="16">读到的键</text><rect x="177.0" y="5" width="172.0" height="42" fill="#d5eaf9" stroke="#668398" stroke-width="1.5"/><text x="263.0" y="26.0" text-anchor="middle" dominant-baseline="central" font-family="Times New Roman,SimHei,sans-serif" fill="#152f40" font-size="16">最大分数 m</text><rect x="350.0" y="5" width="172.0" height="42" fill="#d5eaf9" stroke="#668398" stroke-width="1.5"/><text x="436.0" y="26.0" text-anchor="middle" dominant-baseline="central" font-family="Times New Roman,SimHei,sans-serif" fill="#152f40" font-size="16">分母 l</text><rect x="523.0" y="5" width="172.0" height="42" fill="#d5eaf9" stroke="#668398" stroke-width="1.5"/><text x="609.0" y="26.0" text-anchor="middle" dominant-baseline="central" font-family="Times New Roman,SimHei,sans-serif" fill="#152f40" font-size="16">分子 a</text><rect x="4.0" y="48" width="172.0" height="42" fill="#f0f6fb" stroke="#668398" stroke-width="1.5"/><text x="90.0" y="69.0" text-anchor="middle" dominant-baseline="central" font-family="Times New Roman,SimHei,sans-serif" fill="#152f40" font-size="16">0 至 127</text><rect x="177.0" y="48" width="172.0" height="42" fill="#fafafa" stroke="#668398" stroke-width="1.5"/><text x="263.0" y="69.0" text-anchor="middle" dominant-baseline="central" font-family="Times New Roman,SimHei,sans-serif" fill="#152f40" font-size="16">0</text><rect x="350.0" y="48" width="172.0" height="42" fill="#fafafa" stroke="#668398" stroke-width="1.5"/><text x="436.0" y="69.0" text-anchor="middle" dominant-baseline="central" font-family="Times New Roman,SimHei,sans-serif" fill="#152f40" font-size="16">128</text><rect x="523.0" y="48" width="172.0" height="42" fill="#eff7f2" stroke="#668398" stroke-width="1.5"/><text x="609.0" y="69.0" text-anchor="middle" dominant-baseline="central" font-family="Times New Roman,SimHei,sans-serif" fill="#152f40" font-size="16">256</text><rect x="4.0" y="91" width="172.0" height="42" fill="#f0f6fb" stroke="#668398" stroke-width="1.5"/><text x="90.0" y="112.0" text-anchor="middle" dominant-baseline="central" font-family="Times New Roman,SimHei,sans-serif" fill="#152f40" font-size="16">旧状态换基准</text><rect x="177.0" y="91" width="172.0" height="42" fill="#fafafa" stroke="#668398" stroke-width="1.5"/><text x="263.0" y="112.0" text-anchor="middle" dominant-baseline="central" font-family="Times New Roman,SimHei,sans-serif" fill="#152f40" font-size="16">√2</text><rect x="350.0" y="91" width="172.0" height="42" fill="#fafafa" stroke="#668398" stroke-width="1.5"/><text x="436.0" y="112.0" text-anchor="middle" dominant-baseline="central" font-family="Times New Roman,SimHei,sans-serif" fill="#152f40" font-size="16">128 × 0.243117</text><rect x="523.0" y="91" width="172.0" height="42" fill="#eff7f2" stroke="#668398" stroke-width="1.5"/><text x="609.0" y="112.0" text-anchor="middle" dominant-baseline="central" font-family="Times New Roman,SimHei,sans-serif" fill="#152f40" font-size="16">256 × 0.243117</text><rect x="4.0" y="134" width="172.0" height="42" fill="#f0f6fb" stroke="#668398" stroke-width="1.5"/><text x="90.0" y="155.0" text-anchor="middle" dominant-baseline="central" font-family="Times New Roman,SimHei,sans-serif" fill="#152f40" font-size="16">加入第 128 行</text><rect x="177.0" y="134" width="172.0" height="42" fill="#fafafa" stroke="#668398" stroke-width="1.5"/><text x="263.0" y="155.0" text-anchor="middle" dominant-baseline="central" font-family="Times New Roman,SimHei,sans-serif" fill="#152f40" font-size="16">√2</text><rect x="350.0" y="134" width="172.0" height="42" fill="#fafafa" stroke="#668398" stroke-width="1.5"/><text x="436.0" y="155.0" text-anchor="middle" dominant-baseline="central" font-family="Times New Roman,SimHei,sans-serif" fill="#152f40" font-size="16">32.118942</text><rect x="523.0" y="134" width="172.0" height="42" fill="#eff7f2" stroke="#668398" stroke-width="1.5"/><text x="609.0" y="155.0" text-anchor="middle" dominant-baseline="central" font-family="Times New Roman,SimHei,sans-serif" fill="#152f40" font-size="16">70.237884</text></svg><figcaption>第 128 行先读 128 个旧值，再读自己的值</figcaption></figure>
 <p>比例 0.243117 来自 exp(−√2)。当前键在新基准下的权重是 1，因此分母加 1，分子加 8。相除得到 2.186806。也可以把所有 129 个位置放在同一行，使用未平移的权重直接算出相同结果。补齐到 256 的其余 127 个键即使填零，也要从分母排除。</p>
@@ -2343,7 +2343,7 @@ print(in_order)
 <p>设模型有 <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mi>L</mi></mrow></math> 层，每层保存 <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><msub><mi>H</mi><mrow><mi mathvariant="normal">k</mi><mi mathvariant="normal">v</mi></mrow></msub></mrow></math> 个键值头，每个头的键和值都宽 <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mi>d</mi></mrow></math>；每个元素占 <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mi>b</mi></mrow></math> 字节。一个位置的所有层要存一份键和一份值，即 <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mn>2</mn><mi>L</mi><msub><mi>H</mi><mrow><mi mathvariant="normal">k</mi><mi mathvariant="normal">v</mi></mrow></msub><mi>d</mi><mi>b</mi></mrow></math> 字节。取教学模型 <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mi>L</mi><mo>&#x0003D;</mo><mn>8</mn><mo>&#x0002C;</mo><mtext>&#x000A0;</mtext><msub><mi>H</mi><mrow><mi mathvariant="normal">k</mi><mi mathvariant="normal">v</mi></mrow></msub><mo>&#x0003D;</mo><mn>2</mn><mo>&#x0002C;</mo><mtext>&#x000A0;</mtext><mi>d</mi><mo>&#x0003D;</mo><mn>64</mn><mo>&#x0002C;</mo><mtext>&#x000A0;</mtext><mi>b</mi><mo>&#x0003D;</mo><mn>2</mn></mrow></math>，每位置为 4096 字节。一个请求写满 2048 个位置后占 8 MiB。四个这样的请求占 32 MiB。这是有效键值内容的总大小，按页取整与副本会改变各芯片分到的空间。真实模型应从其配置读取层数、键值头数和头宽。</p>
 <div class="tablewrap"><table><thead><tr><th>同一请求的状态</th><th>本轮输入位置</th><th>本轮新写 KV</th><th>轮末已有的 KV</th><th>模型本轮输出</th></tr></thead><tbody><tr><td>预填充</td><td>0–4</td><td>5 条</td><td>0–4</td><td>首个新词 A</td></tr><tr><td>解码第 1 轮</td><td>5，词 A</td><td>1 条</td><td>0–5</td><td>新词 B</td></tr><tr><td>解码第 2 轮</td><td>6，词 B</td><td>1 条</td><td>0–6</td><td>新词 C</td></tr></tbody></table></div>
 <p>分组查询注意力（GQA）允许多个查询头共用一个 KV 头。例如 8 个查询头各自有注意力分布，若它们分为两组，每组读同一套 K、V，缓存公式使用 2 个 KV 头。和每查询头各存一套的做法相比，这个例子的 KV 容量变为四分之一。TPU 服务框架还可以沿设备轴切权重和缓存，遇到头数较少时需核对实际分片布局是否复制了某些头。</p>
-<h3>从提示词末位到第一个解码步</h3>
+<h3>预填充末位与首步解码的 KV 读写</h3>
 <p>先只看一个头、一个缓存和一个标量查询。三个提示位置的查询都取 1，键取 0、ln 2、ln 4，值取 2、5、8。因果遮罩让位置 0 只看到自己，输出是 2。位置 1 用权重 1 和 2 加权前两行，结果是 4。位置 2 用三行，结果为 44/7。预填充可以把这三行的计算组织在同一批中。服务端随后用末位的隐藏状态经过输出层和选词步骤，返回第一个新词。此时缓存只含三个已处理的提示位置。</p>
 <p>假设这个新词在下一轮产生的键为 0、值为 4，查询仍是 1。解码时原来三行 K、V 可以直接读，新增的第四行带来权重 1 和分子 4。新的注意力输出为 <math xmlns="http://www.w3.org/1998/Math/MathML"><mo>(</mo><mn>44</mn><mo>+</mo><mn>4</mn><mo>)</mo><mo>/</mo><mo>(</mo><mn>7</mn><mo>+</mo><mn>1</mn><mo>)</mo><mo>=</mo><mn>6</mn></math>。一般模型里，新词的查询也随输入变化，因此对旧键的分数要按新查询重新计算。缓存保留的是旧位置的键和值。</p>
 <figure><figcaption>一个头的因果读取与模型 KV 容量的独立计算</figcaption><pre><code class="language-python"><span class="kw">from</span> math <span class="kw">import</span> exp, log
@@ -2413,7 +2413,7 @@ print([read(<span class="st">"</span><span class="st">C</span><span class="st">"
 <p>长提示主要占用预填充算力，大量短步解码则不断读取缓存与权重。把两类请求放到独立的 TPU 池后，两边可以单独扩缩容，代价是在不同池之间传送 KV。以 vLLM TorchTPU 的 Raiden 方案为例，预填充池是 KV 生产方，解码池是消费方，控制器登记池及传输信息，代理把同一用户请求转发到两个阶段。</p>
 <p>沿前文的五词请求追踪。预填充端处理位置 0–4，生成词 A 并给出五个位置的 KV 及对应的块映射。解码端按自己的布局获得这些页，再用词 A 作为位置 5 的输入。若两池的张量并行度不同，源端的整页可能对应目标端的多个头分片；移交时除了字节和请求编号，还要恢复正确的层、头、位置归属。源页的可复用时刻取决于传输完成，目的页的可读时刻取决于接收及所需重排完成。</p>
 <p>用前文每个词占 4096 字节 KV 的小模型估计代价。一个 2048 词提示的 KV 有 8 MiB。假设端到端有效负载带宽为 8 GiB/s，仅传这些内容至少需 <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mn>8</mn><mo>&#x0002F;</mo><mn>8192</mn></mrow></math> 秒，约 0.98 ms。握手、等待空闲目的页和重排需另外计时。在同一到达负载下，对比混合部署与两池部署的首词时延、第二词到达时间和后续词间隔；若首词已经到达而第二词明显推迟，就沿接收端和传输通道查这一段等待。</p>
-<h3>控制信息与真正传输的张量</h3>
+<h3>KV 交接的控制信息与张量数据</h3>
 <p>Raiden 的示例代理收到 HTTP 请求后，先向预填充实例发出最多生成一个词的请求。预填充池把各层的 KV 写入块池，代理拿到交接参数，再将请求转到解码实例。控制器登记两个实例和传输信息。真正占带宽的是引擎间搬运的 KV 内容，代理转交请求时用到的地址和编号只说明该去哪儿找数据。部署示例中，两端使用同一个 <code>TpuRaidenConnector</code>，分别配置 <code>kv_producer</code> 与 <code>kv_consumer</code> 来指定传输方向。</p>
 <h3>同一缓存的两种物理排布</h3>
 <p>用一层、两个 KV 头、五个提示位置来演示。源端每个位置把两个头排在一起，用 (10, 11)、(20, 21)、(30, 31)、(40, 41)、(50, 51) 代表五条记录。目的端每个设备只放一个头。页长取 2，第一个设备分到物理页 6、1、5，第二个设备分到 4、7、2。两边都应该能按原顺序读到各自负责的那一列。</p>
@@ -2434,7 +2434,7 @@ cache = [{}, {}]
 print(read_head(<span class="nu">0</span>), read_head(<span class="nu">1</span>))
 <span class="kw">assert</span> list(zip(read_head(<span class="nu">0</span>), read_head(<span class="nu">1</span>))) == list(map(tuple, source))</code></pre></figure>
 <p>以最后的位置 4 为例，<code>divmod(4, 2)</code> 给出逻辑页 2、偏移 0。头 0 去第一张页表的第 2 项，写入物理页 5 的开头，内容为 50。头 1 去第二张表的第 2 项，写入物理页 2 的开头，内容为 51。解码端下一步处理位置 5，将两个头新生成的 KV 分别写在同两页的偏移 1。前面的旧值留在偏移 0，可供新查询读取。</p>
-<h3>第二个词到达前的等待</h3>
+<h3>首个解码步的交接时延</h3>
 <p>沿同一个请求记录预填充结束、接收端 KV 就绪、解码被调度、第二词交付这四个时刻。假设它们依次为 10、13、17、19 毫秒，把首词交付时刻也设为 10 毫秒。首词到第二词共 9 毫秒，其中传输与整理占 3，目的端排队占 4，执行到交付占 2。即使搬运时间减半，若另外两段不变，第二词也只会提前 1.5 毫秒。用同一请求的时刻相减，才能区分增加互连带宽和增加解码容量各自会影响哪段等待。</p>
 <p>交接的核对点可选在第二个输出词之前。保存预填充最后一行的 logits、采出的首词编号，再比较合池和分池在同一个首词输入下算出的下一行 logits。若首词相同、第二行已不同，检查交来的层号、头号、位置号和 KV 布局，能把问题缩到交接与解码的边界。</p>
 <p class="sources"><a href="https://docs.vllm.ai/projects/vllm-torchtpu/en/latest/user_guide/disaggregated_serving/">TorchTPU 的 Raiden 连接器、控制器与代理</a> · <a href="https://docs.cloud.google.com/tpu/docs/tpu-inference">Google Cloud TPU 推理软件栈</a></p>
@@ -2536,7 +2536,7 @@ print(loss, grad, loss_fn(next_scores))
 <p>TPU 也可以训练图像分类模型。Flax NNX 在 JAX 之上组织网络层、参数和状态，Optax 提供更新规则。Flax 官方 MNIST 教程读取手写数字图像，将像素从 0–255 缩放到 0–1，并补上单通道轴。形状变成“批量、行、列、通道”，这样卷积层能区别空间坐标和颜色通道。</p>
 <p>沿官方模型看一张图：28 行、28 列、1 通道，第一层卷积提取 32 个通道，经过 2 × 2、步幅为 2 的平均池化后剩 14 行、14 列。第二层卷积产生 64 个通道，再次池化变为 7 行、7 列。按行展开后得到 <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mn>7</mn><mo>&#x000D7;</mo><mn>7</mn><mo>&#x000D7;</mo><mn>64</mn><mo>&#x0003D;</mo><mn>3136</mn></mrow></math> 个特征，恰好是下一层 <code>nnx.Linear(3136, 256)</code> 的输入宽度。最后 10 个分数各对应一种数字。训练时用标签挑出正确类计算交叉熵，推理时取最大分数所在的下标。</p>
 <p><code>nnx.value_and_grad</code> 在同一批图像上返回损失和参数梯度。<code>nnx.Optimizer</code> 按 <code>nnx.Param</code> 筛选可学习参数，使用 Optax 指定的 AdamW 等规则更新。批归一化还保留运行均值与方差，评估时使用已累计的统计量；随机丢弃在评估时关闭。把训练和评估分别编译，输入规格一致时便可反复处理新图像。验收一次更新可固定一小批图，记录更新前后输出与分类损失，再在独立测试集上统计准确率。</p>
-<h3>从一张小图到两个分类分数</h3>
+<h3>平均池化与图像分类分数</h3>
 <p>把图像缩到两行两列。按行放入四个已经归一化的像素 0、1、1、0，批量取 1，通道数也取 1，所以输入形状是 (1, 2, 2, 1)。一个两行两列的平均池化窗口刚好覆盖整张图，四个数求平均得到 0.5。窗口每次移动两格，这张图只产生一个窗口，池化后形状为 (1, 1, 1, 1)。展成一行一个特征，乘一行两列的分类权重，最终得到两个分数。</p>
 <figure><figcaption>一张图、两个类别的一次 NNX 参数更新</figcaption><pre><code class="language-python"><span class="kw">from</span> flax <span class="kw">import</span> nnx
 <span class="kw">import</span> jax.numpy <span class="kw">as</span> jnp
@@ -2572,7 +2572,7 @@ print(float(loss), model.weight[...], model(images), float(loss_fn(model)))</cod
 <p>给定一个只含 1,048,576 个元素的权重，工作权重设为 BF16，Adam 的一阶矩和二阶矩分别用 FP32 保存。工作权重占 2 MiB，两份矩各占 4 MiB，共 10 MiB。若还保留分离的 FP32 主权重，再加 4 MiB。用四颗设备均匀切这四份状态，单芯片常驻 <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mn>14</mn><mo>&#x0002F;</mo><mn>4</mn><mo>&#x0003D;</mo><mn>3.5</mn></mrow></math> MiB。为前向临时凑齐完整工作权重仍要安排 2 MiB 的完整张量；完整结果与本地分片能否复用同一存储要看实际内存计划。</p>
 <p>激活是另一本账。假设每层有一个 8 MiB 的反向所需中间量，六层全留要 48 MiB。若只保留两个各 8 MiB 的边界输入，并在反向逐段重算，可把跨前反向长期保留的部分降到 16 MiB。反向重算当下仍有临时中间量。MaxText 的 <code>remat_policy</code> 可决定哪些激活保留、卸载或重算。先在 Memory Viewer 看峰值处最大存活缓冲，再有针对性地调整策略。代价通过相同批次的稳态步时测量。</p>
 <details><summary>两张设备不同有效词数的梯度平均</summary><p>设备 A 有 2 个有效词，逐词梯度均为 1；B 有 6 个，逐词梯度均为 3。全局平均是 <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mo stretchy="false">&#x00028;</mo><mn>2</mn><mo>&#x0002B;</mo><mn>18</mn><mo stretchy="false">&#x00029;</mo><mo>&#x0002F;</mo><mn>8</mn><mo>&#x0003D;</mo><mn>2.5</mn></mrow></math>。若对两设备各自的均值做等权平均就得到 2，等于让每台设备的总权重相同，改变了训练目标。</p></details>
-<h3>两台设备上四个参数的一次训练</h3>
+<h3>双设备训练的权重收集与梯度归约</h3>
 <p>把权重 (1, 2, 3, 4) 切成两段，每台常驻两个参数。设备 A 的样本是 (1, 0, 1, 0)，设备 B 的样本是 (0, 1, 0, 1)。前向要算每个样本与全部权重的点积，因此两台先交换一段权重，各自凑齐四个数。A 算出 4，B 算出 6。以点积平方的一半为损失，A 的梯度是 4 乘自己的样本，得到 (4, 0, 4, 0)，B 的梯度是 (0, 6, 0, 6)。</p>
 <p>两个样本等权，逐项平均得到 (2, 3, 2, 3)。设备 A 只负责前两项参数，拿到前两项梯度 (2, 3)。设备 B 拿到后两项梯度 (2, 3)。即便数值碰巧相同，它们各自更新的仍是不同参数。若学习率是 0.1，更新后的两份权重分别为 (0.8, 1.7) 和 (2.8, 3.7)。</p>
 <figure><figcaption>收集参数、局部求导与梯度归约分片</figcaption><pre><code class="language-python"><span class="kw">import</span> os
@@ -2661,7 +2661,7 @@ partial = []
     print(qw, dots, partial[-<span class="nu">1</span>])
 print(sum(partial), x @ w)</code></pre></figure>
 <p><code>rint</code> 先把除过尺度的数放到最近的整数格点，<code>clip</code> 限制到本例选的对称码值范围。若尺度仍为 0.25 却要编码 40，算出的整数 160 超出上限，只能存 127，解码为 31.75。这种截断误差与 0.55 舍入到 0.5 的小误差来源不同。点积前先将码转换成 INT32，使局部累加有足够范围。</p>
-<h3>从 MaxText 配置到量化算子</h3>
+<h3>MaxText 量化配置与 Qwix 算子</h3>
 <p>在同一份 MaxText 模型配置里保留一个 BF16 参照，再在另一份配置开启 Qwix 和 INT8。对照时固定输入、模型参数和选中的矩阵层，先看实际参与点积的两个张量各沿哪一维共用尺度。按输出列设置尺度时，同一列的所有点积项能共用一次恢复系数。按输入通道分组则要像表格里那样分组处理。</p>
 <p>用相同输入抓该层输出，找误差最大的格子，然后回到它对应的输入行和权重列。统计权重码是否集中在两个端点，并分别计算各组对该格子的误差贡献。这样才能判断应当扩大范围以减少截断，还是缩小分组以照顾幅值较小的权重。</p>
 <p>尺度还决定可以保存的范围。例如采用对称有符号编码，允许 −127 到 127，尺度为 0.25，则最大可表示值为 31.75。输入 40 除以尺度会得到 160，必须裁到 127，再乘回去只剩 31.75。排查量化误差时分别统计到达上下限的比例和未裁剪数的舍入误差，才能判断该调尺度还是细分量化组。</p>
@@ -2838,7 +2838,7 @@ z = pl.pallas_call(
     out_shape=jax.ShapeDtypeStruct(packed.shape, jnp.float32),
     interpret=interpret,
 )(jnp.asarray(blocks), packed, weights.astype(jnp.bfloat16))</code></pre>
-<h3>按原词顺序恢复两条分支</h3>
+<h3>Top-2 路由结果的加权回写</h3>
 <table><thead><tr><th scope="col">原词</th><th scope="col">两条分支在专家输出中的行号</th><th scope="col">第一列加权和</th></tr></thead><tbody><tr><td>0</td><td>0、8</td><td>0.25 × 4 + 0.75 × 6 = 5.5</td></tr><tr><td>1</td><td>9、16</td><td>0.5 × 9 + 0.5 × 12 = 10.5</td></tr><tr><td>2</td><td>1、17</td><td>0.75 × 8 + 0.25 × 16 = 10</td></tr></tbody></table>
 <pre><code class="language-python"><span class="kw">def</span> <span class="fn">merge</span>(rev, g, a, b, o):
     t = pl.program_id(<span class="nu">0</span>)
@@ -3088,7 +3088,7 @@ print(later, max(later))</code></pre></figure>
 <p>切片跨多个主机时，各主机都要运行控制程序。在可以由 Cloud TPU 自动发现集群的多进程部署中，每个进程先调用 <code>jax.distributed.initialize()</code>，再查询设备和运行数组计算。这样 JAX 才能看到全局设备集合。<code>jax.devices()</code> 枚举全局设备，<code>jax.local_devices()</code> 枚举当前进程直接控制的设备。把进程号、两种计数和第一批的样本范围一起记下，可以定位部分主机启动错误。</p>
 <p>在两主机的教学任务中，全局批次是 8 条记录，依次编号 100–107。若将批轴对半分，主机 A 应读 100–103，主机 B 读 104–107。把各自分片交给对应设备后，模型的全局视图仍有八条。若两台从同一个随机种子各自取前四条，就会得到两个相同分片，步时也许正常，训练却漏了四个样本。模型并行轴复制同一输入时情况相反，同一个批次分片应供该复制组重复使用。</p>
 <p>设主机读取 3 ms、分词及组批 4 ms、设备计算 5 ms。若全部串行，理想一批用 12 ms。若把读和分词合为一个 7 ms 的生产阶段，提前准备下一批并覆盖当前 5 ms 的计算，稳态批间距仍至少为 7 ms。改用预分词记录把生产阶段降到 4 ms 后，设备的 5 ms 成为限制。实际查证可先换相同形状的合成输入，比较 Trace Viewer 中两个设备计算段之间的空档，再针对 CPU 工作线程、存储和预取队列分别调节。</p>
-<h3>从各主机的四条记录组成全局批次</h3>
+<h3>跨主机分片与全局批次的组装</h3>
 <p>下面的双主机示例要求两边各有相同数量的设备，且总设备数能整除八条记录。按进程号把设备排在一条数据轴上，排在前半的设备由主机 0 控制，后半由主机 1 控制。两边同时执行同一份脚本。</p>
 <figure><figcaption>双主机 TPU 上的进程本地数据与全局数组</figcaption><pre><code class="language-python"><span class="kw">import</span> jax
 <span class="kw">import</span> numpy <span class="kw">as</span> np
@@ -3307,7 +3307,7 @@ peak_per_chip = <span class="nu">459e12</span>
 step_tokens, step_seconds = <span class="nu">1048576</span>, <span class="nu">0.4</span>
 print(round(work_per_token * step_tokens / step_seconds / (<span class="nu">6144</span> * peak_per_chip), <span class="nu">4</span>))</code></pre></figure>
 <p>第一步用芯片数乘单芯片峰值，再乘 MFU，得到每秒有效运算数。第二步除以单词训练量，换成每秒训练词数。最后用总词数除以这个速率，再除以每天 86400 秒。对 6144 芯片，40% 与 30% 的两种假设分别约需 65 天和 86 天。这两项只改变持续训练进度，尚未计入停机。</p>
-<h3>从一个稳定步骤反算利用率</h3>
+<h3>稳态词元吞吐量与模型 FLOPs 利用率</h3>
 <p>若一个步骤处理 1048576 个有效词，用时 0.4 秒，先得到每秒约 262 万词。用这个词速乘每词 4200 亿次运算，得到模型的有效计算速率。再除以 6144 颗芯片的合计峰值，得到约 39%。若实际步骤是填充后的固定规格，需要记录真正计入损失的位置数，明确分子用的是有效词还是所有执行位置。</p>
 <p>若一个小批为 8 条、每条数组长度 1024，其中有两条各有 512 个补齐位置，则设备该步处理了 8192 个数组位置，实际目标词只有 7168 个。比较“有效训练词每秒”时用后一个数；若估算实际执行的稠密矩阵乘，还要看编译后的算子是否依旧为补齐行做了运算。这两个分母回答的是不同的预算问题。</p>
 <p class="sources"><a href="https://jax-ml.github.io/scaling-book/applied-training/">Llama 3 在 v5p 上的规划案例</a> · <a href="https://docs.cloud.google.com/tpu/docs/v5p">v5p 规格与 Pod 大小</a> · <a href="https://maxtext.readthedocs.io/en/latest/guides/monitoring_and_debugging/understand_logs_and_metrics.html">MaxText 的步速与计算量口径</a></p>
@@ -3407,7 +3407,7 @@ run = pl.pallas_call(body, grid=(<span class="nu">2</span>,), in_specs=(tile,), 
 np.testing.assert_array_equal(run(x), np.maximum(<span class="nu">2</span> * np.asarray(x) + <span class="nu">1</span>, <span class="nu">0</span>))</code></pre>
 <p>两端输入共有 2048 个数，循环取 −2、−1、0、1、2。同样的五个位置先得到 −3、−1、1、3、5，再把负数截到零，写出 0、0、1、3、5。CUDA 端分成八组，每组负责 256 个连续地址。TPU 端每个窗口拥有 8 行，每行 128 列，第 1 个窗口的左上格是第 8 行第 0 列，线性下标为 1024。它与 CUDA 程序编号 4 的第一项是同一元素。</p>
 <p>CUDA 核中的边界掩码允许末组不足 256 项。此 TPU 版的两个窗口恰好盖满固定的 16 行；若服务中只有 13 行，先补齐到 16 行、计算后只保留前 13 行即可。逐元素算子不会让补齐行影响真实行，而归约和注意力还需把补齐位置从统计量中排除。</p>
-<details><summary>下标 1024 的值和输出各是多少？</summary><p>1024 除以 5 余 4，减去 2，输入为 2；二倍加一得 5，截零以后仍是 5。</p></details>
+<details><summary>尾块有效元素的寻址与输出</summary><p>下标 1024 的值和输出各是多少？</p><p>1024 除以 5 余 4，减去 2，输入为 2；二倍加一得 5，截零以后仍是 5。</p></details>
 <div id="new-lab-tpu-port-kernel">
 <h3>逐元素门控的两次读写与窗口融合</h3>
 <p>同一个词经过两张投影权重会得到两行特征。SwiGLU 用第一行给第二行的每个通道调节幅度。把第一行的一个元素记为 g，第二行同一位置记为 u。先把 g 送入 sigmoid，得到 0 至 1 的系数；再乘回 g 得到 SiLU 门值；最后乘 u。各位置独立，适合从 Triton 的连续下标迁移到 Pallas 的二维窗口。</p>

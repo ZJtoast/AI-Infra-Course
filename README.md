@@ -14,7 +14,7 @@
 | :---: | :--- | :--- | :---: |
 | 01 | [Transformer 单层计算量与显存分析](https://zjtoast.github.io/AI-Infra-Course/lessons/01-transformer-compute-and-memory.html) | QKV 投影、浮点运算量与 KV 缓存 | [Word](word/01-transformer-compute-and-memory.docx) |
 | 02 | [GPU 微架构与 Tensor Core](https://zjtoast.github.io/AI-Infra-Course/lessons/02-gpu-microarchitecture-and-tensor-cores.html) | SM、存储层次、Tensor Core | [Word](word/02-gpu-microarchitecture-and-tensor-cores.docx) |
-| 03 | [GPU 算子编程：从 CUDA 分块到 DeepGEMM](https://zjtoast.github.io/AI-Infra-Course/lessons/03-cuda-ptx-and-tiled-kernels.html) | CUDA 与分块算子、通用及分代 PTX、SM90 与 SM100 的 DeepGEMM | [Word](word/03-cuda-ptx-and-tiled-kernels.docx) |
+| 03 | [GPU 分块算子、PTX 指令与 DeepGEMM 实现](https://zjtoast.github.io/AI-Infra-Course/lessons/03-cuda-ptx-and-tiled-kernels.html) | CUDA 与分块算子、通用及分代 PTX、SM90 与 SM100 的 DeepGEMM | [Word](word/03-cuda-ptx-and-tiled-kernels.docx) |
 | 04 | [GPU 性能剖析与瓶颈诊断](https://zjtoast.github.io/AI-Infra-Course/lessons/04-gpu-profiling-and-performance-analysis.html) | Nsight Compute 内核分析、Nsight Systems 请求时间线 | [Word](word/04-gpu-profiling-and-performance-analysis.docx) |
 | 05 | [Attention 算子与编译执行](https://zjtoast.github.io/AI-Infra-Course/lessons/05-attention-kernels-and-compilation.html) | FlashAttention 1–4、SageAttention 系列与算子融合 | [Word](word/05-attention-kernels-and-compilation.docx) |
 
@@ -60,7 +60,7 @@
 
 | 课次 | 讲义 | 主要内容 | 下载 |
 | :---: | :--- | :--- | :---: |
-| 19 | [综合设计：长上下文服务与训练平台](https://zjtoast.github.io/AI-Infra-Course/lessons/19-long-context-system-design.html) | 显存预算、跨机流量、服务容量 | [Word](word/19-long-context-system-design.docx) |
+| 19 | [长上下文服务与训练平台的系统设计](https://zjtoast.github.io/AI-Infra-Course/lessons/19-long-context-system-design.html) | 显存预算、跨机流量、服务容量 | [Word](word/19-long-context-system-design.docx) |
 
 ## 离线阅读
 
