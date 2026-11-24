@@ -107,6 +107,19 @@ pre.original-code > code {
   color: #a33030;
   font-weight: 700;
 }
+.llm-note pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  text-indent: 0;
+}
+.llm-note pre code { white-space: inherit; }
+.llm-table, .llm-figure, .llm-equation { overflow-x: auto; }
+.llm-table table { width: auto; margin: .8rem auto; }
+.llm-table th, .llm-table td { text-align: center; }
+.llm-figure { margin: 1rem 0; }
+.llm-figure svg { display: block; width: 100%; min-width: 34rem; height: auto; }
+.llm-figure figcaption { text-align: center; }
+.llm-equation { padding: .6em .2em; font-size: 1.17em; }
 :root[data-theme="dark"] .source-jump,
 :root[data-mode="dark"] .source-jump {
   color: #ffada9;

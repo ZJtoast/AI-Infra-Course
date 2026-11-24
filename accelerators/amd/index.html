@@ -20,7 +20,7 @@
   }
 }
 @media print{html{color-scheme:light}header,.side,.skip,.lab input{display:none}.layout,main{display:block;width:auto;border:0;margin:0;padding:0}.sources{display:block}pre{white-space:pre-wrap}pre code{white-space:pre-wrap}figure,table,details{break-inside:avoid}}</style><link rel="stylesheet" href="../../assets/platform-terms.css"><link rel="stylesheet" href="../../assets/aira/aira.css?v=dc2057b169f7"></head>
-<body id="top"><a class="skip" href="#reader">跳到正文</a><header><div class="toolbar"><a href="../../index.html">AI Infra Course</a><select id="display-mode" aria-label="阅读主题"><option value="auto">跟随系统</option><option value="light">浅色主题</option><option value="dark">深色主题</option></select></div></header><div class="layout"><aside class="side"><details open><summary>本页目录</summary><nav aria-label="AMD Instinct 课程目录"><div class="part">Instinct 架构与存储</div><ul><li><a href="#instinct">Instinct 加速卡与 ROCm 软件栈</a></li><li><a href="#cdna">CDNA 的芯粒、计算单元与显存</a></li><li><a href="#wave">线程块、wavefront 与访存顺序</a></li><li><a href="#transpose-layout">转置的全局地址与 LDS 存储体</a></li></ul><div class="part">HIP 与算子开发</div><ul><li><a href="#hip-language">HIP C++ 的函数限定符与线程协作</a></li><li><a href="#hip-axpy">第一个 HIP 算子的启动与校验</a></li><li><a href="#streams">HIP 流、事件与双缓冲</a></li><li><a href="#lds-reduce">块内规约与跨块归并</a></li><li><a href="#hip-pool-padding">平均池化的窗口坐标与边缘分母</a></li><li><a href="#scan-cooperation">前缀和的树形进位与 wave 交换</a></li><li><a href="#tile-gemm">分块矩阵乘与矩阵单元</a></li><li><a href="#mfma-workgroup">双 wave 矩阵乘的 LDS 布局与 MFMA 寄存器</a></li><li><a href="#libraries">rocBLAS、hipBLASLt 与 MIOpen</a></li><li><a href="#sparse">图邻接表与 rocSPARSE 的稀疏乘法</a></li></ul><div class="part">算子编程实验</div><ul><li><a href="#lab-smooth-l1-grad">Smooth L1 的预测梯度与分段斜率</a></li><li><a href="#lab-rope">RoPE 的半区配对与旋转</a></li><li><a href="#lab-space-to-depth">SpaceToDepth 的空间坐标与通道重排</a></li><li><a href="#lab-layernorm">LayerNorm 的两次行归约与通道参数</a></li><li><a href="#lab-bag-max">EmbeddingBag 的按通道最大值与空袋</a></li><li><a href="#lab-lora">LoRA 的秩二投影与基座输出合并</a></li><li><a href="#lab-moe-combine">MoE Top‑2 的专家槽位读回与加权合并</a></li><li><a href="#lab-attention-dv">因果注意力反向传播的值梯度</a></li><li><a href="#lab-welford">Welford 行方差的并行合并</a></li></ul><div class="part">模型框架与注意力</div><ul><li><a href="#pytorch">ROCm PyTorch 的张量与自动求导</a></li><li><a href="#triton">Triton 的行块与融合 softmax</a></li><li><a href="#attention">注意力得分与分块归一化</a></li><li><a href="#attention-tiles">行块 SDPA 的共享分数与在线归并</a></li><li><a href="#hip-csr-attention">CSR 图注意力的边归一化与特征聚合</a></li><li><a href="#precision">低精度表示、缩放与 Quark 校准</a></li><li><a href="#quant-wave">分组 INT8 的双遍量化、单遍融合与反量化</a></li></ul><div class="part">推理服务与长上下文</div><ul><li><a href="#kv-pages">prefill、解码与分页 KV cache</a></li><li><a href="#serve">vLLM 的推理服务与并发批处理</a></li><li><a href="#pd">SGLang 的分离式推理与 KV 交接</a></li><li><a href="#draft">并行草稿验证与有效交付量</a></li></ul><div class="part">通信与并行训练</div><ul><li><a href="#rccl">RCCL 集合通信与数据并行</a></li><li><a href="#parallel">张量并行、流水线与长序列分工</a></li><li><a href="#moe">MoE 的专家路由、重排与返回</a></li><li><a href="#routing-pack">专家分桶的局部名次与稳定写回</a></li><li><a href="#fsdp">训练显存、状态分片与恢复</a></li><li><a href="#finetune">Instinct 上的监督微调与 LoRA</a></li><li><a href="#rl">verl 的采样、奖励与策略更新</a></li></ul><div class="part">性能剖析与部署验收</div><ul><li><a href="#timeline">rocprofv3 的时间线与请求等待</a></li><li><a href="#counters">算术强度、硬件计数器与内核瓶颈</a></li><li><a href="#isa">GPU 指令、源码位置与优化复测</a></li><li><a href="#qwen-design">MI300X 上的 Qwen3 服务容量与验收</a></li></ul><div class="part">NVIDIA 工作负载的 Instinct 迁移</div><ul><li><a href="#port-hip">CUDA 算子到 HIP 的迁移</a></li><li><a href="#port-libraries">数值库、图算子与卷积模型的迁移</a></li><li><a href="#port-framework">训练、推理服务与性能记录的迁移</a></li></ul></nav></details></aside><main id="reader"><div class="intro"><h1>AMD Instinct 架构与 AI 系统</h1><p>沿一组线程的访存与矩阵乘，理解 CDNA、HIP 和 ROCm，再把同一套计算带到模型训练与推理服务。</p></div>
+<body id="top"><a class="skip" href="#reader">跳到正文</a><header><div class="toolbar"><a href="../../index.html">AI Infra Course</a><select id="display-mode" aria-label="阅读主题"><option value="auto">跟随系统</option><option value="light">浅色主题</option><option value="dark">深色主题</option></select></div></header><div class="layout"><aside class="side"><details open><summary>本页目录</summary><nav aria-label="AMD Instinct 课程目录"><div class="part">Instinct 架构与存储</div><ul><li><a href="#instinct">Instinct 加速卡与 ROCm 软件栈</a></li><li><a href="#cdna">CDNA 的芯粒、计算单元与显存</a></li><li><a href="#wave">线程块、wavefront 与访存顺序</a></li><li><a href="#transpose-layout">转置的全局地址与 LDS 存储体</a></li></ul><div class="part">HIP 与算子开发</div><ul><li><a href="#hip-language">HIP C++ 的函数限定符与线程协作</a></li><li><a href="#hip-axpy">第一个 HIP 算子的启动与校验</a></li><li><a href="#streams">HIP 流、事件与双缓冲</a></li><li><a href="#lds-reduce">块内规约与跨块归并</a></li><li><a href="#hip-pool-padding">平均池化的窗口坐标与边缘分母</a></li><li><a href="#scan-cooperation">前缀和的树形进位与 wave 交换</a></li><li><a href="#tile-gemm">分块矩阵乘与矩阵单元</a></li><li><a href="#mfma-workgroup">双 wave 矩阵乘的 LDS 布局与 MFMA 寄存器</a></li><li><a href="#libraries">rocBLAS、hipBLASLt 与 MIOpen</a></li><li><a href="#sparse">图邻接表与 rocSPARSE 的稀疏乘法</a></li></ul><div class="part">算子编程实验</div><ul><li><a href="#lab-smooth-l1-grad">Smooth L1 的预测梯度与分段斜率</a></li><li><a href="#lab-rope">RoPE 的半区配对与旋转</a></li><li><a href="#lab-space-to-depth">SpaceToDepth 的空间坐标与通道重排</a></li><li><a href="#lab-layernorm">LayerNorm 的两次行归约与通道参数</a></li><li><a href="#lab-bag-max">EmbeddingBag 的按通道最大值与空袋</a></li><li><a href="#lab-lora">LoRA 的秩二投影与基座输出合并</a></li><li><a href="#lab-moe-combine">MoE Top‑2 的专家槽位读回与加权合并</a></li><li><a href="#lab-attention-dv">因果注意力反向传播的值梯度</a></li><li><a href="#lab-welford">Welford 行方差的并行合并</a></li></ul><div class="part">序列模型的解码算子</div><ul><li><a href="#llm-conv-update">单步因果卷积的状态行与权重窗口</a></li><li><a href="#llm-recurrent-state">Gated DeltaNet 的单步更新与状态布局</a></li></ul><div class="part">模型框架与注意力</div><ul><li><a href="#pytorch">ROCm PyTorch 的张量与自动求导</a></li><li><a href="#triton">Triton 的行块与融合 softmax</a></li><li><a href="#attention">注意力得分与分块归一化</a></li><li><a href="#attention-tiles">行块 SDPA 的共享分数与在线归并</a></li><li><a href="#hip-csr-attention">CSR 图注意力的边归一化与特征聚合</a></li><li><a href="#precision">低精度表示、缩放与 Quark 校准</a></li><li><a href="#quant-wave">分组 INT8 的双遍量化、单遍融合与反量化</a></li></ul><div class="part">推理服务与长上下文</div><ul><li><a href="#kv-pages">prefill、解码与分页 KV cache</a></li><li><a href="#serve">vLLM 的推理服务与并发批处理</a></li><li><a href="#pd">SGLang 的分离式推理与 KV 交接</a></li><li><a href="#draft">并行草稿验证与有效交付量</a></li></ul><div class="part">通信与并行训练</div><ul><li><a href="#rccl">RCCL 集合通信与数据并行</a></li><li><a href="#parallel">张量并行、流水线与长序列分工</a></li><li><a href="#moe">MoE 的专家路由、重排与返回</a></li><li><a href="#routing-pack">专家分桶的局部名次与稳定写回</a></li><li><a href="#fsdp">训练显存、状态分片与恢复</a></li><li><a href="#finetune">Instinct 上的监督微调与 LoRA</a></li><li><a href="#rl">verl 的采样、奖励与策略更新</a></li></ul><div class="part">性能剖析与部署验收</div><ul><li><a href="#timeline">rocprofv3 的时间线与请求等待</a></li><li><a href="#counters">算术强度、硬件计数器与内核瓶颈</a></li><li><a href="#isa">GPU 指令、源码位置与优化复测</a></li><li><a href="#qwen-design">MI300X 上的 Qwen3 服务容量与验收</a></li></ul><div class="part">NVIDIA 工作负载的 Instinct 迁移</div><ul><li><a href="#port-hip">CUDA 算子到 HIP 的迁移</a></li><li><a href="#port-libraries">数值库、图算子与卷积模型的迁移</a></li><li><a href="#port-framework">训练、推理服务与性能记录的迁移</a></li></ul></nav></details></aside><main id="reader"><div class="intro"><h1>AMD Instinct 架构与 AI 系统</h1><p>沿一组线程的访存与矩阵乘，理解 CDNA、HIP 和 ROCm，再把同一套计算带到模型训练与推理服务。</p></div>
 <section data-part="Instinct 架构与存储" id="instinct"><p class="part-title">Instinct 架构与存储</p><h2>Instinct 加速卡与 ROCm 软件栈</h2>
 <p>给一句话做分类时，程序先把每个词表示成一排数。模型中的线性层把这排数分别与几列权重相乘、求和，得到下一排数。把几百个词叠成矩阵后，不同输出格可以同时算。AMD 的 Instinct 加速卡把大量这样的算术交给 GPU。CPU 准备输入、发起计算和处理结果，反复使用的权重可以一直留在卡上的高带宽显存（HBM）里。</p>
 <p>先用一行输入 [1，2] 和两列权重 [3，5]、[4，6] 算一次。第一个输出是 1 乘 3 加 2 乘 5，得 13；第二个是 1 乘 4 加 2 乘 6，得 16。下一行输入 [2，1] 仍用这两列权重，得到 11 和 14。一次调用让 GPU 产生四个输出。把两次输入排在一起，可以在卡内重复利用同一块权重。</p>
@@ -2976,6 +2976,361 @@ __syncthreads();
     <span class="kw">if</span>(lane&lt;step) tree[lane]=merge(tree[lane],tree[lane+step]);</code></pre>
 <p><a href="https://rocm.docs.amd.com/projects/rocPRIM/en/docs-7.14.1/block_ops/ops_classes/reduce.html">rocPRIM 的 block_reduce 示例</a>以 256 个线程归约每线程的一个输入，也允许传入二元合并操作。本例直接写出树来展示三个字段如何同时更新。<a href="examples/operator-lab/row_variance.hip">HIP 源码</a>和<a href="examples/operator-lab/check_welford.py">CPU 归约树对照</a>内置宽度 0、1、4、129、259 的双精度主机对照；约定空行返回两个零。与 <a href="examples/operator-lab/operator-lab.zip">实验包</a>中的其他驱动独立，执行 <code>hipcc -O2 row_variance.hip -o row_variance</code> 后运行 <code>./row_variance</code>。</p>
 </section>
+<!-- llm-kernels:start -->
+<section id="llm-conv-update" data-part="序列模型的解码算子"><p class="part-title">序列模型的解码算子</p><h2>单步因果卷积的状态行与权重窗口</h2><p>自回归生成每次只增加一个 token。沿时间做短卷积时，保留前几个输入，就能用新输入补齐窗口。ROCm AITER 的 <button type="button" class="course-term" popovertarget="llm-conv-update-term-1" aria-haspopup="dialog">causal Conv1D</button>按请求查找缓存行，再让不同通道各自乘上对应的权重。</p><div class="source-reading"><h3>完整源码</h3><a class="source-guide" href="#llm-conv-update-steps">源码解读 ↓</a><div class="device-original" data-origin="dconv" data-sha256="52f15dc7982c1e8efd392a397a2b8826dc0806cbaaebdb22b856dc529e4a4e1a" data-first="93" data-last="286"><h4>aiter 的 Triton 设备函数 <code>_causal_conv1d_update_single_token_kernel</code></h4><div class="source-meta"><a href="https://github.com/ROCm/aiter/blob/82b6b4f19bf3e9b5fc1f33741d4a495b1d454993/aiter/ops/triton/_triton_kernels/conv/causal_conv1d_update_single_token.py#L93-L286">ROCm/aiter · 第 93–286 行</a> · <a href="upstream/llm-kernels.zip" download>完整源文件、复算脚本与许可证</a><label class="height-switch"><input type="checkbox"> 全高显示（194 行）</label></div><pre class="original-code" tabindex="0" aria-label="_causal_conv1d_update_single_token_kernel 完整代码"><code class="language-python"><span class="source-line" id="llm-conv-update-src-1-L93" data-line="93">@triton.jit(repr=_causal_conv1d_update_single_token_kernel_repr)</span>
+<span class="source-line" id="llm-conv-update-src-1-L94" data-line="94"><span class="kw">def</span> <span class="fn">_causal_conv1d_update_single_token_kernel</span>(</span>
+<span class="source-line" id="llm-conv-update-src-1-L95" data-line="95">    <span class="cm"># Pointers to matrices</span></span>
+<span class="source-line" id="llm-conv-update-src-1-L96" data-line="96">    x_ptr,  <span class="cm"># (batch, dim, seqlen)</span></span>
+<span class="source-line" id="llm-conv-update-src-1-L97" data-line="97">    w_ptr,  <span class="cm"># (dim, width)</span></span>
+<span class="source-line" id="llm-conv-update-src-1-L98" data-line="98">    bias_ptr,</span>
+<span class="source-line" id="llm-conv-update-src-1-L99" data-line="99">    conv_state_ptr,</span>
+<span class="source-line" id="llm-conv-update-src-1-L100" data-line="100">    conv_state_indices_ptr,</span>
+<span class="source-line" id="llm-conv-update-src-1-L101" data-line="101">    block_idx_last_scheduled_token,  <span class="cm"># (batch,)</span></span>
+<span class="source-line" id="llm-conv-update-src-1-L102" data-line="102">    initial_state_idx,  <span class="cm"># (batch,)</span></span>
+<span class="source-line" id="llm-conv-update-src-1-L103" data-line="103">    o_ptr,  <span class="cm"># (batch, dim, seqlen)</span></span>
+<span class="source-line" id="llm-conv-update-src-1-L104" data-line="104">    <span class="cm"># Matrix dimensions</span></span>
+<span class="source-line" id="llm-conv-update-src-1-L105" data-line="105">    batch: int,</span>
+<span class="source-line" id="llm-conv-update-src-1-L106" data-line="106">    dim: tl.constexpr,</span>
+<span class="source-line" id="llm-conv-update-src-1-L107" data-line="107">    seqlen: tl.constexpr,</span>
+<span class="source-line" id="llm-conv-update-src-1-L108" data-line="108">    state_len: tl.constexpr,</span>
+<span class="source-line" id="llm-conv-update-src-1-L109" data-line="109">    num_cache_lines: tl.constexpr,  <span class="cm"># added to support vLLM larger cache lines</span></span>
+<span class="source-line" id="llm-conv-update-src-1-L110" data-line="110">    <span class="cm"># Strides</span></span>
+<span class="source-line" id="llm-conv-update-src-1-L111" data-line="111">    stride_x_seq: tl.constexpr,</span>
+<span class="source-line" id="llm-conv-update-src-1-L112" data-line="112">    stride_x_dim: tl.constexpr,</span>
+<span class="source-line" id="llm-conv-update-src-1-L113" data-line="113">    stride_x_token: tl.constexpr,</span>
+<span class="source-line" id="llm-conv-update-src-1-L114" data-line="114">    stride_w_dim: tl.constexpr,</span>
+<span class="source-line" id="llm-conv-update-src-1-L115" data-line="115">    stride_w_width: tl.constexpr,</span>
+<span class="source-line" id="llm-conv-update-src-1-L116" data-line="116">    stride_conv_state_seq: tl.constexpr,</span>
+<span class="source-line" id="llm-conv-update-src-1-L117" data-line="117">    stride_conv_state_dim: tl.constexpr,</span>
+<span class="source-line" id="llm-conv-update-src-1-L118" data-line="118">    stride_conv_state_tok: tl.constexpr,</span>
+<span class="source-line" id="llm-conv-update-src-1-L119" data-line="119">    stride_state_indices: tl.constexpr,</span>
+<span class="source-line" id="llm-conv-update-src-1-L120" data-line="120">    stride_o_seq: tl.constexpr,</span>
+<span class="source-line" id="llm-conv-update-src-1-L121" data-line="121">    stride_o_dim: tl.constexpr,</span>
+<span class="source-line" id="llm-conv-update-src-1-L122" data-line="122">    stride_o_token: tl.constexpr,</span>
+<span class="source-line" id="llm-conv-update-src-1-L123" data-line="123">    <span class="cm"># others</span></span>
+<span class="source-line" id="llm-conv-update-src-1-L124" data-line="124">    pad_slot_id: tl.constexpr,</span>
+<span class="source-line" id="llm-conv-update-src-1-L125" data-line="125">    <span class="cm"># Meta-parameters</span></span>
+<span class="source-line" id="llm-conv-update-src-1-L126" data-line="126">    HAS_BIAS: tl.constexpr,</span>
+<span class="source-line" id="llm-conv-update-src-1-L127" data-line="127">    KERNEL_WIDTH: tl.constexpr,</span>
+<span class="source-line" id="llm-conv-update-src-1-L128" data-line="128">    SILU_ACTIVATION: tl.constexpr,</span>
+<span class="source-line" id="llm-conv-update-src-1-L129" data-line="129">    IS_APC_ENABLED: tl.constexpr,</span>
+<span class="source-line" id="llm-conv-update-src-1-L130" data-line="130">    NP2_STATELEN: tl.constexpr,</span>
+<span class="source-line" id="llm-conv-update-src-1-L131" data-line="131">    USE_PAD_SLOT: tl.constexpr,</span>
+<span class="source-line" id="llm-conv-update-src-1-L132" data-line="132">    BLOCK_N: tl.constexpr,</span>
+<span class="source-line" id="llm-conv-update-src-1-L133" data-line="133">):</span>
+<span class="source-line" id="llm-conv-update-src-1-L134" data-line="134">    idx_seq = tl.program_id(<span class="nu">0</span>)</span>
+<span class="source-line" id="llm-conv-update-src-1-L135" data-line="135">    <span class="kw">if</span> idx_seq &gt;= batch:</span>
+<span class="source-line" id="llm-conv-update-src-1-L136" data-line="136">        <span class="kw">return</span></span>
+<span class="source-line" id="llm-conv-update-src-1-L137" data-line="137"></span>
+<span class="source-line" id="llm-conv-update-src-1-L138" data-line="138">    <span class="cm"># [BLOCK_N,] elements along the feature-dimension (channel)</span></span>
+<span class="source-line" id="llm-conv-update-src-1-L139" data-line="139">    idx_feats = tl.program_id(<span class="nu">1</span>) * BLOCK_N + tl.arange(<span class="nu">0</span>, BLOCK_N)</span>
+<span class="source-line" id="llm-conv-update-src-1-L140" data-line="140"></span>
+<span class="source-line" id="llm-conv-update-src-1-L141" data-line="141">    <span class="kw">if</span> IS_APC_ENABLED:</span>
+<span class="source-line" id="llm-conv-update-src-1-L142" data-line="142">        <span class="cm"># Get the state from the initial_state_idx</span></span>
+<span class="source-line" id="llm-conv-update-src-1-L143" data-line="143">        conv_state_init = tl.load(initial_state_idx + idx_seq)</span>
+<span class="source-line" id="llm-conv-update-src-1-L144" data-line="144">        current_last_index = tl.load(block_idx_last_scheduled_token + idx_seq)</span>
+<span class="source-line" id="llm-conv-update-src-1-L145" data-line="145">    <span class="kw">else</span>:</span>
+<span class="source-line" id="llm-conv-update-src-1-L146" data-line="146">        conv_state_init = <span class="nu">0</span></span>
+<span class="source-line" id="llm-conv-update-src-1-L147" data-line="147">        current_last_index = <span class="nu">0</span></span>
+<span class="source-line" id="llm-conv-update-src-1-L148" data-line="148"></span>
+<span class="source-line" id="llm-conv-update-src-1-L149" data-line="149">    <span class="cm"># cache_idx</span></span>
+<span class="source-line" id="llm-conv-update-src-1-L150" data-line="150">    conv_states_input_coord = tl.load(</span>
+<span class="source-line" id="llm-conv-update-src-1-L151" data-line="151">        conv_state_indices_ptr + idx_seq * stride_state_indices + conv_state_init</span>
+<span class="source-line" id="llm-conv-update-src-1-L152" data-line="152">    ).to(tl.int64)</span>
+<span class="source-line" id="llm-conv-update-src-1-L153" data-line="153"></span>
+<span class="source-line" id="llm-conv-update-src-1-L154" data-line="154">    <span class="kw">if</span> USE_PAD_SLOT:  <span class="cm"># noqa</span></span>
+<span class="source-line" id="llm-conv-update-src-1-L155" data-line="155">        <span class="kw">if</span> conv_states_input_coord == pad_slot_id:</span>
+<span class="source-line" id="llm-conv-update-src-1-L156" data-line="156">            <span class="cm"># not processing as this is not the actual sequence</span></span>
+<span class="source-line" id="llm-conv-update-src-1-L157" data-line="157">            <span class="kw">return</span></span>
+<span class="source-line" id="llm-conv-update-src-1-L158" data-line="158"></span>
+<span class="source-line" id="llm-conv-update-src-1-L159" data-line="159">    <span class="cm"># IS_VARLEN is False</span></span>
+<span class="source-line" id="llm-conv-update-src-1-L160" data-line="160">    query_start_index = idx_seq * seqlen</span>
+<span class="source-line" id="llm-conv-update-src-1-L161" data-line="161">    query_end_index = query_start_index + seqlen</span>
+<span class="source-line" id="llm-conv-update-src-1-L162" data-line="162">    x_offset = idx_seq * stride_x_seq</span>
+<span class="source-line" id="llm-conv-update-src-1-L163" data-line="163">    o_offset = idx_seq * stride_o_seq</span>
+<span class="source-line" id="llm-conv-update-src-1-L164" data-line="164"></span>
+<span class="source-line" id="llm-conv-update-src-1-L165" data-line="165">    <span class="kw">if</span> query_start_index == query_end_index:</span>
+<span class="source-line" id="llm-conv-update-src-1-L166" data-line="166">        <span class="kw">return</span></span>
+<span class="source-line" id="llm-conv-update-src-1-L167" data-line="167"></span>
+<span class="source-line" id="llm-conv-update-src-1-L168" data-line="168">    <span class="cm"># IS_SPEC_DECODING is False</span></span>
+<span class="source-line" id="llm-conv-update-src-1-L169" data-line="169">    conv_state_token_offset = <span class="nu">0</span></span>
+<span class="source-line" id="llm-conv-update-src-1-L170" data-line="170"></span>
+<span class="source-line" id="llm-conv-update-src-1-L171" data-line="171">    <span class="cm"># STEP 1: READ init_state data</span></span>
+<span class="source-line" id="llm-conv-update-src-1-L172" data-line="172">    <span class="cm"># note: NP2_STATELEN = triton.next_power_of_2(KERNEL_WIDTH - 1)</span></span>
+<span class="source-line" id="llm-conv-update-src-1-L173" data-line="173">    idx_cols = tl.arange(<span class="nu">0</span>, NP2_STATELEN)</span>
+<span class="source-line" id="llm-conv-update-src-1-L174" data-line="174">    conv_state_ptrs_cols = (</span>
+<span class="source-line" id="llm-conv-update-src-1-L175" data-line="175">        conv_state_ptr</span>
+<span class="source-line" id="llm-conv-update-src-1-L176" data-line="176">        + (conv_states_input_coord * stride_conv_state_seq)</span>
+<span class="source-line" id="llm-conv-update-src-1-L177" data-line="177">        + conv_state_token_offset * stride_conv_state_tok</span>
+<span class="source-line" id="llm-conv-update-src-1-L178" data-line="178">        + (idx_feats * stride_conv_state_dim)[:, <span class="kw">None</span>]</span>
+<span class="source-line" id="llm-conv-update-src-1-L179" data-line="179">        + (idx_cols * stride_conv_state_tok)[<span class="kw">None</span>, :]</span>
+<span class="source-line" id="llm-conv-update-src-1-L180" data-line="180">    )  <span class="cm"># [BLOCK_N, NP2_STATELEN]</span></span>
+<span class="source-line" id="llm-conv-update-src-1-L181" data-line="181">    mask_cols = (</span>
+<span class="source-line" id="llm-conv-update-src-1-L182" data-line="182">        (conv_states_input_coord &lt; num_cache_lines)</span>
+<span class="source-line" id="llm-conv-update-src-1-L183" data-line="183">        &amp; (idx_feats &lt; dim)[:, <span class="kw">None</span>]</span>
+<span class="source-line" id="llm-conv-update-src-1-L184" data-line="184">        &amp; (idx_cols &lt; KERNEL_WIDTH - <span class="nu">1</span>)[<span class="kw">None</span>, :]</span>
+<span class="source-line" id="llm-conv-update-src-1-L185" data-line="185">    )</span>
+<span class="source-line" id="llm-conv-update-src-1-L186" data-line="186">    cols = tl.load(conv_state_ptrs_cols, mask_cols, other=<span class="nu">0.0</span>)</span>
+<span class="source-line" id="llm-conv-update-src-1-L187" data-line="187"></span>
+<span class="source-line" id="llm-conv-update-src-1-L188" data-line="188">    <span class="cm"># STEP 2: assume state_len &gt; seqlen</span></span>
+<span class="source-line" id="llm-conv-update-src-1-L189" data-line="189">    idx_tokens = tl.arange(<span class="nu">0</span>, NP2_STATELEN)  <span class="cm"># [BLOCK_M]</span></span>
+<span class="source-line" id="llm-conv-update-src-1-L190" data-line="190"></span>
+<span class="source-line" id="llm-conv-update-src-1-L191" data-line="191">    <span class="cm"># With speculative decoding, the conv_state updates works in a sliding</span></span>
+<span class="source-line" id="llm-conv-update-src-1-L192" data-line="192">    <span class="cm"># window manner, at each forward pass, the tokens are shift by 1, so we</span></span>
+<span class="source-line" id="llm-conv-update-src-1-L193" data-line="193">    <span class="cm"># load since idx_tokens + 1.</span></span>
+<span class="source-line" id="llm-conv-update-src-1-L194" data-line="194">    conv_state_ptrs_source = (</span>
+<span class="source-line" id="llm-conv-update-src-1-L195" data-line="195">        conv_state_ptr</span>
+<span class="source-line" id="llm-conv-update-src-1-L196" data-line="196">        + (conv_states_input_coord * stride_conv_state_seq)</span>
+<span class="source-line" id="llm-conv-update-src-1-L197" data-line="197">        + conv_state_token_offset * stride_conv_state_tok</span>
+<span class="source-line" id="llm-conv-update-src-1-L198" data-line="198">        + (idx_feats * stride_conv_state_dim)[<span class="kw">None</span>, :]</span>
+<span class="source-line" id="llm-conv-update-src-1-L199" data-line="199">        + ((idx_tokens + seqlen) * stride_conv_state_tok)[:, <span class="kw">None</span>]</span>
+<span class="source-line" id="llm-conv-update-src-1-L200" data-line="200">    )  <span class="cm"># [BLOCK_M, BLOCK_N]</span></span>
+<span class="source-line" id="llm-conv-update-src-1-L201" data-line="201">    mask = (</span>
+<span class="source-line" id="llm-conv-update-src-1-L202" data-line="202">        (conv_states_input_coord &lt; num_cache_lines)</span>
+<span class="source-line" id="llm-conv-update-src-1-L203" data-line="203">        &amp; ((idx_tokens + seqlen) &lt; state_len)[:, <span class="kw">None</span>]</span>
+<span class="source-line" id="llm-conv-update-src-1-L204" data-line="204">        &amp; (idx_feats &lt; dim)[<span class="kw">None</span>, :]</span>
+<span class="source-line" id="llm-conv-update-src-1-L205" data-line="205">    )</span>
+<span class="source-line" id="llm-conv-update-src-1-L206" data-line="206">    conv_state = tl.load(conv_state_ptrs_source, mask, other=<span class="nu">0.0</span>)</span>
+<span class="source-line" id="llm-conv-update-src-1-L207" data-line="207"></span>
+<span class="source-line" id="llm-conv-update-src-1-L208" data-line="208">    VAL = state_len - seqlen</span>
+<span class="source-line" id="llm-conv-update-src-1-L209" data-line="209">    x_base = x_ptr + x_offset + (idx_feats * stride_x_dim)  <span class="cm"># [BLOCK_N]</span></span>
+<span class="source-line" id="llm-conv-update-src-1-L210" data-line="210"></span>
+<span class="source-line" id="llm-conv-update-src-1-L211" data-line="211">    x_ptrs = (</span>
+<span class="source-line" id="llm-conv-update-src-1-L212" data-line="212">        x_base[<span class="kw">None</span>, :] + ((idx_tokens - VAL) * stride_x_token)[:, <span class="kw">None</span>]</span>
+<span class="source-line" id="llm-conv-update-src-1-L213" data-line="213">    )  <span class="cm"># [BLOCK_M, BLOCK_N]</span></span>
+<span class="source-line" id="llm-conv-update-src-1-L214" data-line="214"></span>
+<span class="source-line" id="llm-conv-update-src-1-L215" data-line="215">    mask_x = (</span>
+<span class="source-line" id="llm-conv-update-src-1-L216" data-line="216">        (idx_tokens - VAL &gt;= <span class="nu">0</span>)[:, <span class="kw">None</span>]</span>
+<span class="source-line" id="llm-conv-update-src-1-L217" data-line="217">        &amp; (idx_tokens - VAL &lt; seqlen)[:, <span class="kw">None</span>]</span>
+<span class="source-line" id="llm-conv-update-src-1-L218" data-line="218">        &amp; (idx_feats &lt; dim)[<span class="kw">None</span>, :]</span>
+<span class="source-line" id="llm-conv-update-src-1-L219" data-line="219">    )  <span class="cm"># token-index  # token-index  # feature-index</span></span>
+<span class="source-line" id="llm-conv-update-src-1-L220" data-line="220">    loaded_x = tl.load(x_ptrs, mask_x, <span class="nu">0.0</span>)</span>
+<span class="source-line" id="llm-conv-update-src-1-L221" data-line="221">    tl.debug_barrier()</span>
+<span class="source-line" id="llm-conv-update-src-1-L222" data-line="222"></span>
+<span class="source-line" id="llm-conv-update-src-1-L223" data-line="223">    new_conv_state = tl.where(mask, conv_state, loaded_x)</span>
+<span class="source-line" id="llm-conv-update-src-1-L224" data-line="224"></span>
+<span class="source-line" id="llm-conv-update-src-1-L225" data-line="225">    <span class="cm"># Get the state from the initial_state_idx</span></span>
+<span class="source-line" id="llm-conv-update-src-1-L226" data-line="226">    <span class="cm"># cache_idx</span></span>
+<span class="source-line" id="llm-conv-update-src-1-L227" data-line="227">    conv_states_offset = tl.load(</span>
+<span class="source-line" id="llm-conv-update-src-1-L228" data-line="228">        conv_state_indices_ptr + idx_seq * stride_state_indices + current_last_index</span>
+<span class="source-line" id="llm-conv-update-src-1-L229" data-line="229">    ).to(tl.int64)</span>
+<span class="source-line" id="llm-conv-update-src-1-L230" data-line="230">    conv_state_ptrs_target = (</span>
+<span class="source-line" id="llm-conv-update-src-1-L231" data-line="231">        conv_state_ptr</span>
+<span class="source-line" id="llm-conv-update-src-1-L232" data-line="232">        + (conv_states_offset * stride_conv_state_seq)  <span class="cm"># Offset from seq</span></span>
+<span class="source-line" id="llm-conv-update-src-1-L233" data-line="233">        + (idx_feats * stride_conv_state_dim)</span>
+<span class="source-line" id="llm-conv-update-src-1-L234" data-line="234">    )[</span>
+<span class="source-line" id="llm-conv-update-src-1-L235" data-line="235">        <span class="kw">None</span>, :</span>
+<span class="source-line" id="llm-conv-update-src-1-L236" data-line="236">    ] + (  <span class="cm"># [BLOCK_N,]</span></span>
+<span class="source-line" id="llm-conv-update-src-1-L237" data-line="237">        idx_tokens * stride_conv_state_tok</span>
+<span class="source-line" id="llm-conv-update-src-1-L238" data-line="238">    )[</span>
+<span class="source-line" id="llm-conv-update-src-1-L239" data-line="239">        :, <span class="kw">None</span></span>
+<span class="source-line" id="llm-conv-update-src-1-L240" data-line="240">    ]</span>
+<span class="source-line" id="llm-conv-update-src-1-L241" data-line="241">    mask = (idx_tokens &lt; state_len)[:, <span class="kw">None</span>] &amp; (idx_feats &lt; dim)[<span class="kw">None</span>, :]</span>
+<span class="source-line" id="llm-conv-update-src-1-L242" data-line="242">    tl.store(conv_state_ptrs_target, new_conv_state, mask)</span>
+<span class="source-line" id="llm-conv-update-src-1-L243" data-line="243"></span>
+<span class="source-line" id="llm-conv-update-src-1-L244" data-line="244">    <span class="cm"># STEP 3: init accumulator, not necessary</span></span>
+<span class="source-line" id="llm-conv-update-src-1-L245" data-line="245">    <span class="cm"># if HAS_BIAS:</span></span>
+<span class="source-line" id="llm-conv-update-src-1-L246" data-line="246">    <span class="cm">#    bias = bias_ptr + idx_feats</span></span>
+<span class="source-line" id="llm-conv-update-src-1-L247" data-line="247">    <span class="cm">#    mask_bias = idx_feats &lt; dim</span></span>
+<span class="source-line" id="llm-conv-update-src-1-L248" data-line="248">    <span class="cm">#    acc_preload = tl.load(bias, mask=mask_bias, other=0.0).to(</span></span>
+<span class="source-line" id="llm-conv-update-src-1-L249" data-line="249">    <span class="cm">#        tl.float32</span></span>
+<span class="source-line" id="llm-conv-update-src-1-L250" data-line="250">    <span class="cm">#    )  # [BLOCK_N]</span></span>
+<span class="source-line" id="llm-conv-update-src-1-L251" data-line="251">    <span class="cm"># else:</span></span>
+<span class="source-line" id="llm-conv-update-src-1-L252" data-line="252">    <span class="cm">#    acc_preload = tl.zeros((BLOCK_N,), dtype=tl.float32)</span></span>
+<span class="source-line" id="llm-conv-update-src-1-L253" data-line="253"></span>
+<span class="source-line" id="llm-conv-update-src-1-L254" data-line="254">    <span class="cm"># STEP 4:</span></span>
+<span class="source-line" id="llm-conv-update-src-1-L255" data-line="255">    <span class="cm"># LOAD WEIGHTS and compute</span></span>
+<span class="source-line" id="llm-conv-update-src-1-L256" data-line="256">    w_cols_ptrs = (</span>
+<span class="source-line" id="llm-conv-update-src-1-L257" data-line="257">        w_ptr</span>
+<span class="source-line" id="llm-conv-update-src-1-L258" data-line="258">        + (idx_feats * stride_w_dim)[:, <span class="kw">None</span>]</span>
+<span class="source-line" id="llm-conv-update-src-1-L259" data-line="259">        + (idx_cols * stride_w_width)[<span class="kw">None</span>, :]</span>
+<span class="source-line" id="llm-conv-update-src-1-L260" data-line="260">    )</span>
+<span class="source-line" id="llm-conv-update-src-1-L261" data-line="261">    mask_w_cols = (idx_feats &lt; dim)[:, <span class="kw">None</span>] &amp; (idx_cols &lt; KERNEL_WIDTH - <span class="nu">1</span>)[<span class="kw">None</span>, :]</span>
+<span class="source-line" id="llm-conv-update-src-1-L262" data-line="262">    w_cols = tl.load(w_cols_ptrs, mask_w_cols, other=<span class="nu">0.0</span>)  <span class="cm"># [BLOCK_N, NP2_STATELEN]</span></span>
+<span class="source-line" id="llm-conv-update-src-1-L263" data-line="263"></span>
+<span class="source-line" id="llm-conv-update-src-1-L264" data-line="264">    w_last_ptrs = (</span>
+<span class="source-line" id="llm-conv-update-src-1-L265" data-line="265">        w_ptr + (idx_feats * stride_w_dim) + (KERNEL_WIDTH - <span class="nu">1</span>) * stride_w_width</span>
+<span class="source-line" id="llm-conv-update-src-1-L266" data-line="266">    )</span>
+<span class="source-line" id="llm-conv-update-src-1-L267" data-line="267">    w_last = tl.load(w_last_ptrs, idx_feats &lt; dim, other=<span class="nu">0.0</span>)  <span class="cm"># [BLOCK_N]</span></span>
+<span class="source-line" id="llm-conv-update-src-1-L268" data-line="268"></span>
+<span class="source-line" id="llm-conv-update-src-1-L269" data-line="269">    <span class="cm"># For the convolution output: dot(weights, [state_cols | x])</span></span>
+<span class="source-line" id="llm-conv-update-src-1-L270" data-line="270">    <span class="cm"># cols is [BLOCK_N, NP2_STATELEN] = conv_state history</span></span>
+<span class="source-line" id="llm-conv-update-src-1-L271" data-line="271">    <span class="cm"># We need x as 1D [BLOCK_N] for the last weight column</span></span>
+<span class="source-line" id="llm-conv-update-src-1-L272" data-line="272">    x_1d = tl.load(x_base, mask=(idx_feats &lt; dim), other=<span class="nu">0.0</span>)  <span class="cm"># [BLOCK_N], reload as 1D</span></span>
+<span class="source-line" id="llm-conv-update-src-1-L273" data-line="273">    acc = tl.sum((w_cols * cols).to(tl.float32), axis=<span class="nu">1</span>) + (w_last * x_1d).to(</span>
+<span class="source-line" id="llm-conv-update-src-1-L274" data-line="274">        tl.float32</span>
+<span class="source-line" id="llm-conv-update-src-1-L275" data-line="275">    )</span>
+<span class="source-line" id="llm-conv-update-src-1-L276" data-line="276"></span>
+<span class="source-line" id="llm-conv-update-src-1-L277" data-line="277">    <span class="kw">if</span> HAS_BIAS:</span>
+<span class="source-line" id="llm-conv-update-src-1-L278" data-line="278">        bias = bias_ptr + idx_feats</span>
+<span class="source-line" id="llm-conv-update-src-1-L279" data-line="279">        acc += tl.load(bias, idx_feats &lt; dim, other=<span class="nu">0.0</span>).to(tl.float32)  <span class="cm"># [BLOCK_N]</span></span>
+<span class="source-line" id="llm-conv-update-src-1-L280" data-line="280"></span>
+<span class="source-line" id="llm-conv-update-src-1-L281" data-line="281">    <span class="kw">if</span> SILU_ACTIVATION:</span>
+<span class="source-line" id="llm-conv-update-src-1-L282" data-line="282">        acc = acc / (<span class="nu">1</span> + tl.exp(-acc))</span>
+<span class="source-line" id="llm-conv-update-src-1-L283" data-line="283">    mask_1d = idx_feats &lt; dim</span>
+<span class="source-line" id="llm-conv-update-src-1-L284" data-line="284">    o_ptrs = o_ptr + o_offset + (idx_feats * stride_o_dim)</span>
+<span class="source-line" id="llm-conv-update-src-1-L285" data-line="285"></span>
+<span class="source-line" id="llm-conv-update-src-1-L286" data-line="286">    tl.store(o_ptrs, acc, mask=mask_1d)</span></code></pre></div></div><h3 id="llm-conv-update-steps">两个连续窗口的乘加</h3><p>取一条请求、一个通道、三个权重 [1,2,−1]，关闭 bias 与激活。旧历史 [2,3] 加上新输入 5，窗口 [2,3,5] 算出 <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mn>2</mn><mo>&#x0002B;</mo><mn>2</mn><mo>&#x000D7;</mo><mn>3</mn><mo>&#x02212;</mo><mn>5</mn><mo>&#x0003D;</mo><mn>3</mn></mrow></math>。状态移成 [3,5]。下一步输入 7，输出 <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mn>3</mn><mo>&#x0002B;</mo><mn>2</mn><mo>&#x000D7;</mo><mn>5</mn><mo>&#x02212;</mo><mn>7</mn><mo>&#x0003D;</mo><mn>6</mn></mrow></math>，状态移成 [5,7]。因此下一步要从缓存读到 3 和 5，而前一步对外返回的 3 只是一项输出。</p><p><button type="button" class="course-term source-jump" popovertarget="llm-conv-update-src-1-L150-note" aria-haspopup="dialog">第 150 行</button> 通过请求的索引查缓存，<button type="button" class="course-term source-jump" popovertarget="llm-conv-update-src-1-L186-note" aria-haspopup="dialog">第 186 行</button> 按通道和时间读取旧值。核在写新状态之前已经把参与本次乘加的旧窗口装进寄存器；<button type="button" class="course-term source-jump" popovertarget="llm-conv-update-src-1-L273-note" aria-haspopup="dialog">第 273 行</button> 附近继续用这些旧值计算。在同一数组上先移位、随后重新取窗，会把本该使用的最早输入覆盖。</p><div id="llm-conv-update-term-1" popover class="platform-term-note llm-note"><div><strong>causal Conv1D</strong><button type="button" aria-label="关闭" popovertarget="llm-conv-update-term-1" popovertargetaction="hide">×</button></div><p>每个通道沿时间轴读取当前和较早的输入；这里一步生成一行输出，同时更新下一步将读取的短历史。</p></div><div id="llm-conv-update-src-1-L150-note" popover class="platform-term-note llm-note"><div><strong>第 150 行</strong><button type="button" aria-label="关闭" popovertarget="llm-conv-update-src-1-L150-note" popovertargetaction="hide">×</button></div><pre><code class="language-python">conv_states_input_coord = tl.load(  <span class="cm"># 从该请求使用的状态索引表读取缓存行号</span></code></pre><a href="#llm-conv-update-src-1-L150" onclick="this.closest('[popover]').hidePopover()">完整函数中的这一行</a></div><div id="llm-conv-update-src-1-L186-note" popover class="platform-term-note llm-note"><div><strong>第 186 行</strong><button type="button" aria-label="关闭" popovertarget="llm-conv-update-src-1-L186-note" popovertargetaction="hide">×</button></div><pre><code class="language-python">cols = tl.load(conv_state_ptrs_cols, mask_cols, other=<span class="nu">0.0</span>)  <span class="cm"># 把窗口中的旧输入读到本次程序的局部块</span></code></pre><a href="#llm-conv-update-src-1-L186" onclick="this.closest('[popover]').hidePopover()">完整函数中的这一行</a></div><div id="llm-conv-update-src-1-L273-note" popover class="platform-term-note llm-note"><div><strong>第 273 行</strong><button type="button" aria-label="关闭" popovertarget="llm-conv-update-src-1-L273-note" popovertargetaction="hide">×</button></div><pre><code class="language-python">acc = tl.sum((w_cols * cols).to(tl.float32), axis=<span class="nu">1</span>) + (w_last * x_1d).to(  <span class="cm"># 先归约历史位置的乘积，再加当前输入乘最后一个权重</span></code></pre><a href="#llm-conv-update-src-1-L273" onclick="this.closest('[popover]').hidePopover()">完整函数中的这一行</a></div></section>
+<section id="llm-recurrent-state" data-part="序列模型的解码算子"><h2>Gated DeltaNet 的单步更新与状态布局</h2><p><button type="button" class="course-term" popovertarget="llm-recurrent-state-term-1" aria-haspopup="dialog">Gated DeltaNet</button>接在序列投影之后。AITER 将一个状态块按键通道和值通道排成两维，程序先读取上一步的状态，沿时间循环，逐步写出模型特征。</p><div class="source-reading"><h3>完整源码</h3><a class="source-guide" href="#llm-recurrent-state-steps">源码解读 ↓</a><div class="device-original" data-origin="ddelta" data-sha256="e20bc4a3dfd6d54f11caea27868f0170e332820f636a20f4bb49cc5424905d23" data-first="34" data-last="192"><h4>aiter 的 Triton 设备函数 <code>_fused_recurrent_gated_delta_rule_fwd_kernel</code></h4><div class="source-meta"><a href="https://github.com/ROCm/aiter/blob/82b6b4f19bf3e9b5fc1f33741d4a495b1d454993/aiter/ops/triton/_triton_kernels/gated_delta_net/decode/fused_recurrent.py#L34-L192">ROCm/aiter · 第 34–192 行</a> · <a href="upstream/llm-kernels.zip" download>完整源文件、复算脚本与许可证</a><label class="height-switch"><input type="checkbox"> 全高显示（159 行）</label></div><pre class="original-code" tabindex="0" aria-label="_fused_recurrent_gated_delta_rule_fwd_kernel 完整代码"><code class="language-python"><span class="source-line" id="llm-recurrent-state-src-1-L34" data-line="34">@triton.heuristics(</span>
+<span class="source-line" id="llm-recurrent-state-src-1-L35" data-line="35">    {</span>
+<span class="source-line" id="llm-recurrent-state-src-1-L36" data-line="36">        <span class="st">"</span><span class="st">USE_G</span><span class="st">"</span>: <span class="kw">lambda</span> args: args[<span class="st">"</span><span class="st">g</span><span class="st">"</span>] is not <span class="kw">None</span>,</span>
+<span class="source-line" id="llm-recurrent-state-src-1-L37" data-line="37">        <span class="st">"</span><span class="st">USE_GK</span><span class="st">"</span>: <span class="kw">lambda</span> args: args[<span class="st">"</span><span class="st">gk</span><span class="st">"</span>] is not <span class="kw">None</span>,</span>
+<span class="source-line" id="llm-recurrent-state-src-1-L38" data-line="38">        <span class="st">"</span><span class="st">USE_GV</span><span class="st">"</span>: <span class="kw">lambda</span> args: args[<span class="st">"</span><span class="st">gv</span><span class="st">"</span>] is not <span class="kw">None</span>,</span>
+<span class="source-line" id="llm-recurrent-state-src-1-L39" data-line="39">        <span class="st">"</span><span class="st">USE_INITIAL_STATE</span><span class="st">"</span>: <span class="kw">lambda</span> args: args[<span class="st">"</span><span class="st">h0</span><span class="st">"</span>] is not <span class="kw">None</span>,</span>
+<span class="source-line" id="llm-recurrent-state-src-1-L40" data-line="40">        <span class="st">"</span><span class="st">STORE_FINAL_STATE</span><span class="st">"</span>: <span class="kw">lambda</span> args: args[<span class="st">"</span><span class="st">ht</span><span class="st">"</span>] is not <span class="kw">None</span>,</span>
+<span class="source-line" id="llm-recurrent-state-src-1-L41" data-line="41">        <span class="st">"</span><span class="st">IS_VARLEN</span><span class="st">"</span>: <span class="kw">lambda</span> args: args[<span class="st">"</span><span class="st">cu_seqlens</span><span class="st">"</span>] is not <span class="kw">None</span>,</span>
+<span class="source-line" id="llm-recurrent-state-src-1-L42" data-line="42">    }</span>
+<span class="source-line" id="llm-recurrent-state-src-1-L43" data-line="43">)</span>
+<span class="source-line" id="llm-recurrent-state-src-1-L44" data-line="44">@triton.jit(</span>
+<span class="source-line" id="llm-recurrent-state-src-1-L45" data-line="45">    repr=_fused_recurrent_gated_delta_rule_fwd_kernel_repr, do_not_specialize=[<span class="st">"</span><span class="st">T</span><span class="st">"</span>]</span>
+<span class="source-line" id="llm-recurrent-state-src-1-L46" data-line="46">)</span>
+<span class="source-line" id="llm-recurrent-state-src-1-L47" data-line="47"><span class="kw">def</span> <span class="fn">_fused_recurrent_gated_delta_rule_fwd_kernel</span>(</span>
+<span class="source-line" id="llm-recurrent-state-src-1-L48" data-line="48">    q,</span>
+<span class="source-line" id="llm-recurrent-state-src-1-L49" data-line="49">    k,</span>
+<span class="source-line" id="llm-recurrent-state-src-1-L50" data-line="50">    v,</span>
+<span class="source-line" id="llm-recurrent-state-src-1-L51" data-line="51">    g,</span>
+<span class="source-line" id="llm-recurrent-state-src-1-L52" data-line="52">    gk,</span>
+<span class="source-line" id="llm-recurrent-state-src-1-L53" data-line="53">    gv,</span>
+<span class="source-line" id="llm-recurrent-state-src-1-L54" data-line="54">    beta,</span>
+<span class="source-line" id="llm-recurrent-state-src-1-L55" data-line="55">    o,</span>
+<span class="source-line" id="llm-recurrent-state-src-1-L56" data-line="56">    h0,</span>
+<span class="source-line" id="llm-recurrent-state-src-1-L57" data-line="57">    ht,</span>
+<span class="source-line" id="llm-recurrent-state-src-1-L58" data-line="58">    cu_seqlens,</span>
+<span class="source-line" id="llm-recurrent-state-src-1-L59" data-line="59">    scale,</span>
+<span class="source-line" id="llm-recurrent-state-src-1-L60" data-line="60">    T,</span>
+<span class="source-line" id="llm-recurrent-state-src-1-L61" data-line="61">    B: tl.constexpr,</span>
+<span class="source-line" id="llm-recurrent-state-src-1-L62" data-line="62">    H: tl.constexpr,</span>
+<span class="source-line" id="llm-recurrent-state-src-1-L63" data-line="63">    HV: tl.constexpr,</span>
+<span class="source-line" id="llm-recurrent-state-src-1-L64" data-line="64">    K: tl.constexpr,</span>
+<span class="source-line" id="llm-recurrent-state-src-1-L65" data-line="65">    V: tl.constexpr,</span>
+<span class="source-line" id="llm-recurrent-state-src-1-L66" data-line="66">    BK: tl.constexpr,</span>
+<span class="source-line" id="llm-recurrent-state-src-1-L67" data-line="67">    BV: tl.constexpr,</span>
+<span class="source-line" id="llm-recurrent-state-src-1-L68" data-line="68">    USE_G: tl.constexpr,</span>
+<span class="source-line" id="llm-recurrent-state-src-1-L69" data-line="69">    USE_GK: tl.constexpr,</span>
+<span class="source-line" id="llm-recurrent-state-src-1-L70" data-line="70">    USE_GV: tl.constexpr,</span>
+<span class="source-line" id="llm-recurrent-state-src-1-L71" data-line="71">    USE_QK_L2NORM_IN_KERNEL: tl.constexpr,</span>
+<span class="source-line" id="llm-recurrent-state-src-1-L72" data-line="72">    IS_BETA_HEADWISE: tl.constexpr,</span>
+<span class="source-line" id="llm-recurrent-state-src-1-L73" data-line="73">    USE_INITIAL_STATE: tl.constexpr,</span>
+<span class="source-line" id="llm-recurrent-state-src-1-L74" data-line="74">    STORE_FINAL_STATE: tl.constexpr,</span>
+<span class="source-line" id="llm-recurrent-state-src-1-L75" data-line="75">    IS_VARLEN: tl.constexpr,</span>
+<span class="source-line" id="llm-recurrent-state-src-1-L76" data-line="76">):</span>
+<span class="source-line" id="llm-recurrent-state-src-1-L77" data-line="77">    <span class="st">"""</span></span>
+<span class="source-line" id="llm-recurrent-state-src-1-L78" data-line="78"><span class="st">    Fused recurrent gated delta rule forward kernel.</span></span>
+<span class="source-line" id="llm-recurrent-state-src-1-L79" data-line="79"></span>
+<span class="source-line" id="llm-recurrent-state-src-1-L80" data-line="80"><span class="st">    This kernel implements a recurrent computation with gating mechanisms</span></span>
+<span class="source-line" id="llm-recurrent-state-src-1-L81" data-line="81"><span class="st">    for sequence modeling tasks.</span></span>
+<span class="source-line" id="llm-recurrent-state-src-1-L82" data-line="82"></span>
+<span class="source-line" id="llm-recurrent-state-src-1-L83" data-line="83"><span class="st">    Args:</span></span>
+<span class="source-line" id="llm-recurrent-state-src-1-L84" data-line="84"><span class="st">        q: Query tensor pointer</span></span>
+<span class="source-line" id="llm-recurrent-state-src-1-L85" data-line="85"><span class="st">        k: Key tensor pointer</span></span>
+<span class="source-line" id="llm-recurrent-state-src-1-L86" data-line="86"><span class="st">        v: Value tensor pointer</span></span>
+<span class="source-line" id="llm-recurrent-state-src-1-L87" data-line="87"><span class="st">        g: Global gate tensor pointer (optional)</span></span>
+<span class="source-line" id="llm-recurrent-state-src-1-L88" data-line="88"><span class="st">        gk: Key gate tensor pointer (optional)</span></span>
+<span class="source-line" id="llm-recurrent-state-src-1-L89" data-line="89"><span class="st">        gv: Value gate tensor pointer (optional)</span></span>
+<span class="source-line" id="llm-recurrent-state-src-1-L90" data-line="90"><span class="st">        beta: Beta parameter tensor pointer</span></span>
+<span class="source-line" id="llm-recurrent-state-src-1-L91" data-line="91"><span class="st">        o: Output tensor pointer</span></span>
+<span class="source-line" id="llm-recurrent-state-src-1-L92" data-line="92"><span class="st">        h0: Initial hidden state pointer (optional)</span></span>
+<span class="source-line" id="llm-recurrent-state-src-1-L93" data-line="93"><span class="st">        ht: Final hidden state pointer (optional)</span></span>
+<span class="source-line" id="llm-recurrent-state-src-1-L94" data-line="94"><span class="st">        cu_seqlens: Cumulative sequence lengths for variable-length inputs (optional)</span></span>
+<span class="source-line" id="llm-recurrent-state-src-1-L95" data-line="95"><span class="st">        scale: Scaling factor for queries</span></span>
+<span class="source-line" id="llm-recurrent-state-src-1-L96" data-line="96"><span class="st">        T: Sequence length</span></span>
+<span class="source-line" id="llm-recurrent-state-src-1-L97" data-line="97"><span class="st">        B, H, HV, K, V: Batch, head dimensions</span></span>
+<span class="source-line" id="llm-recurrent-state-src-1-L98" data-line="98"><span class="st">        BK, BV: Block sizes</span></span>
+<span class="source-line" id="llm-recurrent-state-src-1-L99" data-line="99"><span class="st">        USE_G, USE_GK, USE_GV: Flags for using gates</span></span>
+<span class="source-line" id="llm-recurrent-state-src-1-L100" data-line="100"><span class="st">        USE_QK_L2NORM_IN_KERNEL: Flag for L2 normalization</span></span>
+<span class="source-line" id="llm-recurrent-state-src-1-L101" data-line="101"><span class="st">        IS_BETA_HEADWISE: Flag for beta dimensionality</span></span>
+<span class="source-line" id="llm-recurrent-state-src-1-L102" data-line="102"><span class="st">        USE_INITIAL_STATE: Flag for using initial state</span></span>
+<span class="source-line" id="llm-recurrent-state-src-1-L103" data-line="103"><span class="st">        STORE_FINAL_STATE: Flag for storing final state</span></span>
+<span class="source-line" id="llm-recurrent-state-src-1-L104" data-line="104"><span class="st">        IS_VARLEN: Flag for variable-length sequences</span></span>
+<span class="source-line" id="llm-recurrent-state-src-1-L105" data-line="105"><span class="st">    """</span></span>
+<span class="source-line" id="llm-recurrent-state-src-1-L106" data-line="106">    i_v, i_nh = tl.program_id(<span class="nu">0</span>), tl.program_id(<span class="nu">1</span>)</span>
+<span class="source-line" id="llm-recurrent-state-src-1-L107" data-line="107">    i_n, i_hv = i_nh // HV, i_nh % HV</span>
+<span class="source-line" id="llm-recurrent-state-src-1-L108" data-line="108">    i_h = i_hv // (HV // H)</span>
+<span class="source-line" id="llm-recurrent-state-src-1-L109" data-line="109"></span>
+<span class="source-line" id="llm-recurrent-state-src-1-L110" data-line="110">    <span class="kw">if</span> IS_VARLEN:</span>
+<span class="source-line" id="llm-recurrent-state-src-1-L111" data-line="111">        bos, eos = tl.load(cu_seqlens + i_n).to(tl.int64), tl.load(</span>
+<span class="source-line" id="llm-recurrent-state-src-1-L112" data-line="112">            cu_seqlens + i_n + <span class="nu">1</span></span>
+<span class="source-line" id="llm-recurrent-state-src-1-L113" data-line="113">        ).to(tl.int64)</span>
+<span class="source-line" id="llm-recurrent-state-src-1-L114" data-line="114">        T = eos - bos</span>
+<span class="source-line" id="llm-recurrent-state-src-1-L115" data-line="115">    <span class="kw">else</span>:</span>
+<span class="source-line" id="llm-recurrent-state-src-1-L116" data-line="116">        bos, eos = i_n * T, i_n * T + T</span>
+<span class="source-line" id="llm-recurrent-state-src-1-L117" data-line="117">    o_k = tl.arange(<span class="nu">0</span>, BK)</span>
+<span class="source-line" id="llm-recurrent-state-src-1-L118" data-line="118">    o_v = i_v * BV + tl.arange(<span class="nu">0</span>, BV)</span>
+<span class="source-line" id="llm-recurrent-state-src-1-L119" data-line="119"></span>
+<span class="source-line" id="llm-recurrent-state-src-1-L120" data-line="120">    p_q = q + (bos * H + i_h) * K + o_k</span>
+<span class="source-line" id="llm-recurrent-state-src-1-L121" data-line="121">    p_k = k + (bos * H + i_h) * K + o_k</span>
+<span class="source-line" id="llm-recurrent-state-src-1-L122" data-line="122">    p_v = v + (bos * HV + i_hv) * V + o_v</span>
+<span class="source-line" id="llm-recurrent-state-src-1-L123" data-line="123">    <span class="kw">if</span> USE_G:</span>
+<span class="source-line" id="llm-recurrent-state-src-1-L124" data-line="124">        p_g = g + bos * HV + i_hv</span>
+<span class="source-line" id="llm-recurrent-state-src-1-L125" data-line="125">    <span class="kw">if</span> USE_GK:</span>
+<span class="source-line" id="llm-recurrent-state-src-1-L126" data-line="126">        p_gk = gk + (bos * HV + i_hv) * K + o_k</span>
+<span class="source-line" id="llm-recurrent-state-src-1-L127" data-line="127">    <span class="kw">if</span> USE_GV:</span>
+<span class="source-line" id="llm-recurrent-state-src-1-L128" data-line="128">        p_gv = gv + (bos * HV + i_hv) * V + o_v</span>
+<span class="source-line" id="llm-recurrent-state-src-1-L129" data-line="129">    <span class="kw">if</span> IS_BETA_HEADWISE:</span>
+<span class="source-line" id="llm-recurrent-state-src-1-L130" data-line="130">        p_beta = beta + bos * HV + i_hv</span>
+<span class="source-line" id="llm-recurrent-state-src-1-L131" data-line="131">    <span class="kw">else</span>:</span>
+<span class="source-line" id="llm-recurrent-state-src-1-L132" data-line="132">        p_beta = beta + (bos * HV + i_hv) * V + o_v</span>
+<span class="source-line" id="llm-recurrent-state-src-1-L133" data-line="133"></span>
+<span class="source-line" id="llm-recurrent-state-src-1-L134" data-line="134">    p_o = o + (bos * HV + i_hv) * V + o_v</span>
+<span class="source-line" id="llm-recurrent-state-src-1-L135" data-line="135"></span>
+<span class="source-line" id="llm-recurrent-state-src-1-L136" data-line="136">    mask_k = o_k &lt; K</span>
+<span class="source-line" id="llm-recurrent-state-src-1-L137" data-line="137">    mask_v = o_v &lt; V</span>
+<span class="source-line" id="llm-recurrent-state-src-1-L138" data-line="138">    mask_h = mask_k[:, <span class="kw">None</span>] &amp; mask_v[<span class="kw">None</span>, :]</span>
+<span class="source-line" id="llm-recurrent-state-src-1-L139" data-line="139"></span>
+<span class="source-line" id="llm-recurrent-state-src-1-L140" data-line="140">    b_h = tl.zeros([BK, BV], dtype=tl.float32)</span>
+<span class="source-line" id="llm-recurrent-state-src-1-L141" data-line="141">    <span class="kw">if</span> USE_INITIAL_STATE:</span>
+<span class="source-line" id="llm-recurrent-state-src-1-L142" data-line="142">        p_h0 = h0 + i_nh * K * V + o_k[:, <span class="kw">None</span>] * V + o_v[<span class="kw">None</span>, :]</span>
+<span class="source-line" id="llm-recurrent-state-src-1-L143" data-line="143">        b_h += tl.load(p_h0, mask=mask_h, other=<span class="nu">0</span>).to(tl.float32)</span>
+<span class="source-line" id="llm-recurrent-state-src-1-L144" data-line="144"></span>
+<span class="source-line" id="llm-recurrent-state-src-1-L145" data-line="145">    <span class="kw">for</span> _ in range(T):</span>
+<span class="source-line" id="llm-recurrent-state-src-1-L146" data-line="146">        b_q = tl.load(p_q, mask=mask_k, other=<span class="nu">0</span>).to(tl.float32)</span>
+<span class="source-line" id="llm-recurrent-state-src-1-L147" data-line="147">        b_k = tl.load(p_k, mask=mask_k, other=<span class="nu">0</span>).to(tl.float32)</span>
+<span class="source-line" id="llm-recurrent-state-src-1-L148" data-line="148">        b_v = tl.load(p_v, mask=mask_v, other=<span class="nu">0</span>).to(tl.float32)</span>
+<span class="source-line" id="llm-recurrent-state-src-1-L149" data-line="149">        <span class="kw">if</span> USE_QK_L2NORM_IN_KERNEL:</span>
+<span class="source-line" id="llm-recurrent-state-src-1-L150" data-line="150">            b_q = b_q / tl.sqrt(tl.sum(b_q * b_q) + <span class="nu">1e-6</span>)</span>
+<span class="source-line" id="llm-recurrent-state-src-1-L151" data-line="151">            b_k = b_k / tl.sqrt(tl.sum(b_k * b_k) + <span class="nu">1e-6</span>)</span>
+<span class="source-line" id="llm-recurrent-state-src-1-L152" data-line="152">        b_q = b_q * scale</span>
+<span class="source-line" id="llm-recurrent-state-src-1-L153" data-line="153">        <span class="kw">if</span> IS_BETA_HEADWISE:</span>
+<span class="source-line" id="llm-recurrent-state-src-1-L154" data-line="154">            b_beta = tl.load(p_beta).to(tl.float32)</span>
+<span class="source-line" id="llm-recurrent-state-src-1-L155" data-line="155">        <span class="kw">else</span>:</span>
+<span class="source-line" id="llm-recurrent-state-src-1-L156" data-line="156">            b_beta = tl.load(p_beta, mask=mask_v, other=<span class="nu">0</span>).to(tl.float32)</span>
+<span class="source-line" id="llm-recurrent-state-src-1-L157" data-line="157"></span>
+<span class="source-line" id="llm-recurrent-state-src-1-L158" data-line="158">        <span class="cm"># [BK, BV]</span></span>
+<span class="source-line" id="llm-recurrent-state-src-1-L159" data-line="159">        <span class="kw">if</span> USE_G:</span>
+<span class="source-line" id="llm-recurrent-state-src-1-L160" data-line="160">            b_g = tl.load(p_g).to(tl.float32)</span>
+<span class="source-line" id="llm-recurrent-state-src-1-L161" data-line="161">            b_h *= tl.exp(b_g)</span>
+<span class="source-line" id="llm-recurrent-state-src-1-L162" data-line="162"></span>
+<span class="source-line" id="llm-recurrent-state-src-1-L163" data-line="163">        <span class="kw">if</span> USE_GK:</span>
+<span class="source-line" id="llm-recurrent-state-src-1-L164" data-line="164">            b_gk = tl.load(p_gk).to(tl.float32)</span>
+<span class="source-line" id="llm-recurrent-state-src-1-L165" data-line="165">            b_h *= tl.exp(b_gk[:, <span class="kw">None</span>])</span>
+<span class="source-line" id="llm-recurrent-state-src-1-L166" data-line="166"></span>
+<span class="source-line" id="llm-recurrent-state-src-1-L167" data-line="167">        <span class="kw">if</span> USE_GV:</span>
+<span class="source-line" id="llm-recurrent-state-src-1-L168" data-line="168">            b_gv = tl.load(p_gv).to(tl.float32)</span>
+<span class="source-line" id="llm-recurrent-state-src-1-L169" data-line="169">            b_h *= tl.exp(b_gv[<span class="kw">None</span>, :])</span>
+<span class="source-line" id="llm-recurrent-state-src-1-L170" data-line="170"></span>
+<span class="source-line" id="llm-recurrent-state-src-1-L171" data-line="171">        b_v = b_beta * (b_v - tl.sum(b_h * b_k[:, <span class="kw">None</span>], <span class="nu">0</span>))</span>
+<span class="source-line" id="llm-recurrent-state-src-1-L172" data-line="172">        b_h += b_k[:, <span class="kw">None</span>] * b_v</span>
+<span class="source-line" id="llm-recurrent-state-src-1-L173" data-line="173"></span>
+<span class="source-line" id="llm-recurrent-state-src-1-L174" data-line="174">        <span class="cm"># [BV]</span></span>
+<span class="source-line" id="llm-recurrent-state-src-1-L175" data-line="175">        b_o = tl.sum(b_h * b_q[:, <span class="kw">None</span>], <span class="nu">0</span>)</span>
+<span class="source-line" id="llm-recurrent-state-src-1-L176" data-line="176">        tl.store(p_o, b_o.to(p_o.dtype.element_ty), mask=mask_v)</span>
+<span class="source-line" id="llm-recurrent-state-src-1-L177" data-line="177"></span>
+<span class="source-line" id="llm-recurrent-state-src-1-L178" data-line="178">        p_q += H * K</span>
+<span class="source-line" id="llm-recurrent-state-src-1-L179" data-line="179">        p_k += H * K</span>
+<span class="source-line" id="llm-recurrent-state-src-1-L180" data-line="180">        p_v += HV * V</span>
+<span class="source-line" id="llm-recurrent-state-src-1-L181" data-line="181">        <span class="kw">if</span> USE_G:</span>
+<span class="source-line" id="llm-recurrent-state-src-1-L182" data-line="182">            p_g += HV</span>
+<span class="source-line" id="llm-recurrent-state-src-1-L183" data-line="183">        <span class="kw">if</span> USE_GK:</span>
+<span class="source-line" id="llm-recurrent-state-src-1-L184" data-line="184">            p_gk += HV * K</span>
+<span class="source-line" id="llm-recurrent-state-src-1-L185" data-line="185">        <span class="kw">if</span> USE_GV:</span>
+<span class="source-line" id="llm-recurrent-state-src-1-L186" data-line="186">            p_gv += HV * V</span>
+<span class="source-line" id="llm-recurrent-state-src-1-L187" data-line="187">        p_beta += HV * (<span class="nu">1</span> <span class="kw">if</span> IS_BETA_HEADWISE <span class="kw">else</span> V)</span>
+<span class="source-line" id="llm-recurrent-state-src-1-L188" data-line="188">        p_o += HV * V</span>
+<span class="source-line" id="llm-recurrent-state-src-1-L189" data-line="189"></span>
+<span class="source-line" id="llm-recurrent-state-src-1-L190" data-line="190">    <span class="kw">if</span> STORE_FINAL_STATE:</span>
+<span class="source-line" id="llm-recurrent-state-src-1-L191" data-line="191">        p_ht = ht + i_nh * K * V + o_k[:, <span class="kw">None</span>] * V + o_v[<span class="kw">None</span>, :]</span>
+<span class="source-line" id="llm-recurrent-state-src-1-L192" data-line="192">        tl.store(p_ht, b_h.to(p_ht.dtype.element_ty), mask=mask_h)</span></code></pre></div></div><h3 id="llm-recurrent-state-steps">两行一列的状态更新</h3><p>只留一个头、两个键通道、一个值通道。初始状态是一列，上下为 2 和 4。取 k=[1,1]、q=[0,1]、v=5，关闭核内归一化并取查询缩放 1；旧状态乘 1/2，写入门也取 1/2。衰减后两行是 1、2。键逐行点积预测得 3，写入量是 (5−3)/2=1。分别加回 <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mn>1</mn><mo>&#x000D7;</mo><mn>1</mn></mrow></math>，新状态为 2、3。q 只读第二行，输出 3。</p><figure class="llm-figure"><svg role="img" aria-labelledby="fig-recurrent-state" viewBox="0 0 800 45"><title id="fig-recurrent-state">一个状态块的单步更新</title><rect x="2.0" y="3" width="181.0" height="36" rx="5" fill="var(--sheet)" stroke="currentColor"/><text x="92.5" y="22" text-anchor="middle" dominant-baseline="middle" fill="currentColor" font-size="16">状态两行 2、4</text><path d="M184.0 21h15m-6 -5 6 5-6 5" fill="none" stroke="currentColor" stroke-width="2"/><rect x="202.0" y="3" width="181.0" height="36" rx="5" fill="var(--sheet)" stroke="currentColor"/><text x="292.5" y="22" text-anchor="middle" dominant-baseline="middle" fill="currentColor" font-size="16">旧状态减半 → 1、2</text><path d="M384.0 21h15m-6 -5 6 5-6 5" fill="none" stroke="currentColor" stroke-width="2"/><rect x="402.0" y="3" width="181.0" height="36" rx="5" fill="var(--sheet)" stroke="currentColor"/><text x="492.5" y="22" text-anchor="middle" dominant-baseline="middle" fill="currentColor" font-size="16">两行各加 1 → 2、3</text><path d="M584.0 21h15m-6 -5 6 5-6 5" fill="none" stroke="currentColor" stroke-width="2"/><rect x="602.0" y="3" width="196.0" height="36" rx="5" fill="var(--sheet)" stroke="currentColor"/><text x="700.0" y="22" text-anchor="middle" dominant-baseline="middle" fill="currentColor" font-size="16">查询读第二行 → 3</text></svg><figcaption>一个状态块的单步更新</figcaption></figure><p><button type="button" class="course-term source-jump" popovertarget="llm-recurrent-state-src-1-L161-note" aria-haspopup="dialog">第 161 行</button> 在 USE_G 路径用头内共享系数衰减全块，<button type="button" class="course-term source-jump" popovertarget="llm-recurrent-state-src-1-L172-note" aria-haspopup="dialog">第 172 行</button> 附近先沿键维求和，再按键方向更新。若设备分块同时处理多个值通道，这串操作会为每列各算一次。源码另有按键或按值衰减的开关，乘数分别按行和按列广播。</p><div id="llm-recurrent-state-term-1" popover class="platform-term-note llm-note"><div><strong>Gated DeltaNet</strong><button type="button" aria-label="关闭" popovertarget="llm-recurrent-state-term-1" popovertargetaction="hide">×</button></div><p>用一个随 token 更新的小矩阵保存历史。键从矩阵预测当前值，实际值修正预测，查询读出更新后的状态。</p></div><div id="llm-recurrent-state-src-1-L161-note" popover class="platform-term-note llm-note"><div><strong>第 161 行</strong><button type="button" aria-label="关闭" popovertarget="llm-recurrent-state-src-1-L161-note" popovertargetaction="hide">×</button></div><pre><code class="language-python">b_h *= tl.exp(b_g)  <span class="cm"># 每个状态元素乘以本头旧信息的保留量</span></code></pre><a href="#llm-recurrent-state-src-1-L161" onclick="this.closest('[popover]').hidePopover()">完整函数中的这一行</a></div><div id="llm-recurrent-state-src-1-L172-note" popover class="platform-term-note llm-note"><div><strong>第 172 行</strong><button type="button" aria-label="关闭" popovertarget="llm-recurrent-state-src-1-L172-note" popovertargetaction="hide">×</button></div><pre><code class="language-python">b_h += b_k[:, <span class="kw">None</span>] * b_v  <span class="cm"># 每个键分量乘修正量后加回对应状态行</span></code></pre><a href="#llm-recurrent-state-src-1-L172" onclick="this.closest('[popover]').hidePopover()">完整函数中的这一行</a></div></section>
+<!-- llm-kernels:end -->
 <section data-part="模型框架与注意力" id="pytorch"><p class="part-title">模型框架与注意力</p><h2>ROCm PyTorch 的张量与自动求导</h2>
 <p>加载 ROCm 版 PyTorch 后，设备名称仍写 <code>cuda</code>，同一套上层接口会调到 HIP。<code>torch.version.hip</code> 给出这一构建所用的 HIP 版本；设备名称和属性可以在程序运行的环境里查询。用一个有两个参数的小模型，就能走完设备分配、前向、反向和参数更新。</p>
 <pre><code class="language-python"><span class="kw">import</span> torch
