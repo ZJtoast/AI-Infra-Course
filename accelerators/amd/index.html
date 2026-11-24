@@ -180,8 +180,6 @@ print(y.cpu().tolist(), out.cpu().tolist())</code></pre></figure>
 <span class="source-line" id="transpose-layout-hiptranspose2-60-L76" data-line="76">  out[out_index] = tile[threadIdx.x][threadIdx.y];</span>
 <span class="source-line" id="transpose-layout-hiptranspose2-60-L77" data-line="77">}</span></code></pre></div><h3 id="transpose-layout-walkthrough">源码解读</h3><p>AMD 教程的 transpose_lds_kernel 先由相邻线程连续读入矩阵的一行，再通过 LDS 中的小方块换方向。同步后，线程交换行、列角色，以连续地址写回转置结果。检查索引时要分别看 block 格子的位置和线程在格子里的坐标。</p></div>
 <!-- /original-functions -->
-
-
 <p>输入按行存放，转置把 X[r,c] 送到 Y[c,r]。在直接写法里，相邻线程处理同一行的相邻列，因此从输入取数方便。转到输出后，这些线程各自写到不同行，同组线程的写地址跨过整行。把一个 32×32 片临时存进 LDS，可以让另一组线程接手写回，使读入和写出都沿各自矩阵的行前进。</p>
 <h3>分块转置的 LDS 坐标与输出地址</h3>
 <p>设输入有 35 行、37 列。X[1,34] 的线性偏移是 1×37+34=71，转置后去 Y[34,1]，偏移为 34×35+1=1191。直接写法由读它的线程马上写出。分块写法在输入块 (x=1,y=0) 把它送到 tile[1][2]，再由同一块中负责输出第 34 行、局部列 1 的线程读取这格。输入和输出实际访问的首地址都可用这个元素核对。</p>
@@ -219,8 +217,6 @@ print(y.cpu().tolist(), out.cpu().tolist())</code></pre></figure>
 <span class="source-line" id="hip-language-hiptranspose2-46-L54" data-line="54">  out[out_index] = in[in_index];</span>
 <span class="source-line" id="hip-language-hiptranspose2-46-L55" data-line="55">}</span></code></pre></div><h3 id="hip-language-walkthrough">源码解读</h3><p>HIP 的线程坐标由 blockIdx 和 threadIdx 一起决定。AMD 的基础转置核先得到输入行列，再把它们交换成输出列行。沿这两个地址走一遍，就能读懂下面用同一套线程坐标处理一个小块的例子。</p></div>
 <!-- /original-functions -->
-
-
 <p>一份 HIP 源文件里可以同时有两类代码：CPU 上的 <code>main</code> 分配显存、把工作放进 stream；GPU 上的函数处理显存里的数。比如把一列数各乘 2，CPU 只提交一次启动，GPU 会让很多线程执行同一份乘法代码。看函数声明时，先看调用从哪儿来，再看函数体在哪儿运行。</p>
 <div class="tablewrap"><table><thead><tr><th scope="col">写法</th><th scope="col">调用位置与执行位置</th><th scope="col">在算子里的用法</th></tr></thead><tbody><tr><td><button type="button" class="course-term" aria-haspopup="dialog" popovertarget="lang-amd-aac2bb7efd3d">__global__</button> <code>void f(...)</code></td><td>本例由主机启动，函数体在设备上运行</td><td>启动时给出 grid 和 block；一批线程从同一个入口进入</td></tr><tr><td><button type="button" class="course-term" aria-haspopup="dialog" popovertarget="lang-amd-0dea47724568">__device__</button></td><td>供设备代码调用</td><td>把地址换算或局部计算写成函数，从 kernel 内调用</td></tr><tr><td><code>__host__ __device__</code></td><td>编译出主机和设备各自可调用的版本</td><td>共用短小的索引公式，在 CPU 上逐项对照 GPU 的地址</td></tr><tr><td><button type="button" class="course-term" aria-haspopup="dialog" popovertarget="lang-amd-4342aed7adbf">__shared__</button></td><td>同一 block 的线程共用一份存储</td><td>在 Instinct 上用 LDS 暂存本块将要交换的数据</td></tr><tr><td><code>threadIdx.x</code>、<code>blockIdx.x</code></td><td>HIP 提供的内建坐标</td><td>前者是块内线程号，后者是块号；结合 <code>blockDim.x</code> 才能定位全局元素</td></tr></tbody></table></div>
 <h3>一块数据的倒序写回</h3>
@@ -471,8 +467,6 @@ CHECK(hipGraphDestroy(graph));</code></pre></figure>
 <span class="source-line" id="lds-reduce-hipblockred-44-L70" data-line="70">    back[bid] = shared[<span class="nu">0</span>];</span>
 <span class="source-line" id="lds-reduce-hipblockred-44-L71" data-line="71">}</span></code></pre></div><h3 id="lds-reduce-walkthrough">源码解读</h3><p>每个线程先把一个元素写进 shared。长度不足一个 block 时，越界位置写入运算的单位元。同步后，每次把相隔半段的两个数合成一个，间距逐轮减半。最后 shared[0] 留下整块结果，只需一个线程写回。</p></div>
 <!-- /original-functions -->
-
-
 <p>推理中要取一行的和或最大值。若让每个线程都向一个全局地址加数，许多线程会争用同一位置。可以先给每个块分一小段，让线程把各自的输入放到 LDS，再两两相加。第一轮每个块写一个小计，第二轮把这些小计继续相加。</p>
 <pre><code class="language-cpp"><span class="kw">template</span>&lt;<span class="kw">int</span> B&gt;
 __global__ <span class="kw">void</span> block_sum(<span class="kw">const</span> <span class="kw">float</span>* x, <span class="kw">float</span>* sums, <span class="kw">int</span> n) {
@@ -716,8 +710,6 @@ __global__ <span class="kw">void</span> add_bases(<span class="kw">int</span>* o
 <span class="source-line" id="hip-pool-padding-hipavg-60-L225" data-line="225"><span class="cm">#</span><span class="cm">endif</span></span>
 <span class="source-line" id="hip-pool-padding-hipavg-60-L226" data-line="226">}</span></code></pre></div><h3 id="hip-pool-padding-walkthrough">源码解读</h3><p>MIOpen 的 OpenCL 核从输出坐标算出池化窗口，循环只读图像边界内的像素。<a class="source-jump" href="#hip-pool-padding-hipavg-60-L135">第 135 行</a> 附近决定平均值的分母：包含 padding 时用完整窗口大小，排除 padding 时用有效位置数。下面把深度设为 1，只留高、宽，就能用角落的小窗口验算两个分母。</p></div>
 <!-- /original-functions -->
-
-
 <p>池化用周围几个像素概括一个位置。<a href="examples/conv-halo.hip">课里的 HIP 图像算子</a>已经写了最大池化：从窗口里挑最大的数。改写成平均池化时，除了把最大值换成求和，还要决定图像边缘怎么算平均。这里取 3×3 窗口，步幅 1，图像外补一圈 0，输出和原图一样大。</p>
 <p>把 1 到 9 按行写成三行。左上角的窗口实际读到 1、2、4、5，和是 12。若把图外的五个零也看成样本，结果是 12/9；若只对原图上的像素取平均，结果是 12/4＝3。移动到上边中间时有六个有效像素，和是 21。中心覆盖整张图，两种约定都得到 45/9＝5。框架接口中的 <button type="button" class="course-term" aria-haspopup="dialog" popovertarget="lang-amd-6ca5f50f5cab">count_include_pad</button> 控制的就是这个分母。</p>
 <h3>输出位置与 HIP 线程</h3>
@@ -775,8 +767,6 @@ output[row * width + col] = sum / (include_padding ? <span class="nu">9</span> :
 <span class="source-line" id="scan-cooperation-hipscan-46-L78" data-line="78">  }</span>
 <span class="source-line" id="scan-cooperation-hipscan-46-L79" data-line="79">}</span></code></pre></div><h3 id="scan-cooperation-walkthrough">源码解读</h3><p>AMD 的 scan_kernel 先将 block 划成与 warp 等宽的 tile，再对同一批数分别做 inclusive scan 和 exclusive scan。输入为 2、3 时，前两个位置在两种输出中分别是 [2,5] 与 [0,2]。本次 scan 的边界是这个 tile；跨 tile 的前缀需要另外累加。</p></div>
 <!-- /original-functions -->
-
-
 <p>把前缀和写成“第 i 个线程依次读输入 0 到 i”，八个结果需要读取 1+2+…+8=36 个元素。上一节的分块实现每项只从全局读一次，然后在 LDS 里按距离 1、2、4 交换旧值。这个算法容易看清先后关系，但很多局部范围被重复相加。</p>
 <h3>树形前缀和的上行归约与下行传播</h3>
 <p>取八项 (2,1,0,3,4,1,0,2)。先在树上合并相邻两项，得到 (3,3,5,2)，再合成 (6,7)，最后为 13。根节点收到的外部进位是零。左子树收到零，右子树收到“父进位加左边总数”即 6。逐层传回叶子后，各项前面的和为 (0,2,3,3,6,10,11,11)。各自再加原输入，得到包含自身的前缀 (2,3,3,6,10,11,11,13)。</p>
@@ -857,8 +847,6 @@ output[row * width + col] = sum / (include_padding ? <span class="nu">9</span> :
 <span class="source-line" id="tile-gemm-hipsmm-69-L109" data-line="109">  }</span>
 <span class="source-line" id="tile-gemm-hipsmm-69-L110" data-line="110">}</span></code></pre></div><h3 id="tile-gemm-walkthrough">源码解读</h3><p>一个 block 负责输出矩阵中的一个方块。线程协作把一块 A 和一块 B 装进 LDS，同步后才做乘法。每推进一个 K 块，就给同一输出块增加一份部分积；内积轴走完后再写出结果。</p></div>
 <!-- /original-functions -->
-
-
 <p>把矩阵乘交给 GPU，可以先让一个线程负责一个输出格。左矩阵 A 有两行三列，右矩阵 B 有三行两列，结果 C 就有两行两列。两个输出列都要读同一行 A，两个输出行也都要读同一列 B。线程块可把一片 A、一片 B 一起搬进 LDS，供块内线程反复使用。</p>
 <table><thead><tr><th scope="col">行号</th><th scope="col">矩阵 A 的这一行</th><th scope="col">矩阵 B 的这一行</th></tr></thead><tbody><tr><td>0</td><td>1，2，3</td><td>7，8</td></tr><tr><td>1</td><td>4，5，6</td><td>9，10</td></tr><tr><td>2</td><td>—</td><td>11，12</td></tr></tbody></table>
 <p>四个线程排成两行两列，每个线程固定一个输出。沿公共的三个位置，每次取两个。第一片覆盖位置 0 和 1，左上格先算 1 乘 7 加 2 乘 9 得 25；同一片中右上格读同一行 A，算 1 乘 8 加 2 乘 10 得 28。第二片只剩位置 2，把缺失位置补零。左上格再加 3 乘 11 得 58，右上格再加 3 乘 12 得 64。左下格为 4 乘 7 加 5 乘 9 加 6 乘 11 得 139；右下格为 4 乘 8 加 5 乘 10 加 6 乘 12 得 154。</p>
@@ -964,8 +952,6 @@ acc = np.zeros((<span class="nu">16</span>, <span class="nu">16</span>), dtype=n
 <span class="source-line" id="mfma-workgroup-course-4-L49" data-line="49"><span class="cm">#</span><span class="cm">endif</span></span>
 <span class="source-line" id="mfma-workgroup-course-4-L50" data-line="50">}</span></code></pre></div></div>
 <!-- /original-functions -->
-
-
 <p>前面的标量分块让一个线程累加一格。现在给一个 <button type="button" class="course-term" aria-haspopup="dialog" popovertarget="term-amd-work-group">work-group</button> 128 个线程，分成两个 64 lane 的 wave，一起产生 16 行 32 列的输出。左边 16 列归 wave 0，右边 16 列归 wave 1。它们要读不同的 B 列，却要读相同的 A 行，这就是把 A 放进 work-group LDS 的理由。</p>
 <h3>MFMA 的 K 维分块与操作数搬运</h3>
 <p>A、B、C 均按行存储，形状分别为 M×K、K×N、M×N。每次沿 K 取 4 项，完整 <button type="button" class="course-term" aria-haspopup="dialog" popovertarget="term-amd-work-group">work-group</button> 从全局读 A 的 16×4 项和 B 的 4×32 项。前 64 个线程搬 A，每 4 个连续线程搬一行的 4 项；全部 128 个线程搬 B，每 32 个连续线程搬一行。第一次块同步后，两个 wave 都能从 LDS 读取同一片 A。</p>
@@ -1203,8 +1189,6 @@ image = [[<span class="nu">1</span>,<span class="nu">2</span>,<span class="nu">3
 <span class="source-line" id="sparse-hipcsrdev-144-L257" data-line="257">        }</span>
 <span class="source-line" id="sparse-hipcsrdev-144-L258" data-line="258">    }</span></code></pre></div><h3 id="sparse-walkthrough">源码解读</h3><p>rocSPARSE 先从 CSR 行指针读取当前行的边界，再用列号索引稠密矩阵。每条非零边只负责一个带权项，属于同一输出行、同一输出列的项需要相加；下面的短行算例把这些乘加逐个展开。</p></div>
 <!-- /original-functions -->
-
-
 <p>图神经网络的一步聚合可以写成稀疏矩阵乘向量。每一行代表一个目标顶点，每个非零位置的列号指向一个邻居，非零值代表边的权重。把邻居特征乘上权重再求和，就得到目标顶点的新特征。没有边的位置直接略过。</p>
 <p>压缩稀疏行格式（CSR）用三组数记录图。教学图有三行，行偏移 <code>[0, 2, 2, 5]</code>，列号 <code>[0, 2, 0, 1, 2]</code>，边权 <code>[2, 1, 1, 3, 2]</code>。行 i 的边从偏移 i 对应的位置起，到下一个偏移之前结束。三顶点特征依次为 [4，5，6]。</p>
 <table><thead><tr><th scope="col">目标顶点</th><th scope="col">边下标区间</th><th scope="col">实际读取的特征与加权输出</th></tr></thead><tbody><tr><td>0</td><td>[0，2)</td><td>读列 0、2，得到 <math xmlns="http://www.w3.org/1998/Math/MathML"><mrow><mn>2</mn><mo>×</mo><mn>4</mn><mo>+</mo><mn>1</mn><mo>×</mo><mn>6</mn><mo>=</mo><mn>14</mn></mrow></math></td></tr><tr><td>1</td><td>[2，2)</td><td>没有邻居，求和为 0</td></tr><tr><td>2</td><td>[2，5)</td><td>读列 0、1、2，得到 <math xmlns="http://www.w3.org/1998/Math/MathML"><mrow><mn>1</mn><mo>×</mo><mn>4</mn><mo>+</mo><mn>3</mn><mo>×</mo><mn>5</mn><mo>+</mo><mn>2</mn><mo>×</mo><mn>6</mn><mo>=</mo><mn>31</mn></mrow></math></td></tr></tbody></table>
@@ -1287,8 +1271,6 @@ features = [[<span class="nu">4</span>, <span class="nu">1</span>], [<span class
 <span class="source-line" id="lab-smooth-l1-grad-hipclip2-189-L202" data-line="202">  });</span>
 <span class="source-line" id="lab-smooth-l1-grad-hipclip2-189-L203" data-line="203">}</span></code></pre></div><h3 id="lab-smooth-l1-grad-walkthrough">源码解读</h3><p>PyTorch 的这个 ATen 入口由 TensorIterator 启动逐元素 GPU 计算，ROCm 构建使用 HIP 转换后的对应源码。函数体内的 GPU lambda 用 input−target 求误差，落在负阈值外取负斜率，正阈值外取正斜率，中间除以 beta。norm_val 包含调用端给出的缩放，最后还要乘该元素的 grad_output。</p></div>
 <!-- /original-functions -->
-
-
 <p>训练框回归模型时，预测坐标偏了 1 个像素和偏了 30 个像素，损失对预测的推力可以不同。<button type="button" class="course-term" aria-haspopup="dialog" popovertarget="lang-amd-3b1acb9204d2">Smooth L1</button> 用 β 规定两段的交界。例中 β＝2，三个输入都是 [8,128]：预测、目标和后续传回的梯度。按同一个位置取这三个数，算出损失对该预测的梯度。</p>
 <h3>阈值两边的七个位置</h3>
 <p>在第一行令前七个目标都为 0，预测依次为 −3、−2、−1、0、1、2、3。先把误差除以 2，再截到 [−1,1]，得到 [−1,−1,−½,0,½,1,1]。把它们乘上游梯度 [2,−1,4,7,2,3,−2]，输出就是 [−2,1,−2,0,1,3,−2]。例如误差 −2 在交界处，局部斜率 −1 乘上游的 −1，输出变为正 1。</p>
@@ -1407,8 +1389,6 @@ features = [[<span class="nu">4</span>, <span class="nu">1</span>], [<span class
 <span class="source-line" id="lab-rope-hiprope-107-L207" data-line="207">            x = tl.load(x_ptr + x_offs + BLOCK_D * stride_x_d, mask=x_mask)</span>
 <span class="source-line" id="lab-rope-hiprope-107-L208" data-line="208">            tl.store(out_ptr + x_out_offs + BLOCK_D * stride_out_d, x, mask=x_mask)</span></code></pre></div><h3 id="lab-rope-walkthrough">源码解读</h3><p>AITER 的 _rope_kernel_sbhd_fwd 按序列、batch 和 head 定位旋转区间，并按 IS_NEOX 选配对布局。先装入一对通道及相应的角度，再分别计算这一对的两个输出。要复算后面的 Llama 例子，应跟踪前后半区的配对分支。</p></div>
 <!-- /original-functions -->
-
-
 <p>RoPE 把查询或键的两个通道当作平面上的两个坐标，用当前位置对应的角度旋转它们。这一版沿用 Llama 的 <button type="button" class="course-term" aria-haspopup="dialog" popovertarget="lang-amd-c8ecd89a5dba">rotate_half</button>。输入是 8 个位置，每个位置 256 个通道；一行的前 128 项和后 128 项逐一配对，角度表每行有 128 个 cos 和 128 个 sin。</p>
 <h3>同一对坐标的两次乘加</h3>
 <p>看位置 1 的第一对通道。通道 0 给出 3，通道 128 给出 4，该处 cos＝0、sin＝1。前半输出是 3×0−4×1＝−4，后半输出是 4×0＋3×1＝3。它们分别写回通道 0 和 128。位置 0 的 cos 全为 1、sin 全为 0，该行应与输入逐项相同。</p>
@@ -1456,8 +1436,6 @@ features = [[<span class="nu">4</span>, <span class="nu">1</span>], [<span class
 <span class="source-line" id="lab-space-to-depth-hipspacekernel-36-L63" data-line="63">  }</span>
 <span class="source-line" id="lab-space-to-depth-hipspacekernel-36-L64" data-line="64">}</span></code></pre></div><h3 id="lab-space-to-depth-walkthrough">源码解读</h3><p>TensorFlow 的 NHWC 核让每个线程先从一个输入线性地址反解出通道、列、行和 batch。整数除法给出输出位置，取余得到像素在小块内的行列。<a class="source-jump" href="#lab-space-to-depth-hipspacekernel-36-L57">第 57 行</a> 附近先算整组通道的起点，再加原通道号，因此移动位置的同时仍保留了每个像素的全部通道。</p></div>
 <!-- /original-functions -->
-
-
 <p>一张图要把高和宽各缩小一半，又要保留每个像素的数值，可以把相邻的四个像素依次放进同一个输出位置的通道轴。TensorFlow 的 <button type="button" class="course-term" aria-haspopup="dialog" popovertarget="lang-amd-c2f5353423ae">SpaceToDepth</button> 对一张 [4,4,128] 的图产生 [2,2,512]。新通道的顺序是左上 128 项、右上 128 项、左下 128 项、右下 128 项。</p>
 <h3>右上输出块的四次取数</h3>
 <p>给输入通道 0 填入“行号乘 100，加列号乘 10”。输出位置 (0,1) 从输入列 2 开始：左上 (0,2) 是 20，右上 (0,3) 是 30，左下 (1,2) 是 120，右下 (1,3) 是 130。因此该输出位置的通道 0、128、256、384 依次为 20、30、120、130。每组随后还有同一像素的另外 127 个通道。</p>
@@ -1563,8 +1541,6 @@ features = [[<span class="nu">4</span>, <span class="nu">1</span>], [<span class
 <span class="source-line" id="lab-layernorm-hipnorm-34-L119" data-line="119">    }</span>
 <span class="source-line" id="lab-layernorm-hipnorm-34-L120" data-line="120">}</span></code></pre></div><h3 id="lab-layernorm-walkthrough">源码解读</h3><p>MIOpen 让一个 block 处理一组需要一起归一化的数。每个线程先累加自己的元素和与平方和，再把两个部分和写进 shared memory。<a class="source-jump" href="#lab-layernorm-hipnorm-34-L94">第 94 行</a> 附近得到整行统计量；所有线程据此重读分配给自己的元素，减均值、乘标准差倒数，然后应用权重和偏置。</p></div>
 <!-- /original-functions -->
-
-
 <p>同一个 token 的一整行特征如果整体增加 7，每项之间的相对差异并没有变。<button type="button" class="course-term" aria-haspopup="dialog" popovertarget="lang-amd-981e3f5040df">LayerNorm</button> 在这里处理 [8,128] 的 8 行；每行各算自己的均值和方差，128 个通道增益 γ 与偏置 β 则在 8 行间共用。方差沿 128 项除以 128。</p>
 <h3>两个通道共用方差，各用自己的增益</h3>
 <p>第一行把 [1,3] 重复 64 次，均值为 2。减去均值后交替得到 −1、1，它们的平方都是 1，方差就是 1。取 ε＝0.00001，前两列的 γ 为 [2,½]，β 为 [1,−1]。第一列输出 1−2/√1.00001，约 −0.99999；第二列输出 −1＋0.5/√1.00001，约 −0.5000025。再看全为 7 的第二行：居中后全为 0，输出应逐项等于 β。</p>
@@ -1653,8 +1629,6 @@ features = [[<span class="nu">4</span>, <span class="nu">1</span>], [<span class
 <span class="source-line" id="lab-bag-max-hipbag-54-L108" data-line="108">  }</span>
 <span class="source-line" id="lab-bag-max-hipbag-54-L109" data-line="109">}</span></code></pre></div><h3 id="lab-bag-max-walkthrough">源码解读</h3><p>PyTorch 的 max 核让线程负责输出的一列。相邻 offset 指定这个袋子有哪些词，线程按词号读 embedding 表中同一列。遇到更大的值时，同时记下数值与获胜的词号，最后写 output 和 max_indices。反向传播据后者找到接收梯度的那一行。</p></div>
 <!-- /original-functions -->
-
-
 <p>一个样本可以含多个离散特征号。到 embedding 表中取出这些行后，可以让每个输出通道各自保留最大响应。<button type="button" class="course-term" aria-haspopup="dialog" popovertarget="lang-amd-fb1f8193be37">EmbeddingBag</button> 本例的特征表是 [8,128]，每个样本给三个索引槽；−1 表示本槽空缺，全部空缺时输出全零。</p>
 <h3>全负特征中的重复编号</h3>
 <p>特征行 2 的前两个数为 [−5,−1]，行 0 为 [−2,−4]。样本 0 要取 [2,0,2]。第一列在 −5、−2、−5 之间取 −2，第二列在 −1、−4、−1 之间取 −1。输出 [−2,−1] 来自两个不同邻居；若把初始最大值设成 0，这两列都会错误地返回 0。样本 1 的三个槽全空，应返回零。样本 2 只有中间槽有效，结果必须等于行 0。</p>
@@ -2035,8 +2009,6 @@ features = [[<span class="nu">4</span>, <span class="nu">1</span>], [<span class
 <span class="source-line" id="lab-lora-hiplorautil-110-L232" data-line="232">        tiled_c += tiled_out</span>
 <span class="source-line" id="lab-lora-hiplorautil-110-L233" data-line="233">    tl.store(c_ptr, tiled_c, mask=c_mask)</span></code></pre></div><h3 id="lab-lora-walkthrough">源码解读</h3><p>vLLM 的 shrink 入口先定位 token 块与 adapter，再调用 do_shrink_kernel 将宽输入投影到少数 rank 通道。do_expand_kernel 从这些中间通道读数，乘第二张权重，展开到输出宽度。下方 rank 2 的例子对应中间结果只有两列的情况。</p></div>
 <!-- /original-functions -->
-
-
 <p>线性层已给出基座输出，还要加上一项学到的修正。<button type="button" class="course-term" aria-haspopup="dialog" popovertarget="lang-amd-c0f5e2c9f730">LoRA</button> 这里输入和基座输出都是 [8,128]。把降维、升维的两个方向各按行存成 [2,128]。每个 token 先与两个降维方向点积得到两个数，再用这两个数混合两个升维方向。</p>
 <h3>两个秩坐标的来源与去向</h3>
 <p>让输入第一行只有前两列非零 [2,3]，降维方向前两列为 [1,−1]、[2,1]。两个点积依次为 2−3＝−1 和 4＋3＝7。两个升维方向的前两列是 [2,0]、[1,−1]，混合后得到 [−2＋7,0−7]＝[5,−7]。令 α＝1、秩＝2，缩放系数为 ½。基座输出前两列 [3,4] 加上 [2.5,−3.5]，最终得到 [5.5,0.5]。</p>
@@ -2189,8 +2161,6 @@ features = [[<span class="nu">4</span>, <span class="nu">1</span>], [<span class
 <span class="source-line" id="lab-moe-combine-hipmoe-85-L215" data-line="215">        out_n_mask = pid_n * BLOCK_N_OUT + tl.arange(<span class="nu">0</span>, BLOCK_N_OUT) &lt; Nrem</span>
 <span class="source-line" id="lab-moe-combine-hipmoe-85-L216" data-line="216">        tl.store(out_ptr, acc, mask=out_n_mask)</span></code></pre></div><h3 id="lab-moe-combine-walkthrough">源码解读</h3><p>AITER 的 _reduce_grouped 先从 InIndx 取回一个 token 的 K 个路由行号，按 InIndxValid 跳过无效槽。每条路如有 split-K 部分和，先沿 B 加齐，再把各条路的贡献加到同一输出列。在已加权的专家输出路径中，合并时直接相加；后面的教学函数把乘权重的步骤放在合并时。</p></div>
 <!-- /original-functions -->
-
-
 <p>同一 token 被送给两名专家后，两份输出可能隔着许多别的 token。<button type="button" class="course-term" aria-haspopup="dialog" popovertarget="lang-amd-6bd1454e4848">combine</button> 本例已有 16 行专家输出，每行 128 个通道，8 个原 token 各持两个槽号和两个权重。槽号指向排好队的输出行；专家编号本身不足以定位该专家处理的第几个 token。</p>
 <h3>路由表中相隔七行的两份结果</h3>
 <p>token 0 记录槽号 [9,2] 和权重 [¼,¾]。槽 9 的前两列为 [8,0]，槽 2 为 [0,4]。第一通道读 8 和 0，算 ¼×8＋¾×0＝2；第二通道读 0 和 4，算 ¼×0＋¾×4＝3。两项一起写到 token 0 的输出行。若误按槽号大小排序却没有同步交换权重，输出会变为 [6,1]。</p>
@@ -2908,8 +2878,6 @@ features = [[<span class="nu">4</span>, <span class="nu">1</span>], [<span class
 <span class="source-line" id="lab-attention-dv-hipdv-84-L780" data-line="780">        <span class="kw">return</span> make_tuple(dk_acc, dv_acc);</span>
 <span class="source-line" id="lab-attention-dv-hipdv-84-L781" data-line="781">    }</span></code></pre></div><h3 id="lab-attention-dv-walkthrough">源码解读</h3><p>AMD Composable Kernel 同时组织多项 attention 反向矩阵乘。直接定位 <a class="source-jump" href="#lab-attention-dv-hipdv-84-L650">第 650 行</a> 附近的 gemm_1：pt_reg_tensor 保存转置后的概率块，dot_reg_tensor 提供输出梯度块，两者的乘积累加到 dv_acc。对一个值位置来说，每条可见查询都能带来一份梯度，因此累加轴是查询位置。</p><ol class="source-steps"><li><a class="source-jump" href="#lab-attention-dv-hipdv-84-L147">第 147 行</a>　为当前键值块准备 dV 累加块。它按值位置和输出通道排列。</li><li><a class="source-jump" href="#lab-attention-dv-hipdv-84-L650">第 650 行</a>　内积沿查询位置求和。设一个键在两条查询上的概率为 ¼、½，该输出通道的上游梯度为 8、2，这个键在此通道得到 ¼×8＋½×2＝3。</li><li><a class="source-jump" href="#lab-attention-dv-hipdv-84-L780">第 780 行</a>　函数把 dK 和 dV 的累加块一起交给调用方。沿这个返回值能继续找到后续写回阶段。</li></ol></div>
 <!-- /original-functions -->
-
-
 <p>前向注意力用每个查询的概率混合多个 value。反过来，一个 value 支持过哪些查询，就要从这些查询收回相应份额的梯度。<i>P</i> 是 [8,8] 的概率矩阵，行是查询，列是键；<i>G</i> 是 [8,128] 的输出梯度。每个键对应的 128 个 value 梯度组成一行，结果形状为 [8,128]。</p>
 <h3>三个查询给同一个值传回的梯度</h3>
 <p>前三行的有效概率依次是 [1]、[¼,¾]、[½,¼,¼]。上游梯度各取前两列 [2,0]、[0,4]、[4,8]，其余五行对前三个键的概率设为 0。键 0 收到 [2,0]＋¼×[0,4]＋½×[4,8]＝[4,5]。键 1 收到 ¾×[0,4]＋¼×[4,8]＝[1,5]，键 2 只收到 ¼×[4,8]＝[1,2]。固定键号后沿查询轴读取，正对应矩阵乘中的转置。</p>
@@ -2989,8 +2957,6 @@ features = [[<span class="nu">4</span>, <span class="nu">1</span>], [<span class
 <span class="source-line" id="lab-welford-course-9-L34" data-line="34">    }</span>
 <span class="source-line" id="lab-welford-course-9-L35" data-line="35">}</span></code></pre></div><h3 id="lab-welford-walkthrough">源码解读</h3><p>PyTorch 的归约入口把 WelfordOps 交给 GPU 归约框架。combine 合并两组统计量时，先用两组均值之差更新总均值，再把组间差异补进平方偏差和。project 才按 correction 选分母，并根据 take_sqrt 决定输出方差还是标准差。这样线程之间只需交换每组的计数、均值和偏差和。</p></div>
 <!-- /original-functions -->
-
-
 <p>对均值很大、波动很小的一行数据，先求平方均值再减均值平方，要让两个很大的浮点数相减。用 <button type="button" class="course-term" aria-haspopup="dialog" popovertarget="lang-amd-dcd028e78a5e">Welford 状态</button> 可使每个线程记录自己看过的元素，再沿 LDS 归约树合成整行。要计算总体方差，最后用离均差平方和除以样本数。</p>
 <p>取四个数 [10000,10002,10004,10006]。为了看清合并，先按相邻两项分组。左组两个数的均值是 10001、离均差平方和是 2；右组均值是 10005、离均差平方和也是 2。合并后的均值是 10003。两个小组各自以本组均值为中心，还要补上两个中心相隔 4 造成的组间差异。修正项为 4²×2×2/4＝16，总平方和 2＋2＋16＝20，方差为 20/4＝5。若只把两组原有的平方和加起来，会得到 1。</p>
 <h3>一组线程的空状态与跨步读取</h3>
@@ -3133,8 +3099,6 @@ __global__ <span class="kw">void</span> rms_rows(<span class="kw">const</span> <
 <span class="source-line" id="triton-hipsoft-14-L58" data-line="58">        output_ptrs = output_row_start_ptr + col_offsets</span>
 <span class="source-line" id="triton-hipsoft-14-L59" data-line="59">        tl.store(output_ptrs, softmax_output, mask=mask)</span></code></pre></div><h3 id="triton-walkthrough">源码解读</h3><p>AITER 的 online softmax 先遍历各段，维护截至当前的行最大值和指数和。行最大值变化时，要按新基准折算旧的指数和。第二次读同一行才有确定的分母，可以逐段写出概率。</p></div>
 <!-- /original-functions -->
-
-
 <p>HIP C++ 逐线程分工，Triton 允许程序一次描述一块数组。对于每行独立的 softmax，可以给每个程序实例一整行。它先求最大值，再算指数与总和，最后直接写出该行的概率。中间指数留在程序实例内，省去了拆成多个独立算子时在全局内存中来回写读中间张量的步骤。AMD 的 Triton 示例用行号和列偏移构造地址，下面把同一方法用于行归一化。</p>
 <pre><code class="language-python"><span class="kw">import</span> torch
 <span class="kw">import</span> triton
@@ -3330,8 +3294,6 @@ __global__ <span class="kw">void</span> softmax_rows(<span class="kw">const</spa
 <span class="source-line" id="attention-tiles-course-4-L45" data-line="45">    <span class="kw">if</span>(t&lt;<span class="nu">16</span> &amp;&amp; r0+r&lt;rows) out[(r0+r)*<span class="nu">4</span>+f] = num/den[r];</span>
 <span class="source-line" id="attention-tiles-course-4-L46" data-line="46">}</span></code></pre></div></div>
 <!-- /original-functions -->
-
-
 <p>先分别给每个查询与每个键算点积，再沿键做 softmax，最后把权重乘到 V，这三步会产生整张查询×键的分数表。上一节的 HIP 写法沿键逐个更新，对一个值特征只保留一个分子，但同一行有四个值特征时，相同的点积也重新算了四次。本节让四个查询行组成一个块，用 LDS 留住刚算完的小片分数。</p>
 <figure><img src="figures/kernel-att-block.svg" width="690" height="138" alt="四行查询共用一次键值装载，每个分数又给四个值特征重复使用"><figcaption>四行查询共用一次键值装载，每个分数又给四个值特征重复使用</figcaption></figure>
 <h3>注意力分数与加权求和的 work-group 分工</h3>
@@ -3561,8 +3523,6 @@ __global__ <span class="kw">void</span> softmax_rows(<span class="kw">const</spa
 <span class="source-line" id="hip-csr-attention-course-5-L36" data-line="36">    <span class="kw">if</span> (lane == <span class="nu">0</span>) { out[<span class="nu">2</span>*row] = x / denom; out[<span class="nu">2</span>*row+<span class="nu">1</span>] = y / denom; }</span>
 <span class="source-line" id="hip-csr-attention-course-5-L37" data-line="37">}</span></code></pre></div><h3 id="hip-csr-attention-walkthrough">源码解读</h3><p>rocSPARSE 的 row-split 设备函数用行指针定位稀疏行，按列号读稠密矩阵的对应行，再乘该边的值。AITER 的 online softmax 另给出一行分数的归一化方法。这两份上游代码分别展示“沿边取行”和“按行归一化”；下文在一条 CSR 邻接段里把两步接起来。</p></div>
 <!-- /original-functions -->
-
-
 <p>在<a href="#sparse">稀疏矩阵乘</a>里，每条边的权重已经给定，内核直接乘上邻居特征。图注意力多出一步：每条边先有一个分数，要在同一目的节点的全部入边之间做 softmax，才能知道这条边分多少权重。这里从已有边分数开始，把归一化和特征聚合放进一个 HIP kernel。每个节点输出两个特征通道。</p>
 <p><button type="button" class="course-term" aria-haspopup="dialog" popovertarget="lang-amd-bc07f34c89a0">CSR</button> 的 <code>ptr=[0,3,3,4,6]</code> 划出四行。列号依次为 [2,0,2,1,0,1]。特征表的三行分别是 [7,0]、[1,5]、[0,7]。第一行里邻居 2 出现了两次，代表两条有各自分数的边。若先按邻居去重，就丢掉了一项权重。</p>
 <div class="tablewrap"><table><thead><tr><th scope="col">目的行</th><th scope="col">邻居与边分数</th><th scope="col">减行最大值后的指数</th><th scope="col">加权特征和</th><th scope="col">最终输出</th></tr></thead><tbody><tr><td>0</td><td>2 对应 0，0 对应 ln 2，2 对应 ln 4</td><td>¼，½，1；分母为 7/4</td><td>第一通道 7/2，第二通道 7/4＋7＝35/4</td><td>[2,5]</td></tr><tr><td>1</td><td>两个相邻行指针都是 3，入边为空</td><td>无有效项</td><td>本例约定空行输出零</td><td>[0,0]</td></tr><tr><td>2</td><td>1 对应 −1000</td><td>唯一一项减去自己后为 0，指数为 1</td><td>[1,5]</td><td>[1,5]</td></tr><tr><td>3</td><td>0 和 1 都对应 1000</td><td>1，1；分母为 2</td><td>[8,5]</td><td>[4,2.5]</td></tr></tbody></table></div>
@@ -3962,8 +3922,6 @@ print(out)</code></pre></figure>
 <span class="source-line" id="routing-pack-course-12-L43" data-line="43">    }</span>
 <span class="source-line" id="routing-pack-course-12-L44" data-line="44">}</span></code></pre></div></div>
 <!-- /original-functions -->
-
-
 <p>一次 Top-K 决策会为同一个 <button type="button" class="course-term" aria-haspopup="dialog" popovertarget="term-amd-token">token</button> 生成多条路由。专家矩阵乘希望同一专家的路由挨在一起，计算完成后还要按原路由找回 token 和门控权重。给每条路由保留原序号 r，打包输出的每项就只需先写 r；下游以这个序号取特征与权重。</p>
 <h3>专家分桶的起始偏移与路由写回位置</h3>
 <p>按原顺序给出专家号 (2,0,2,1,0,2,1,1)。专家 0 有 2 条、专家 1 有 3 条、专家 2 有 3 条，三个桶的首槽依次为 0、2、5，结尾是 8。路由 6 属于专家 1，同组中只有路由 3 在它前面，因此它的组内名次是 1，写入首槽 2 加名次 1 的位置 3。完整结果按原路由编号读作 (1,4 | 3,6,7 | 0,2,5)。</p>

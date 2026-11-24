@@ -52,8 +52,157 @@ np.testing.assert_array_equal(np.asarray(y), [[<span class="nu">2</span>, <span 
 print(jax.devices(), y)
 print(jax.make_jaxpr(layer)(x, w, b))</code></pre></figure>
 <h3>matmul 源码中的求和维度</h3>
-<p>在 JAX 0.12.1 的 <code>tensor_contractions.py</code> 中，<code>matmul</code> 先判断两个操作数是向量还是矩阵，随后把要相乘求和的轴传给 <code>lax.dot_general</code>。这里的“轴”是数组里数位置的方向：二维数组的轴 0 沿行走，轴 1 沿列走。下面保留构成维度参数的那一行；<code>a_batch</code>、<code>b_batch</code> 记录另行匹配的批次轴。</p>
-<figure><figcaption>JAX 0.12.1 源码中传给 dot_general 的操作数和维度参数（节选）</figcaption><pre><code class="language-python">a, b, (((np.ndim(a) - <span class="nu">1</span>,), (np.ndim(b) - <span class="nu">1</span> - b_is_mat,)), (a_batch, b_batch)),</code></pre></figure>
+<!-- original-functions -->
+<div class="source-reading"><h3>上游完整实现</h3><a class="source-guide" href="#tpu-01-walkthrough">源码解读 ↓</a><div class="device-original" data-origin="jaxapimmat" data-sha256="9f994c05e0572da1825953dc634fb590ba57fdfb5eb1fe1b6791eba47b93a37a" data-first="132" data-last="280"><h4>JAX 0.12.1 的 matmul 完整函数 <code>matmul</code></h4><div class="source-meta"><a href="https://github.com/jax-ml/jax/blob/f89b64d60e936e8612f15d8d5dd0c0003d5007fb/jax/_src/numpy/tensor_contractions.py#L132-L280">jax-ml/jax / tensor_contractions.py · 第 132–280 行</a> · <a href="upstream/original-sources.zip" download>原文件与许可证</a><label class="height-switch"><input type="checkbox"> 全高显示（149 行）</label></div><pre class="original-code" tabindex="0" aria-label="matmul 完整代码"><code class="language-python"><span class="source-line" id="tpu-01-jaxapimmat-132-L132" data-line="132">@export</span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L133" data-line="133">@partial(</span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L134" data-line="134">    api.jit,</span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L135" data-line="135">    static_argnames=(<span class="st">'</span><span class="st">precision</span><span class="st">'</span>, <span class="st">'</span><span class="st">preferred_element_type</span><span class="st">'</span>, <span class="st">'</span><span class="st">out_sharding</span><span class="st">'</span>, <span class="st">'</span><span class="st">reduction_order</span><span class="st">'</span>),</span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L136" data-line="136">    inline=api.Inline.JAX_EARLY,</span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L137" data-line="137">)</span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L138" data-line="138"><span class="kw">def</span> <span class="fn">matmul</span>(a: ArrayLike, b: ArrayLike, *,</span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L139" data-line="139">           precision: lax.PrecisionLike = <span class="kw">None</span>,</span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L140" data-line="140">           preferred_element_type: DTypeLike | <span class="kw">None</span> = <span class="kw">None</span>,</span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L141" data-line="141">           out_sharding: NamedSharding | P | <span class="kw">None</span> = <span class="kw">None</span>, reduction_order=<span class="kw">None</span>,</span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L142" data-line="142">           ) -&gt; Array:</span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L143" data-line="143">  <span class="st">"""Perform a matrix multiplication.</span></span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L144" data-line="144"></span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L145" data-line="145"><span class="st">  JAX implementation of :func:`numpy.matmul`.</span></span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L146" data-line="146"></span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L147" data-line="147"><span class="st">  Args:</span></span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L148" data-line="148"><span class="st">    a: first input array, of shape ``(N,)`` or ``(..., K, N)``.</span></span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L149" data-line="149"><span class="st">    b: second input array. Must have shape ``(N,)`` or ``(..., N, M)``.</span></span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L150" data-line="150"><span class="st">      In the multi-dimensional case, leading dimensions must be broadcast-compatible</span></span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L151" data-line="151"><span class="st">      with the leading dimensions of ``a``.</span></span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L152" data-line="152"><span class="st">    precision: either ``None`` (default), which means the default precision for</span></span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L153" data-line="153"><span class="st">      the backend, a :class:`~jax.lax.Precision` enum value (``Precision.DEFAULT``,</span></span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L154" data-line="154"><span class="st">      ``Precision.HIGH`` or ``Precision.HIGHEST``) or a tuple of two</span></span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L155" data-line="155"><span class="st">      such values indicating precision of ``a`` and ``b``.</span></span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L156" data-line="156"><span class="st">    preferred_element_type: either ``None`` (default), which means the default</span></span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L157" data-line="157"><span class="st">      accumulation type for the input types, or a datatype, indicating to</span></span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L158" data-line="158"><span class="st">      accumulate results to and return a result with that datatype.</span></span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L159" data-line="159"><span class="st">    out_sharding: optional sharding specification for the output. If not specified,</span></span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L160" data-line="160"><span class="st">      it will be determined automatically by the compiler.</span></span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L161" data-line="161"></span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L162" data-line="162"><span class="st">  Returns:</span></span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L163" data-line="163"><span class="st">    array containing the matrix product of the inputs. Shape is ``a.shape[:-1]``</span></span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L164" data-line="164"><span class="st">    if ``b.ndim == 1``, otherwise the shape is ``(..., K, M)``, where leading</span></span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L165" data-line="165"><span class="st">    dimensions of ``a`` and ``b`` are broadcast together.</span></span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L166" data-line="166"></span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L167" data-line="167"><span class="st">  See Also:</span></span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L168" data-line="168"><span class="st">    - :func:`jax.numpy.linalg.vecdot`: batched vector product.</span></span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L169" data-line="169"><span class="st">    - :func:`jax.numpy.linalg.tensordot`: batched tensor product.</span></span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L170" data-line="170"><span class="st">    - :func:`jax.lax.dot_general`: general N-dimensional batched dot product.</span></span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L171" data-line="171"></span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L172" data-line="172"><span class="st">  Examples:</span></span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L173" data-line="173"><span class="st">    Vector dot products:</span></span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L174" data-line="174"></span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L175" data-line="175"><span class="st">    &gt;&gt;&gt; a = jnp.array([1, 2, 3])</span></span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L176" data-line="176"><span class="st">    &gt;&gt;&gt; b = jnp.array([4, 5, 6])</span></span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L177" data-line="177"><span class="st">    &gt;&gt;&gt; jnp.matmul(a, b)</span></span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L178" data-line="178"><span class="st">    Array(32, dtype=int32)</span></span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L179" data-line="179"></span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L180" data-line="180"><span class="st">    Matrix dot product:</span></span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L181" data-line="181"></span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L182" data-line="182"><span class="st">    &gt;&gt;&gt; a = jnp.array([[1, 2, 3],</span></span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L183" data-line="183"><span class="st">    ...                [4, 5, 6]])</span></span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L184" data-line="184"><span class="st">    &gt;&gt;&gt; b = jnp.array([[1, 2],</span></span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L185" data-line="185"><span class="st">    ...                [3, 4],</span></span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L186" data-line="186"><span class="st">    ...                [5, 6]])</span></span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L187" data-line="187"><span class="st">    &gt;&gt;&gt; jnp.matmul(a, b)</span></span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L188" data-line="188"><span class="st">    Array([[22, 28],</span></span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L189" data-line="189"><span class="st">           [49, 64]], dtype=int32)</span></span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L190" data-line="190"></span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L191" data-line="191"><span class="st">    For convenience, in all cases you can do the same computation using</span></span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L192" data-line="192"><span class="st">    the ``@`` operator:</span></span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L193" data-line="193"></span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L194" data-line="194"><span class="st">    &gt;&gt;&gt; a @ b</span></span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L195" data-line="195"><span class="st">    Array([[22, 28],</span></span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L196" data-line="196"><span class="st">           [49, 64]], dtype=int32)</span></span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L197" data-line="197"><span class="st">  """</span></span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L198" data-line="198">  a, b = util.ensure_arraylike(<span class="st">"</span><span class="st">matmul</span><span class="st">"</span>, a, b)</span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L199" data-line="199">  <span class="kw">for</span> i, x in enumerate((a, b)):</span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L200" data-line="200">    <span class="kw">if</span> np.ndim(x) &lt; <span class="nu">1</span>:</span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L201" data-line="201">      msg = (<span class="st">f</span><span class="st">"</span><span class="st">matmul input operand </span><span class="st">{</span>i<span class="st">}</span><span class="st"> must have ndim at least 1, </span><span class="st">"</span></span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L202" data-line="202">             <span class="st">f</span><span class="st">"</span><span class="st">but it has ndim </span><span class="st">{</span>np.ndim(x)<span class="st">}</span><span class="st">"</span>)</span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L203" data-line="203">      <span class="kw">raise</span> ValueError(msg)</span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L204" data-line="204">  <span class="kw">if</span> preferred_element_type is <span class="kw">None</span>:</span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L205" data-line="205">    preferred_element_type, output_weak_type = dtypes.result_type(a, b, return_weak_type_flag=<span class="kw">True</span>)</span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L206" data-line="206">  <span class="kw">else</span>:</span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L207" data-line="207">    preferred_element_type = dtypes.check_and_canonicalize_user_dtype(</span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L208" data-line="208">        preferred_element_type, <span class="st">"</span><span class="st">matmul</span><span class="st">"</span>)</span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L209" data-line="209">    output_weak_type = <span class="kw">False</span></span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L210" data-line="210"></span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L211" data-line="211">  a_is_mat, b_is_mat = (np.ndim(a) &gt; <span class="nu">1</span>), (np.ndim(b) &gt; <span class="nu">1</span>)</span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L212" data-line="212">  a_batch_dims: tuple[int | <span class="kw">None</span>, ...] = np.shape(a)[:-<span class="nu">2</span>] <span class="kw">if</span> a_is_mat <span class="kw">else</span> ()</span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L213" data-line="213">  b_batch_dims: tuple[int | <span class="kw">None</span>, ...] = np.shape(b)[:-<span class="nu">2</span>] <span class="kw">if</span> b_is_mat <span class="kw">else</span> ()</span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L214" data-line="214">  num_batch_dims = max(len(a_batch_dims), len(b_batch_dims))</span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L215" data-line="215">  a_batch_dims = (<span class="kw">None</span>,) * (num_batch_dims - len(a_batch_dims)) + a_batch_dims</span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L216" data-line="216">  b_batch_dims = (<span class="kw">None</span>,) * (num_batch_dims - len(b_batch_dims)) + b_batch_dims</span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L217" data-line="217"></span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L218" data-line="218">  a_batch_specs = core.typeof(a).sharding.spec.partitions[:-<span class="nu">2</span>] <span class="kw">if</span> a_is_mat <span class="kw">else</span> ()</span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L219" data-line="219">  b_batch_specs = core.typeof(b).sharding.spec.partitions[:-<span class="nu">2</span>] <span class="kw">if</span> b_is_mat <span class="kw">else</span> ()</span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L220" data-line="220">  a_batch_specs = (<span class="kw">None</span>,) * (num_batch_dims - len(a_batch_specs)) + a_batch_specs</span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L221" data-line="221">  b_batch_specs = (<span class="kw">None</span>,) * (num_batch_dims - len(b_batch_specs)) + b_batch_specs</span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L222" data-line="222"></span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L223" data-line="223">  <span class="cm"># Dimensions to squeeze from the inputs.</span></span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L224" data-line="224">  a_squeeze: list[int] = []</span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L225" data-line="225">  b_squeeze: list[int] = []</span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L226" data-line="226">  <span class="cm"># Dimensions squeezed from both inputs (in output dimension indices).</span></span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L227" data-line="227">  both_squeeze: list[int] = []</span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L228" data-line="228"></span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L229" data-line="229">  <span class="cm"># Positions of batch dimensions in squeezed inputs.</span></span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L230" data-line="230">  a_batch = []</span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L231" data-line="231">  b_batch = []</span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L232" data-line="232"></span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L233" data-line="233">  <span class="cm"># Desired index in final output of each kind of dimension, in the order that</span></span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L234" data-line="234">  <span class="cm"># lax.dot_general will emit them.</span></span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L235" data-line="235">  idx_batch: list[int] = []</span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L236" data-line="236">  idx_a_other: list[int] = []  <span class="cm"># other = non-batch, non-contracting.</span></span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L237" data-line="237">  idx_b_other: list[int] = []</span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L238" data-line="238">  <span class="kw">for</span> i, (ba, bb, sa, sb) in enumerate(zip(a_batch_dims, b_batch_dims,</span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L239" data-line="239">                                           a_batch_specs, b_batch_specs)):</span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L240" data-line="240">    <span class="kw">if</span> ba is <span class="kw">None</span>:</span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L241" data-line="241">      idx_b_other.append(i)</span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L242" data-line="242">    <span class="kw">elif</span> bb is <span class="kw">None</span>:</span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L243" data-line="243">      idx_a_other.append(i)</span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L244" data-line="244">    <span class="cm"># We generate a cleaner (and more Mosaic-friendly) dot_general by</span></span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L245" data-line="245">    <span class="cm"># squeezing both and not just treating the B dim as non-contracting below.</span></span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L246" data-line="246">    <span class="kw">elif</span> (core.definitely_equal(ba, <span class="nu">1</span>) and core.definitely_equal(bb, <span class="nu">1</span>)</span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L247" data-line="247">          and sa is <span class="kw">None</span> and sb is <span class="kw">None</span>):</span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L248" data-line="248">      a_squeeze.append(len(idx_batch) + len(idx_a_other) + len(a_squeeze))</span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L249" data-line="249">      b_squeeze.append(len(idx_batch) + len(idx_b_other) + len(b_squeeze))</span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L250" data-line="250">      both_squeeze.append(i)</span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L251" data-line="251">    <span class="kw">elif</span> core.definitely_equal(ba, <span class="nu">1</span>) and sa is <span class="kw">None</span>:</span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L252" data-line="252">      idx_b_other.append(i)</span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L253" data-line="253">      a_squeeze.append(len(idx_batch) + len(idx_a_other) + len(a_squeeze))</span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L254" data-line="254">    <span class="kw">elif</span> core.definitely_equal(bb, <span class="nu">1</span>) and sb is <span class="kw">None</span>:</span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L255" data-line="255">      idx_a_other.append(i)</span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L256" data-line="256">      b_squeeze.append(len(idx_batch) + len(idx_b_other) + len(b_squeeze))</span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L257" data-line="257">    <span class="kw">elif</span> core.definitely_equal(ba, bb) and sa == sb:</span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L258" data-line="258">      a_batch.append(len(idx_batch) + len(idx_a_other))</span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L259" data-line="259">      b_batch.append(len(idx_batch) + len(idx_b_other))</span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L260" data-line="260">      idx_batch.append(i)</span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L261" data-line="261">    <span class="kw">else</span>:</span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L262" data-line="262">      <span class="kw">raise</span> ValueError(<span class="st">"</span><span class="st">Incompatible types for matmul arguments: </span><span class="st">{}</span><span class="st"> and </span><span class="st">{}</span><span class="st">"</span></span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L263" data-line="263">                       .format(core.typeof(a), core.typeof(b)))</span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L264" data-line="264"></span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L265" data-line="265">  <span class="kw">if</span> a_is_mat:</span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L266" data-line="266">    idx_a_other.append(num_batch_dims)</span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L267" data-line="267">  <span class="kw">if</span> b_is_mat:</span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L268" data-line="268">    idx_b_other.append(num_batch_dims + a_is_mat)</span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L269" data-line="269">  perm = np.argsort(np.concatenate([idx_batch, idx_a_other, idx_b_other]))</span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L270" data-line="270"></span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L271" data-line="271">  a = lax.squeeze(a, tuple(a_squeeze))</span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L272" data-line="272">  b = lax.squeeze(b, tuple(b_squeeze))</span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L273" data-line="273">  out = lax.dot_general(</span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L274" data-line="274">    a, b, (((np.ndim(a) - <span class="nu">1</span>,), (np.ndim(b) - <span class="nu">1</span> - b_is_mat,)), (a_batch, b_batch)),</span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L275" data-line="275">    precision=precision, preferred_element_type=preferred_element_type,</span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L276" data-line="276">    out_sharding=out_sharding, reduction_order=reduction_order)</span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L277" data-line="277">  result = lax.transpose(out, perm)</span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L278" data-line="278">  <span class="kw">if</span> both_squeeze:</span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L279" data-line="279">    result = lax.expand_dims(result, tuple(both_squeeze))</span>
+<span class="source-line" id="tpu-01-jaxapimmat-132-L280" data-line="280">  <span class="kw">return</span> lax._convert_element_type(result, preferred_element_type, output_weak_type)</span></code></pre></div><h3 id="tpu-01-walkthrough">源码解读</h3><p>JAX 0.12.1 的 matmul 允许向量、矩阵和带 batch 的矩阵共用一个入口。对于本例的两个二维矩阵，<a class="source-jump" href="#tpu-01-jaxapimmat-132-L274">第 274 行</a> 选择左矩阵的轴 1 和右矩阵的轴 0 求和。前面安排批次轴的代码在更高维输入中才参与配对，后面的 transpose 把结果各轴放回调用者约定的次序。</p></div>
+<!-- /original-functions -->
 <p>将本例代进去：<code>a</code> 是 X，秩为 2，因此左边取轴 1。<code>b</code> 是 W，秩也为 2，<code>b_is_mat</code> 为真，参与整数运算相当于 1，所以右边取轴 0。两个矩阵没有额外批次轴。打印出的 <code>dimension_numbers=(([1], [0]), ([], []))</code> 就是这个选择。第一对括号里的两条轴各长 3；沿这两条轴求和，才得到表中四个格子。</p>
 <p>在同一段输出里，紧跟点积的 <code>broadcast_in_dim</code> 把偏置标到输出轴 1，<code>add</code> 对两行实施相同偏移，ReLU 内部的 <code>max</code> 则逐格与零比较。这里观察的是程序表达的计算。到了 TPU 上，矩阵乘单元可以成批完成点积，向量单元适合处理后续逐元素计算。要知道编译后的程序有没有把中间结果写回 HBM，需要进一步看编译结果和设备记录。</p>
 <h3>输入改动与误差定位</h3>
@@ -336,7 +485,6 @@ torch.testing.assert_close(actual, expected)</code></pre></figure>
 <span class="source-line" id="pallas-language-tpuquickmd-126-L145" data-line="145">    )(x_hbm, y_hbm, o_hbm)</span>
 <span class="source-line" id="pallas-language-tpuquickmd-126-L146" data-line="146">  <span class="kw">return</span> kernel(x, y)</span></code></pre></div><h3 id="pallas-language-walkthrough">源码解读</h3><p>JAX 的 TPU 入门示例把两张矩阵各切成 128×128 的小块。外层 kernel 拿到 HBM 中矩阵的引用，emit_pipeline 按 grid 和 BlockSpec 依次安排要搬的块。进入 add_body 时，两块输入已在 VMEM，逐项相加后写进对应输出块。这里可以同时找到块的形状、地址映射和真正做加法的一行。</p></div>
 <!-- /original-functions -->
-
 <p>写 TPU 算子可以从 Python 开始。在 JAX 里写 <code>jnp.maximum(x + bias, 0)</code>，描述的是整张数组先加偏置再做 ReLU。Pallas 是嵌在 Python 里的 kernel 语言：作者还能指定一次处理数组的哪一块、哪两次计算共享片上结果。先把同一个小计算写成这两种形式。</p>
 <pre><code class="language-python"><span class="kw">def</span> <span class="fn">bias_relu</span>(x, bias):
     <span class="kw">return</span> jnp.maximum(x + bias[<span class="kw">None</span>, :], <span class="nu">0</span>)
@@ -391,7 +539,6 @@ bias = -jnp.arange(<span class="nu">256</span>, dtype=jnp.float32)
 <span class="source-line" id="tpu-06-course-11-L29" data-line="29">    )</span>
 <span class="source-line" id="tpu-06-course-11-L30" data-line="30">    <span class="kw">return</span> call(tiles)[:w, :h]</span></code></pre></div></div>
 <!-- /original-functions -->
-
 <p>当默认生成的算子在目标形状上留下了大量无用搬运，可以用 <strong>Pallas</strong> 指明每次处理的数组窗口。先写一个把矩阵的每个元素加倍再加一的算子。用 16 行、256 列的 FP32 输入，切成四片，每片 8 行、128 列。这个形状与 TPU 的向量布局相配，重点是看清程序编号和元素地址的关系。</p>
 <pre><code class="language-python"><span class="kw">import</span> jax
 <span class="kw">import</span> jax.numpy <span class="kw">as</span> jnp
@@ -564,8 +711,6 @@ call = pl.pallas_call(
 <span class="source-line" id="tpu-07-jaxmm-28-L39" data-line="39">  <span class="cm"># quite well for a simple matmul kernel</span></span>
 <span class="source-line" id="tpu-07-jaxmm-28-L40" data-line="40">  o_tile_ref[...] = acc_ref[...].astype(o_tile_ref.dtype)</span></code></pre></div><h3 id="tpu-07-walkthrough">源码解读</h3><p>JAX 的 matmul_kernel 为每个输出块保留一块累加缓冲。内积轴上的第一块负责清零，每读一对 A、B 块就增加一份部分积，每次更新都把当前累加值转成输出类型并写入输出块，最后一次写入就是完整结果。同一块 C 的中间结果由 acc_ref 接着保存。</p></div>
 <!-- /original-functions -->
-
-
 <p>让一个程序负责一个输出块时，两个输入块要沿共同的 <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mi>K</mi></mrow></math> 轴移动。沿用第一节的 <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mi>X</mi><mo>&#x0002C;</mo><mi>W</mi></mrow></math>。先取前两个输入通道，它们给左上格贡献 <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mn>1</mn><mo>&#x000D7;</mo><mn>1</mn><mo>&#x0002B;</mo><mn>2</mn><mo>&#x000D7;</mo><mn>2</mn><mo>&#x0003D;</mo><mn>5</mn></mrow></math>，右上格贡献 <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mn>1</mn><mo>&#x000D7;</mo><mn>0</mn><mo>&#x0002B;</mo><mn>2</mn><mo>&#x000D7;</mo><mo stretchy="false">&#x00028;</mo><mo>&#x02212;</mo><mn>1</mn><mo stretchy="false">&#x00029;</mo><mo>&#x0003D;</mo><mo>&#x02212;</mo><mn>2</mn></mrow></math>。随后取第三个通道，分别再加 0 和 3，第一行才成为 <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mo stretchy="false">&#x00028;</mo><mn>5</mn><mo>&#x0002C;</mo><mn>1</mn><mo stretchy="false">&#x00029;</mo></mrow></math>。同一输出在归约途中必须保留。</p>
 <p>Pallas 把三维网格索引记成 <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mo stretchy="false">&#x00028;</mo><mi>i</mi><mo>&#x0002C;</mo><mi>j</mi><mo>&#x0002C;</mo><mi>k</mi><mo stretchy="false">&#x00029;</mo></mrow></math>。其中 <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mi>i</mi></mrow></math> 指输出行块，<math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mi>j</mi></mrow></math> 指输出列块，<math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mi>k</mi></mrow></math> 指归约片。三张表的索引映射分别为 <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mo stretchy="false">&#x00028;</mo><mi>i</mi><mo>&#x0002C;</mo><mi>k</mi><mo stretchy="false">&#x00029;</mo></mrow></math>、<math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mo stretchy="false">&#x00028;</mo><mi>k</mi><mo>&#x0002C;</mo><mi>j</mi><mo stretchy="false">&#x00029;</mo></mrow></math>、<math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mo stretchy="false">&#x00028;</mo><mi>i</mi><mo>&#x0002C;</mo><mi>j</mi><mo stretchy="false">&#x00029;</mo></mrow></math>。这样 <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mi>k</mi></mrow></math> 连续变化时，程序仍落在同一个输出窗口。下面把输入块定为 128 方阵，输入为 BF16，输出以 FP32 保存。</p>
 <pre><code class="language-python"><span class="kw">import</span> jax
@@ -957,7 +1102,6 @@ ab = (
 <span class="source-line" id="tpu-08b-course-11-L63" data-line="63">    )</span>
 <span class="source-line" id="tpu-08b-course-11-L64" data-line="64">    <span class="kw">return</span> run(pad, m, l)[:, :width]</span></code></pre></div></div>
 <!-- /original-functions -->
-
 <p>对同一行的许多个分数做 softmax，先要找全行最大值，再求指数和。若一行能放进片上窗口，一个 Pallas 程序可以从读到写一次处理整行。沿列切成彼此独立的多个核则会得到多个局部分母，需要额外合并。下面的 TPU 教学核每次处理 8 行，每行 128 列，输入与输出为 FP32。</p>
 <pre><code class="language-python"><span class="kw">import</span> jax
 <span class="kw">import</span> jax.numpy <span class="kw">as</span> jnp
@@ -1405,8 +1549,6 @@ run = pl.pallas_call(
 <span class="source-line" id="pallas-vocab-loss-course-9-L56" data-line="56">                          interpret=interpret)</span>
 <span class="source-line" id="pallas-vocab-loss-course-9-L57" data-line="57">    <span class="kw">return</span> call(x, ids)[:batch, <span class="nu">0</span>]</span></code></pre></div><h3 id="pallas-vocab-loss-walkthrough">源码解读</h3><p>Tokamax 把输出投影和交叉熵放在一次 Pallas 计算中。顺着 fwd_kernel 到 accumulate_loss，可以看到一块词表对应的分数怎样进入归约；遍历词表期间保留归一化所需的统计量和目标类别分数。下面的小例从已有 logits 开始，可以单独手算损失这一段。</p><ol class="source-steps"><li><a class="source-jump" href="#pallas-vocab-loss-tplosstrue-790-L923">第 923 行</a>　把全局类别编号减去当前词表块的起点。只有包含目标类别的块才会在 one-hot 中产生一个 1。</li><li><a class="source-jump" href="#pallas-vocab-loss-tplosstrue-790-L937">第 937 行</a>　从损失中减去目标类别的分数。假如目标分数是 3，这一步先留下 −3，其他词的分数进入归一化项。</li><li><a class="source-jump" href="#pallas-vocab-loss-tplosstrue-790-L959">第 959 行</a>　用 logaddexp 合并当前词表块和先前各块的 logsumexp。遍历结束后，将完整的归一化项加回 −3，得到该样本的交叉熵。</li></ol></div>
 <!-- /original-functions -->
-
-
 <p>训练语言模型时，一行 logits 给每个候选 token 打一个分。已知正确 token 的列号，希望得到它的负对数概率。若先把所有概率写进显存再按标签取一项，每行最终只用到一项。沿用<a href="#tpu-08b">长行 softmax</a>逐块计算分母的办法，再多留一个数：正确列原先的分数。</p>
 <p>设 <i>z</i> 是一行分数，<i>t</i> 是正确列，<i>m</i> 是行最大值，<i>l</i> 是减去这个最大值以后所有指数的和。正确列的概率是它的指数除以这个和。对它取负对数，指数运算消去，留下下面三项。</p>
 <math display="block"><mrow><mi>L</mi><mo>=</mo><mo>−</mo><mi>log</mi><mfrac><msup><mi>e</mi><mrow><msub><mi>z</mi><mi>t</mi></msub><mo>−</mo><mi>m</mi></mrow></msup><mi>l</mi></mfrac><mo>=</mo><mo>(</mo><mi>m</mi><mo>−</mo><msub><mi>z</mi><mi>t</mi></msub><mo>)</mo><mo>+</mo><mi>log</mi><mi>l</mi></mrow></math>
@@ -1622,7 +1764,6 @@ np.testing.assert_allclose(rms(x, gain), expected, rtol=<span class="nu">1e-5</s
 <span class="source-line" id="tpu-convolution-course-30-L63" data-line="63">    )</span>
 <span class="source-line" id="tpu-convolution-course-30-L64" data-line="64">    <span class="kw">return</span> run(src, src, src, src, filt, filt, filt, filt)[:, : w - <span class="nu">1</span>, :]</span></code></pre></div></div>
 <!-- /original-functions -->
-
 <p>图像某一处的亮暗变化，要连同附近的像素一起看。用同一张小权重表沿图像滑动，每到一处把对齐的像素和权重逐对相乘，再把乘积相加，就得到这个位置的一个特征。JAX 的卷积原语可以让 XLA 在 TPU 上编译这段计算。</p>
 <table><thead><tr><th scope="col">原图的行</th><th scope="col">第 0 列</th><th scope="col">第 1 列</th><th scope="col">第 2 列</th></tr></thead><tbody><tr><td>第 0 行</td><td>1</td><td>2</td><td>4</td></tr><tr><td>第 1 行</td><td>3</td><td>5</td><td>8</td></tr><tr><td>第 2 行</td><td>6</td><td>9</td><td>13</td></tr></tbody></table>
 <p>教学权重有两行，每行是左边 −1、右边 +1。因此左上角窗口先在第一行取 2 减 1，再在第二行取 5 减 3，总和为 3。向右移动一列，两个差变为 4 减 2 与 8 减 5，合为 5。窗口再向下移，左、右两个输出为 5、7。3×3 图像用完整 2×2 窗、步幅 1，在每个方向各有两个起点，输出有 2×2 个位置。</p>
@@ -1927,8 +2068,6 @@ print(horizontal_difference.lower(image, kernel).as_text())  <span class="cm"># 
 <span class="source-line" id="pallas-depthwise-course-10-L31" data-line="31">    filt = jnp.asarray(weights, jnp.float32).reshape(<span class="nu">2</span>, <span class="nu">2</span>, <span class="nu">1</span>, channels)</span>
 <span class="source-line" id="pallas-depthwise-course-10-L32" data-line="32">    <span class="kw">return</span> run(data, data, data, data, filt, filt, filt, filt)[:, :width-<span class="nu">1</span>]</span></code></pre></div><h3 id="pallas-depthwise-walkthrough">源码解读</h3><p>TensorFlow 在 MakeXlaForwardConvOp 中准备卷积维度和分组参数。depthwise 路径以输入通道数作为 feature group count，所以每组只看自己的输入通道。若通道倍率为 1，当前通道的一个窗口只生成该通道的一个输出。下面的 Pallas 实验显示实际读取的相邻像素。</p></div>
 <!-- /original-functions -->
-
-
 <p>上一节的二维卷积在每个窗口里既混合相邻像素，也混合输入通道。图像的三个颜色通道如果各用自己的滤波器，红色输出就只需要读红色输入。这种每个通道各自卷积的写法叫 <button type="button" class="course-term" aria-haspopup="dialog" popovertarget="lang-tpu-7e204d6cb70d">depthwise convolution</button>。同样取 2×2 窗口、步幅 1，有多少个输出位置、块交界处向哪里借像素，都沿用<a href="#tpu-convolution">上一节的取窗代码</a>。变化发生在取到窗口以后。</p>
 <p>输入为 [高, 宽, 128]。普通卷积每个空间偏移有一张 [128,128] 权重矩阵，块内 8 个像素乘这张矩阵。这里改为每个偏移只有一行 [128] 权重；让这行分别乘 8 个像素的对应通道，再把四个空间偏移的乘积相加。权重数从 2×2×128×128 降到 2×2×128。输出仍是 [高−1, 宽−1, 128]。</p>
 <h3>右边界的两个输出通道</h3>
@@ -2178,8 +2317,6 @@ np.testing.assert_array_equal(dx[<span class="nu">0</span>, :, :, <span class="n
 <span class="source-line" id="lab-smooth-l1-grad-course-34-L37" data-line="37">        out[...] = slope * grad[...]</span>
 <span class="source-line" id="lab-smooth-l1-grad-course-34-L38" data-line="38">    <span class="kw">return</span> one_tile(backward, x.shape, (x,target,upstream), interpret)</span></code></pre></div><h3 id="lab-smooth-l1-grad-walkthrough">源码解读</h3><p>Optax 的 huber_loss 接收预测、目标和阈值 delta。在 <a class="source-jump" href="#lab-smooth-l1-grad-tpclip-77-L104">第 104 行</a> 附近，误差小时损失随误差的平方增长，误差大时改为直线。把整项 Huber 损失除以 β（取 delta＝β），两段的导数分别是误差除以 β 和误差的符号。下面的 Pallas 教学核直接计算这个导数，再乘上游梯度。</p></div>
 <!-- /original-functions -->
-
-
 <p>训练框回归模型时，预测坐标偏了 1 个像素和偏了 30 个像素，损失对预测的推力可以不同。<button type="button" class="course-term" aria-haspopup="dialog" popovertarget="lang-tpu-3b1acb9204d2">Smooth L1</button> 用 β 规定两段的交界。例中 β＝2，三个输入都是 [8,128]：预测、目标和后续传回的梯度。按同一个位置取这三个数，算出损失对该预测的梯度。</p>
 <h3>阈值两边的七个位置</h3>
 <p>在第一行令前七个目标都为 0，预测依次为 −3、−2、−1、0、1、2、3。先把误差除以 2，再截到 [−1,1]，得到 [−1,−1,−½,0,½,1,1]。把它们乘上游梯度 [2,−1,4,7,2,3,−2]，输出就是 [−2,1,−2,0,1,3,−2]。例如误差 −2 在交界处，局部斜率 −1 乘上游的 −1，输出变为正 1。</p>
@@ -2339,8 +2476,6 @@ np.testing.assert_array_equal(dx[<span class="nu">0</span>, :, :, <span class="n
 <span class="source-line" id="lab-rope-tprope-61-L76" data-line="76">                                   axis=-<span class="nu">1</span>)</span>
 <span class="source-line" id="lab-rope-tprope-61-L77" data-line="77">        <span class="kw">return</span> combined.astype(self.dtype)</span></code></pre></div><h3 id="lab-rope-walkthrough">源码解读</h3><p>Tokamax 的 _kernel 安排每个片上窗口，_rope_body 对有效通道应用旋转。这个 DeepSeek 核把相邻通道配成一对。往下看 vLLM TPU 的 apply_rope，它沿最后一维切成左右两半，左半的第一项与右半的第一项相配。后面的手算沿用第二种排列。</p></div>
 <!-- /original-functions -->
-
-
 <p>RoPE 把查询或键的两个通道当作平面上的两个坐标，用当前位置对应的角度旋转它们。这一版沿用 Llama 的 <button type="button" class="course-term" aria-haspopup="dialog" popovertarget="lang-tpu-c8ecd89a5dba">rotate_half</button>。输入是 8 个位置，每个位置 256 个通道；一行的前 128 项和后 128 项逐一配对，角度表每行有 128 个 cos 和 128 个 sin。</p>
 <h3>同一对坐标的两次乘加</h3>
 <p>看位置 1 的第一对通道。通道 0 给出 3，通道 128 给出 4，该处 cos＝0、sin＝1。前半输出是 3×0−4×1＝−4，后半输出是 4×0＋3×1＝3。它们分别写回通道 0 和 128。位置 0 的 cos 全为 1、sin 全为 0，该行应与输入逐项相同。</p>
@@ -2512,8 +2647,6 @@ np.testing.assert_array_equal(dx[<span class="nu">0</span>, :, :, <span class="n
 <span class="source-line" id="lab-space-to-depth-course-41-L48" data-line="48">                         interpret=interpret)</span>
 <span class="source-line" id="lab-space-to-depth-course-41-L49" data-line="49">    <span class="kw">return</span> run(image.reshape(<span class="nu">4</span>,<span class="nu">4</span>,<span class="nu">1</span>,<span class="nu">128</span>)).reshape(<span class="nu">2</span>,<span class="nu">2</span>,<span class="nu">512</span>)</span></code></pre></div><h3 id="lab-space-to-depth-walkthrough">源码解读</h3><p>TensorFlow 的 Compile 为 TPU 的 XLA 路径构造张量运算。输入按 NHWC 排列时，把高、宽各拆成块号和块内偏移，Transpose 将两个偏移移到通道前，最后一次 Reshape 把它们并入通道。一块有四个像素时，新通道依次容纳左上、右上、左下、右下四组值。</p></div>
 <!-- /original-functions -->
-
-
 <p>一张图要把高和宽各缩小一半，又要保留每个像素的数值，可以把相邻的四个像素依次放进同一个输出位置的通道轴。TensorFlow 的 <button type="button" class="course-term" aria-haspopup="dialog" popovertarget="lang-tpu-c2f5353423ae">SpaceToDepth</button> 对一张 [4,4,128] 的图产生 [2,2,512]。新通道的顺序是左上 128 项、右上 128 项、左下 128 项、右下 128 项。</p>
 <h3>右上输出块的四次取数</h3>
 <p>给输入通道 0 填入“行号乘 100，加列号乘 10”。输出位置 (0,1) 从输入列 2 开始：左上 (0,2) 是 20，右上 (0,3) 是 30，左下 (1,2) 是 120，右下 (1,3) 是 130。因此该输出位置的通道 0、128、256、384 依次为 20、30、120、130。每组随后还有同一像素的另外 127 个通道。</p>
@@ -2702,8 +2835,6 @@ np.testing.assert_array_equal(dx[<span class="nu">0</span>, :, :, <span class="n
 <span class="source-line" id="lab-layernorm-course-25-L30" data-line="30">        out[...] = delta * jax.lax.rsqrt(variance+<span class="nu">1e-5</span>) * gain[...] + shift[...]</span>
 <span class="source-line" id="lab-layernorm-course-25-L31" data-line="31">    <span class="kw">return</span> one_tile(normalize, x.shape, (x,gamma[<span class="kw">None</span>,:],bias[<span class="kw">None</span>,:]), interpret)</span></code></pre></div><h3 id="lab-layernorm-walkthrough">源码解读</h3><p>BuildLayerNormShlo 把半精度输入升到 FP32，同时对每组数及其平方求和。ComputeTwoMoments 把两项总和化成均值和方差，并将舍入造成的负方差截到零。再看主函数的 Rsqrt：先把 epsilon 加入方差，再取平方根的倒数。最后的缩放和平移作用于已经标准化的值。</p></div>
 <!-- /original-functions -->
-
-
 <p>同一个 token 的一整行特征如果整体增加 7，每项之间的相对差异并没有变。<button type="button" class="course-term" aria-haspopup="dialog" popovertarget="lang-tpu-981e3f5040df">LayerNorm</button> 在这里处理 [8,128] 的 8 行；每行各算自己的均值和方差，128 个通道增益 γ 与偏置 β 则在 8 行间共用。方差沿 128 项除以 128。</p>
 <h3>两个通道共用方差，各用自己的增益</h3>
 <p>第一行把 [1,3] 重复 64 次，均值为 2。减去均值后交替得到 −1、1，它们的平方都是 1，方差就是 1。取 ε＝0.00001，前两列的 γ 为 [2,½]，β 为 [1,−1]。第一列输出 1−2/√1.00001，约 −0.99999；第二列输出 −1＋0.5/√1.00001，约 −0.5000025。再看全为 7 的第二行：居中后全为 0，输出应逐项等于 β。</p>
@@ -2842,10 +2973,8 @@ np.testing.assert_array_equal(dx[<span class="nu">0</span>, :, :, <span class="n
 <span class="source-line" id="lab-bag-max-course-52-L65" data-line="65">    run = pl.pallas_call(pool,grid_spec=spec,out_shape=jax.ShapeDtypeStruct((<span class="nu">8</span>,<span class="nu">1</span>,<span class="nu">128</span>),jnp.float32),</span>
 <span class="source-line" id="lab-bag-max-course-52-L66" data-line="66">                         interpret=interpret)</span>
 <span class="source-line" id="lab-bag-max-course-52-L67" data-line="67">    features = table[:,<span class="kw">None</span>,:]</span>
-<span class="source-line" id="lab-bag-max-course-52-L68" data-line="68">    <span class="kw">return</span> run(ids,features,features,features)[:,<span class="nu">0</span>,:]</span></code></pre></div><h3 id="lab-bag-max-walkthrough">源码解读</h3><p>BuildEmbeddingBag 先用索引选择 embedding 行，再用一对相邻 offset 确定一个袋子的范围。循环每次取一行，<a class="source-jump" href="#lab-bag-max-tpbag-21-L89">第 89 行</a> 附近的 Max 保留各列较大的那个数。因此同一个输出向量的不同列可以来自不同词。下方小例可逐列追踪这次选择。 这版 XLA 从全零向量开始取最大值。如果某列只有 −5 和 −2，它会留下 0。下方 Pallas 例用负无穷屏蔽空槽，非空袋保留 −2，只有全空袋才输出 0。</p><ol class="source-steps"><li><a class="source-jump" href="#lab-bag-max-tpbag-21-L89">第 89 行</a>　max 分支让相同通道相互比较。袋子含两行时，第一行的第 0 列只与第二行的第 0 列竞争。</li><li><a class="source-jump" href="#lab-bag-max-tpbag-21-L104">第 104 行</a>　这里给初始累加向量填了 0。单独放入一个值 −2 就能看到这个版本在全负输入上的边界行为。</li></ol></div>
+<span class="source-line" id="lab-bag-max-course-52-L68" data-line="68">    <span class="kw">return</span> run(ids,features,features,features)[:,<span class="nu">0</span>,:]</span></code></pre></div><h3 id="lab-bag-max-walkthrough">源码解读</h3><p>BuildEmbeddingBag 先用索引选择 embedding 行，再用一对相邻 offset 确定一个袋子的范围。循环每次取一行，<a class="source-jump" href="#lab-bag-max-tpbag-21-L90">第 90 行</a> 附近的 Max 保留各列较大的那个数。因此同一个输出向量的不同列可以来自不同词。下方小例可逐列追踪这次选择。 这版 XLA 从全零向量开始取最大值。如果某列只有 −5 和 −2，它会留下 0。下方 Pallas 例用负无穷屏蔽空槽，非空袋保留 −2，只有全空袋才输出 0。</p><ol class="source-steps"><li><a class="source-jump" href="#lab-bag-max-tpbag-21-L90">第 90 行</a>　max 分支让相同通道相互比较。袋子含两行时，第一行的第 0 列只与第二行的第 0 列竞争。</li><li><a class="source-jump" href="#lab-bag-max-tpbag-21-L104">第 104 行</a>　这里给初始累加向量填了 0。单独放入一个值 −2 就能看到这个版本在全负输入上的边界行为。</li></ol></div>
 <!-- /original-functions -->
-
-
 <p>一个样本可以含多个离散特征号。到 embedding 表中取出这些行后，可以让每个输出通道各自保留最大响应。<button type="button" class="course-term" aria-haspopup="dialog" popovertarget="lang-tpu-fb1f8193be37">EmbeddingBag</button> 本例的特征表是 [8,128]，每个样本给三个索引槽；−1 表示本槽空缺，全部空缺时输出全零。</p>
 <h3>全负特征中的重复编号</h3>
 <p>特征行 2 的前两个数为 [−5,−1]，行 0 为 [−2,−4]。样本 0 要取 [2,0,2]。第一列在 −5、−2、−5 之间取 −2，第二列在 −1、−4、−1 之间取 −1。输出 [−2,−1] 来自两个不同邻居；若把初始最大值设成 0，这两列都会错误地返回 0。样本 1 的三个槽全空，应返回零。样本 2 只有中间槽有效，结果必须等于行 0。</p>
@@ -2875,8 +3004,6 @@ np.testing.assert_array_equal(dx[<span class="nu">0</span>, :, :, <span class="n
 <span class="source-line" id="lab-lora-course-94-L98" data-line="98">        out[...] = original[...] + <span class="nu">.5</span>*(t0*b0[...] + t1*b1[...])</span>
 <span class="source-line" id="lab-lora-course-94-L99" data-line="99">    <span class="kw">return</span> one_tile(adapt,x.shape,(x,down[:<span class="nu">1</span>],down[<span class="nu">1</span>:],up[:<span class="nu">1</span>],up[<span class="nu">1</span>:],base),interpret)</span></code></pre></div><h3 id="lab-lora-walkthrough">源码解读</h3><p>bgmv_jax 中的 t 是 token，X 是 adapter 编号，d 是输入宽度，l 是投影后的列。one_hot 给每个 token 指定一组权重，einsum 沿 d 做乘加，并沿 X 只取被选的那组。下方的 rank 2 例子分开列出降维、升维和与 base 的相加，便于检查两次投影的中间值。</p></div>
 <!-- /original-functions -->
-
-
 <p>线性层已给出基座输出，还要加上一项学到的修正。<button type="button" class="course-term" aria-haspopup="dialog" popovertarget="lang-tpu-c0f5e2c9f730">LoRA</button> 这里输入和基座输出都是 [8,128]。把降维、升维的两个方向各按行存成 [2,128]。每个 token 先与两个降维方向点积得到两个数，再用这两个数混合两个升维方向。</p>
 <h3>两个秩坐标的来源与去向</h3>
 <p>让输入第一行只有前两列非零 [2,3]，降维方向前两列为 [1,−1]、[2,1]。两个点积依次为 2−3＝−1 和 4＋3＝7。两个升维方向的前两列是 [2,0]、[1,−1]，混合后得到 [−2＋7,0−7]＝[5,−7]。令 α＝1、秩＝2，缩放系数为 ½。基座输出前两列 [3,4] 加上 [2.5,−3.5]，最终得到 [5.5,0.5]。</p>
@@ -3912,8 +4039,6 @@ np.testing.assert_array_equal(dx[<span class="nu">0</span>, :, :, <span class="n
 <span class="source-line" id="lab-moe-combine-tpmoe-197-L1216" data-line="1216">    wait_send_bo(bt_id=num_bt - <span class="nu">2</span>)</span>
 <span class="source-line" id="lab-moe-combine-tpmoe-197-L1217" data-line="1217">    wait_send_bo(bt_id=num_bt - <span class="nu">1</span>)</span></code></pre></div><h3 id="lab-moe-combine-walkthrough">源码解读</h3><p>在 <a class="source-jump" href="#lab-moe-combine-tpmoe-197-L1080">第 1080 行</a> 这段完整核内的 bt_acc 中，e_id 指明该 token 的一条路由去了哪个专家，offset 指向这个专家缓冲区中下一行。异步搬运把那一行送到本 token 对应的槽，等待搬完后才乘该路由的权重。top_k 为 2 时，两条回传的向量各乘一次权重，逐列相加。</p><ol class="source-steps"><li><a class="source-jump" href="#lab-moe-combine-tpmoe-197-L1084">第 1084 行</a>　按当前 token 和第几条路由取专家编号，再用该专家的读取位置从 HBM 取一行。两条路由可以从不同专家的缓冲区取数。</li><li><a class="source-jump" href="#lab-moe-combine-tpmoe-197-L1101">第 1101 行</a>　把这条路的标量权重扩到整行。假设该行前两列为 [8, 4]、权重为 ¼，这条路给 token 的前两列贡献 [2, 1]。</li><li><a class="source-jump" href="#lab-moe-combine-tpmoe-197-L1194">第 1194 行</a>　主循环接收合并结果。接下来的写出阶段才将这一批 token 的结果送回输出位置。</li></ol></div>
 <!-- /original-functions -->
-
-
 <p>同一 token 被送给两名专家后，两份输出可能隔着许多别的 token。<button type="button" class="course-term" aria-haspopup="dialog" popovertarget="lang-tpu-6bd1454e4848">combine</button> 本例已有 16 行专家输出，每行 128 个通道，8 个原 token 各持两个槽号和两个权重。槽号指向排好队的输出行；专家编号本身不足以定位该专家处理的第几个 token。</p>
 <h3>路由表中相隔七行的两份结果</h3>
 <p>token 0 记录槽号 [9,2] 和权重 [¼,¾]。槽 9 的前两列为 [8,0]，槽 2 为 [0,4]。第一通道读 8 和 0，算 ¼×8＋¾×0＝2；第二通道读 0 和 4，算 ¼×0＋¾×4＝3。两项一起写到 token 0 的输出行。若误按槽号大小排序却没有同步交换权重，输出会变为 [6,1]。</p>
@@ -4083,8 +4208,6 @@ np.testing.assert_array_equal(dx[<span class="nu">0</span>, :, :, <span class="n
 <span class="source-line" id="lab-attention-dv-jaxdv-796-L937" data-line="937">    dv_tile_ref[<span class="nu">0</span>, <span class="nu">0</span>, :, :] = dv_scratch_ref[...].astype(dv_tile_ref.dtype)</span>
 <span class="source-line" id="lab-attention-dv-jaxdv-796-L938" data-line="938">    dk_tile_ref[<span class="nu">0</span>, <span class="nu">0</span>, :, :] = dk_scratch_ref[...].astype(dk_tile_ref.dtype)</span></code></pre></div><h3 id="lab-attention-dv-walkthrough">源码解读</h3><p>_flash_attention_dkv_kernel 同时算键和值的梯度。沿写入 dv 的路径读：先用当前 Q、K 块和前向保存的统计量恢复概率 p，再在 <a class="source-jump" href="#lab-attention-dv-jaxdv-796-L900">第 900 行</a> 附近用概率的转置乘输出梯度 do。每一行查询都可能对同一个值向量作出贡献，因此要加完相关的查询块才得到该值向量的梯度。</p></div>
 <!-- /original-functions -->
-
-
 <p>前向注意力用每个查询的概率混合多个 value。反过来，一个 value 支持过哪些查询，就要从这些查询收回相应份额的梯度。<i>P</i> 是 [8,8] 的概率矩阵，行是查询，列是键；<i>G</i> 是 [8,128] 的输出梯度。每个键对应的 128 个 value 梯度组成一行，结果形状为 [8,128]。</p>
 <h3>三个查询给同一个值传回的梯度</h3>
 <p>前三行的有效概率依次是 [1]、[¼,¾]、[½,¼,¼]。上游梯度各取前两列 [2,0]、[0,4]、[4,8]，其余五行对前三个键的概率设为 0。键 0 收到 [2,0]＋¼×[0,4]＋½×[4,8]＝[4,5]。键 1 收到 ¾×[0,4]＋¼×[4,8]＝[1,5]，键 2 只收到 ¼×[4,8]＝[1,2]。固定键号后沿查询轴读取，正对应矩阵乘中的转置。</p>
@@ -4125,8 +4248,6 @@ np.testing.assert_array_equal(dx[<span class="nu">0</span>, :, :, <span class="n
 <span class="source-line" id="lab-block-sparse-mm-jaxsparse-5-L22" data-line="22">  <span class="kw">def</span> <span class="fn">_</span>():</span>
 <span class="source-line" id="lab-block-sparse-mm-jaxsparse-5-L23" data-line="23">    o_ref[...] = accum_scratch[...].astype(o_ref.dtype)</span></code></pre></div><h3 id="lab-block-sparse-mm-walkthrough">源码解读</h3><p>dsd_kernel 处理一个实际保存的非零块。一个输出块可能由多个这样的块共同算出，accum_scratch 留住它们的部分和。第一份贡献到来时清零，遇到指向同一输出位置的下一块就继续加；最后一份才写回输出。Notebook 的 index map 给出每次调用读哪块、写哪块。</p></div>
 <!-- /original-functions -->
-
-
 <p>矩阵里若连续一整块都是零，可以省掉这块与右矩阵的乘法。<a href="https://docs.jax.dev/en/latest/pallas/tpu/sparse.html">JAX 的标量预取与块稀疏教程</a>用少量块索引决定接下来要搬哪些大块。这里让左矩阵有三行三列块，每块是 128×128；右矩阵只有一列块。左侧按块行保存三个非零块，空行也应有一块全零输出。</p>
 <p>设 I 是 128×128 单位矩阵。左侧第 0 块行在列 0 和 2 上分别放 2I 和 −I，第 1 块行为空，第 2 块行只在列 1 放 3I。右侧三个块是 I、2I、4I。于是第 0 块行只算两项，2I·I−I·4I＝−2I；第 1 块行直接写零；第 2 块行是 3I·2I＝6I。实际参与乘法的三对块可从行指针 [0,2,2,3] 和逻辑列号 [0,2,1] 还原。</p>
 <h3>压紧的左块编号与逻辑列号</h3>
@@ -4374,7 +4495,6 @@ print(contributions(a, b))
 <span class="source-line" id="tpu-12-course-12-L42" data-line="42"></span>
 <span class="source-line" id="tpu-12-course-12-L43" data-line="43">    <span class="kw">return</span> read_by_id(table, ids.reshape(<span class="nu">1</span>, -<span class="nu">1</span>))</span></code></pre></div></div>
 <!-- /original-functions -->
-
 <p>推荐模型常把商品编号换成向量。表虽很大，一个用户只点了少量商品，这一步只会访问其中几行。Google 的 <strong>SparseCore</strong> 为这类不规则查找、交换和聚合提供专门的数据通路。稠密网络随后仍可由 TensorCore 执行。</p>
 <p>设商品 1、4、7 的两维向量分别为 <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mo stretchy="false">&#x00028;</mo><mn>1</mn><mo>&#x0002C;</mo><mn>0</mn><mo stretchy="false">&#x00029;</mo></mrow></math>、<math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mo stretchy="false">&#x00028;</mo><mn>2</mn><mo>&#x0002C;</mo><mn>3</mn><mo stretchy="false">&#x00029;</mo></mrow></math>、<math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mo stretchy="false">&#x00028;</mo><mn>0</mn><mo>&#x0002C;</mo><mn>5</mn><mo stretchy="false">&#x00029;</mo></mrow></math>。用户 A 点击了 4、1、4，用户 B 点击了 7。按求和聚合，A 的两个 4 可合成“读一行、乘以 2”，结果是 <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mn>2</mn><mo stretchy="false">&#x00028;</mo><mn>2</mn><mo>&#x0002C;</mo><mn>3</mn><mo stretchy="false">&#x00029;</mo><mo>&#x0002B;</mo><mo stretchy="false">&#x00028;</mo><mn>1</mn><mo>&#x0002C;</mo><mn>0</mn><mo stretchy="false">&#x00029;</mo><mo>&#x0003D;</mo><mo stretchy="false">&#x00028;</mo><mn>5</mn><mo>&#x0002C;</mo><mn>6</mn><mo stretchy="false">&#x00029;</mo></mrow></math>；B 得 <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mo stretchy="false">&#x00028;</mo><mn>0</mn><mo>&#x0002C;</mo><mn>5</mn><mo stretchy="false">&#x00029;</mo></mrow></math>。若模型选的是均值聚合，A 再除以点击次数 3。重复编号本身携带次数，预处理时要保留这一语义。</p>
 <figure><svg viewBox="0 0 612 82" style="width:100%;height:auto;display:block" role="img" aria-label="商品 4 的两次点击合并后，表分片只需读取商品 4 的一行" xmlns="http://www.w3.org/2000/svg"><defs><marker id="tpu-sc-flow" markerWidth="4" markerHeight="5" refX="3.5" refY="2.5" orient="auto"><path d="M0,0 L4,2.5 L0,5Z" fill="#25506a"/></marker></defs><g font-family="Times New Roman,SimHei,sans-serif" fill="#122b3c" text-anchor="middle" font-size="18"><rect x="8" y="8" width="176" height="58" rx="6" fill="#e3eff9" stroke="#25506a" stroke-width="1.75"/><text x="96" y="32">主机预处理</text><text x="96" y="54" font-size="15">用户、编号、权重</text><rect x="218" y="8" width="176" height="58" rx="6" fill="#e3eff9" stroke="#25506a" stroke-width="1.75"/><text x="306" y="32">按行归属分组</text><text x="306" y="54" font-size="15">编号 4 的权重为 2</text><rect x="428" y="8" width="176" height="58" rx="6" fill="#d7eadd" stroke="#25506a" stroke-width="1.75"/><text x="516" y="32">查表与合并</text><text x="516" y="54" font-size="15">用户 A 得到 (5, 6)</text></g><path d="M185 37h26" fill="none" stroke="#25506a" stroke-width="3" marker-end="url(#tpu-sc-flow)"/><path d="M395 37h26" fill="none" stroke="#25506a" stroke-width="3" marker-end="url(#tpu-sc-flow)"/></svg><figcaption>商品 4 的两次点击合并后，表分片只需读取商品 4 的一行</figcaption></figure>
@@ -4524,7 +4644,6 @@ print(requests, out, grad_table)</code></pre></figure>
 <span class="source-line" id="tpu-gather-course-30-L63" data-line="63">    )</span>
 <span class="source-line" id="tpu-gather-course-30-L64" data-line="64">    <span class="kw">return</span> run(jnp.asarray(schedule, jnp.int32), table[:, <span class="kw">None</span>, :])[:, <span class="nu">0</span>, :]</span></code></pre></div></div>
 <!-- /original-functions -->
-
 <p>从一张按编号排好的表里取指定的行叫 gather。反向传播要把每次读取的梯度送回最初的行，重复读取同一行时要相加，这一步叫 scatter-add。用三个商品做一次可求导的查表，就能看清训练稀疏特征时值和梯度各怎么走。</p>
 <figure><svg xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="tpu-gather-2" viewBox="0 0 600 158" style="display:block;width:100%;max-width:660px;margin:auto"><title id="tpu-gather-2">查表两次命中商品 2，回传的两笔梯度归到同一行。</title><defs><marker id="arrow-tpu-gather-2" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="5" markerHeight="5" orient="auto"><path d="M0 0L8 4L0 8Z" fill="#17628a"/></marker></defs><rect x="5" y="8" width="157" height="54" rx="5" stroke="#396780" stroke-width="2" fill="#e6f3fb"/><text x="83.5" y="27" text-anchor="middle" dominant-baseline="central" font-family="Times New Roman, SimHei, sans-serif" fill="#102a3a" font-size="15">编号 2、1、2</text><text x="83.5" y="48" text-anchor="middle" dominant-baseline="central" font-family="Times New Roman, SimHei, sans-serif" fill="#102a3a" font-size="15">访问位置依次为 0、1、2</text><path d="M165 35h47" stroke="#17628a" stroke-width="3" marker-end="url(#arrow-tpu-gather-2)"/><rect x="219" y="8" width="157" height="54" rx="5" stroke="#396780" stroke-width="2" fill="#f0f4f8"/><text x="297.5" y="27" text-anchor="middle" dominant-baseline="central" font-family="Times New Roman, SimHei, sans-serif" fill="#102a3a" font-size="15">取到三个向量</text><text x="297.5" y="48" text-anchor="middle" dominant-baseline="central" font-family="Times New Roman, SimHei, sans-serif" fill="#102a3a" font-size="15">(2,3)、(1,0)、(2,3)</text><path d="M379 35h47" stroke="#17628a" stroke-width="3" marker-end="url(#arrow-tpu-gather-2)"/><rect x="433" y="8" width="157" height="54" rx="5" stroke="#396780" stroke-width="2" fill="#e0f2ea"/><text x="511.5" y="27" text-anchor="middle" dominant-baseline="central" font-family="Times New Roman, SimHei, sans-serif" fill="#102a3a" font-size="15">按用户相加</text><text x="511.5" y="48" text-anchor="middle" dominant-baseline="central" font-family="Times New Roman, SimHei, sans-serif" fill="#102a3a" font-size="15">(5,6)</text><rect x="5" y="73" width="157" height="54" rx="5" stroke="#396780" stroke-width="2" fill="#e6f3fb"/><text x="83.5" y="92" text-anchor="middle" dominant-baseline="central" font-family="Times New Roman, SimHei, sans-serif" fill="#102a3a" font-size="15">用户输出的梯度</text><text x="83.5" y="113" text-anchor="middle" dominant-baseline="central" font-family="Times New Roman, SimHei, sans-serif" fill="#102a3a" font-size="15">(2,−1)</text><path d="M165 100h47" stroke="#17628a" stroke-width="3" marker-end="url(#arrow-tpu-gather-2)"/><rect x="219" y="73" width="157" height="54" rx="5" stroke="#396780" stroke-width="2" fill="#f0f4f8"/><text x="297.5" y="92" text-anchor="middle" dominant-baseline="central" font-family="Times New Roman, SimHei, sans-serif" fill="#102a3a" font-size="15">商品 2 出现两次</text><text x="297.5" y="113" text-anchor="middle" dominant-baseline="central" font-family="Times New Roman, SimHei, sans-serif" fill="#102a3a" font-size="15">(2,−1) + (2,−1)</text><path d="M379 100h47" stroke="#17628a" stroke-width="3" marker-end="url(#arrow-tpu-gather-2)"/><rect x="433" y="73" width="157" height="54" rx="5" stroke="#396780" stroke-width="2" fill="#e0f2ea"/><text x="511.5" y="92" text-anchor="middle" dominant-baseline="central" font-family="Times New Roman, SimHei, sans-serif" fill="#102a3a" font-size="15">表第 2 行的梯度</text><text x="511.5" y="113" text-anchor="middle" dominant-baseline="central" font-family="Times New Roman, SimHei, sans-serif" fill="#102a3a" font-size="15">(4,−2)</text></svg><figcaption>查表两次命中商品 2，回传的两笔梯度归到同一行。</figcaption></figure>
 <pre><code class="language-python"><span class="kw">import</span> jax
@@ -4748,7 +4867,6 @@ dst = pl.BlockSpec((<span class="kw">None</span>, <span class="nu">1</span>, <sp
 <span class="source-line" id="tpu-13-course-14-L75" data-line="75">    )</span>
 <span class="source-line" id="tpu-13-course-14-L76" data-line="76">    <span class="kw">return</span> run(pad(q), pad(k), pad(v))[:length]</span></code></pre></div></div>
 <!-- /original-functions -->
-
 <p>注意力让当前词从已有词中取信息。对某个查询头，查询 <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mi>q</mi></mrow></math> 为一行、宽 <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mi>d</mi></mrow></math>；历史键 <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mi>K</mi></mrow></math> 和值 <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mi>V</mi></mrow></math> 都按位置排成 <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mi>S</mi></mrow></math> 行，值的行宽记为 <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mi>v</mi></mrow></math>。当前查询逐行与键做点积，再除以 <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><msqrt><mi>d</mi></msqrt></mrow></math> 得到一行分数。将分数取指数并除以指数总和，得到各位置权重，用它们加权相加 <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mi>V</mi></mrow></math> 的各行。</p>
 <div class="equation"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><mrow><mi>z</mi><mo>&#x0003D;</mo><mfrac><mrow><mi>q</mi><msup><mi>K</mi><mo>&#x022A4;</mo></msup></mrow><mrow><msqrt><mrow><mi>d</mi></mrow></msqrt></mrow></mfrac><mo>&#x02208;</mo><msup><mi>&#x0211D;</mi><mrow><mn>1</mn><mo>&#x000D7;</mo><mi>S</mi></mrow></msup><mo>&#x0002C;</mo><mspace width="1em" /><mi>o</mi><mo>&#x0003D;</mo><mfrac><mrow><msubsup><mo>&#x02211;</mo><mrow><mi>j</mi><mo>&#x0003D;</mo><mn>1</mn></mrow><mrow><mi>S</mi></mrow></msubsup><mi>exp</mi><mo stretchy="false">&#x00028;</mo><msub><mi>z</mi><mi>j</mi></msub><mo stretchy="false">&#x00029;</mo><msub><mi>V</mi><mi>j</mi></msub></mrow><mrow><msubsup><mo>&#x02211;</mo><mrow><mi>j</mi><mo>&#x0003D;</mo><mn>1</mn></mrow><mrow><mi>S</mi></mrow></msubsup><mi>exp</mi><mo stretchy="false">&#x00028;</mo><msub><mi>z</mi><mi>j</mi></msub><mo stretchy="false">&#x00029;</mo></mrow></mfrac><mo>&#x02208;</mo><msup><mi>&#x0211D;</mi><mrow><mn>1</mn><mo>&#x000D7;</mo><mi>v</mi></mrow></msup></mrow></math></div>
 <p>取 <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mi>d</mi><mo>&#x0003D;</mo><mi>v</mi><mo>&#x0003D;</mo><mn>1</mn></mrow></math>，查询为 1，三行键分别为 <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mn>0</mn><mo>&#x0002C;</mo><mi>ln</mi><mn>2</mn><mo>&#x0002C;</mo><mi>ln</mi><mn>4</mn></mrow></math>，三行值分别为 2、5、8。键与查询点积后，指数权重依次是 1、2、4。把完整分数留在 HBM 的直接做法会给每个查询保存一整行；长序列的一批查询会产生很大的二维中间表。TPU 的分块注意力让当前查询留在片上，按块读入键和值，只保留算出最终结果必需的行状态。</p>
@@ -5081,8 +5199,6 @@ WIDTH = <span class="nu">128</span>
 <span class="source-line" id="tpu-splash-jaxsplash-711-L861" data-line="861">          logsumexp_ref.dtype</span>
 <span class="source-line" id="tpu-splash-jaxsplash-711-L862" data-line="862">      )</span></code></pre></div><h3 id="tpu-splash-walkthrough">源码解读</h3><p>Splash 的 flash_attention_kernel 遍历键值块。先沿索引及掩码找到当前查询块能看到的键，再把这一块对最大分数、归一化因子和加权值的贡献并入已有结果。这样每一块只需保存局部状态，后面的下三角小例可以直接列出哪些块会被访问。</p></div>
 <!-- /original-functions -->
-
-
 <p>把一段话排成一行位置，生成第 129 个位置时，能读自己和左边的词。SplashAttention 用按头划分的掩码标记哪些查询块与键块可能相见，再在核内对边界块逐位置判断。用 JAX 0.12.1 的官方 TPU 核做一次实验，把所有查询和键设为零，仅让值带着位置编号，读哪些位置便能从结果里看出来。</p>
 <p>此处用一头、256 个位置、头宽 128。官方 <code>BlockSizes.get_default()</code> 的查询块和键值块都长 128，因此共有两个序列块。位置 127 是第一个块末尾，可以读 0–127；位置 128 是第二个块开头，可以读完整的前块以及本块的第一行。查询和键点积为 0，每个合法位置的指数是 1，所以分母正好等于合法位置数。</p>
 <table><thead><tr><th scope="col">查询位置</th><th scope="col">第一块实际读出的有效位置</th><th scope="col">第二块有效位置</th><th scope="col">分母</th><th scope="col">任一值通道的输出</th></tr></thead><tbody><tr><td>0</td><td>0</td><td>无</td><td>1</td><td>0</td></tr><tr><td>127</td><td>0–127</td><td>无</td><td>128</td><td>8128 ÷ 128 = 63.5</td></tr><tr><td>128</td><td>0–127</td><td>128</td><td>129</td><td>8256 ÷ 129 = 64</td></tr><tr><td>255</td><td>0–127</td><td>128–255</td><td>256</td><td>32640 ÷ 256 = 127.5</td></tr></tbody></table>
@@ -5686,8 +5802,6 @@ print(grad_a / len(samples), grad_b / len(samples))</code></pre></figure>
 <span class="source-line" id="tpu-20-tpquant-21-L111" data-line="111"></span>
 <span class="source-line" id="tpu-20-tpquant-21-L112" data-line="112">    unfold_args((quant, is_first_step, is_last_step), (), matmul_body)</span></code></pre></div><h3 id="tpu-20-walkthrough">源码解读</h3><p>matmul_kernel 的块坐标决定读入哪段量化权重。沿内积轴累加时，代码同时处理与权重块匹配的 scale，最后将块结果写回。阅读下面的行量化算例时，可以逐个对上整数乘加与恢复数值尺度的两步。</p></div>
 <!-- /original-functions -->
-
-
 <p>整数码本身不带原张量的单位。用一个正的尺度 <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mi>s</mi></mrow></math> 表示一个整数步长所对应的真实间隔，编码时把原值除以 <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mi>s</mi></mrow></math> 再舍入，解码时乘回 <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mi>s</mi></mrow></math>。尺度按整张量、通道或分组设置时，被同一尺度覆盖的数值范围不同。MaxText 集成 Qwix，将量化规则放到选定的矩阵运算上；使用其 INT8 方案的配置项包括 <code>use_qwix_quantization=true</code> 和 <code>quantization=int8</code>。</p>
 <p>用可手算的尺度演示。输入向量 <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mi>x</mi><mo>&#x0003D;</mo><mo stretchy="false">&#x00028;</mo><mn>1.5</mn><mo>&#x0002C;</mo><mo>&#x02212;</mo><mn>0.5</mn><mo stretchy="false">&#x00029;</mo></mrow></math> 取 <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><msub><mi>s</mi><mi>x</mi></msub><mo>&#x0003D;</mo><mn>0.5</mn></mrow></math>，得到整数码 <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mo stretchy="false">&#x00028;</mo><mn>3</mn><mo>&#x0002C;</mo><mo>&#x02212;</mo><mn>1</mn><mo stretchy="false">&#x00029;</mo></mrow></math>。权重 <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mi>w</mi><mo>&#x0003D;</mo><mo stretchy="false">&#x00028;</mo><mn>0.5</mn><mo>&#x0002C;</mo><mn>0.25</mn><mo stretchy="false">&#x00029;</mo></mrow></math> 取 <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><msub><mi>s</mi><mi>w</mi></msub><mo>&#x0003D;</mo><mn>0.25</mn></mrow></math>，得到 <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mo stretchy="false">&#x00028;</mo><mn>2</mn><mo>&#x0002C;</mo><mn>1</mn><mo stretchy="false">&#x00029;</mo></mrow></math>。整数点积为 <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mn>3</mn><mo>&#x000D7;</mo><mn>2</mn><mo>&#x0002B;</mo><mo stretchy="false">&#x00028;</mo><mo>&#x02212;</mo><mn>1</mn><mo stretchy="false">&#x00029;</mo><mo>&#x000D7;</mo><mn>1</mn><mo>&#x0003D;</mo><mn>5</mn></mrow></math>，真实点积为 <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mn>5</mn><mo>&#x000D7;</mo><mn>0.5</mn><mo>&#x000D7;</mo><mn>0.25</mn><mo>&#x0003D;</mo><mn>0.625</mn></mrow></math>。若第一项权重改为 0.55，按相同步长仍会舍入到码 2，重构为 0.5；真实点积变为 0.7，而这次量化路径仍给 0.625。特意选择的小尺度只用于解释舍入，实际校准根据观测范围和数据类型设置尺度。</p>
 <p>对每 128 个权重共用一个 2 字节尺度的存储方案，128 个 BF16 权重占 256 字节，换成 INT8 权重和尺度后占 130 字节，约缩为原来的 50.8%。改变分组后需一起计算尺度开销。若按归约维分组，各组整数点积要先乘回各自尺度再相加；把不同单位的整数部分和直接累加会改变结果。</p>
@@ -5883,7 +5997,6 @@ print(sum(partial), x @ w)</code></pre></figure>
 <span class="source-line" id="tpu-21-course-33-L70" data-line="70">        :, <span class="nu">0</span>, :</span>
 <span class="source-line" id="tpu-21-course-33-L71" data-line="71">    ]</span></code></pre></div></div>
 <!-- /original-functions -->
-
 <p>专家混合（MoE）为每个词选择少数几个前馈网络，每个网络称为专家。把专家放到不同的 TPU 上后，训练步新增三段工作：按路由结果整理词，送到持有对应专家权重的设备，把专家输出送回原词位置并加权。<strong>专家并行</strong>正是这种按专家分配权重的方式。</p>
 <p>设三个词的隐藏值简化为标量 2、3、4。前两个词只去专家 0，第三个词分别以 1/4、3/4 权重去专家 0、1。专家 0 用函数 <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><msub><mi>f</mi><mn>0</mn></msub><mo stretchy="false">&#x00028;</mo><mi>x</mi><mo stretchy="false">&#x00029;</mo><mo>&#x0003D;</mo><mn>2</mn><mi>x</mi></mrow></math>，专家 1 用 <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><msub><mi>f</mi><mn>1</mn></msub><mo stretchy="false">&#x00028;</mo><mi>x</mi><mo stretchy="false">&#x00029;</mo><mo>&#x0003D;</mo><mi>x</mi><mo>&#x0002B;</mo><mn>1</mn></mrow></math>。按专家打包，设备 0 收到词 [0,1,2] 的 [2,3,4]，产生 [4,6,8]；设备 1 只收到词 2 的 [4]，产生 [5]。还原时词 0、1 是 4、6，词 2 是 <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mn>8</mn><mo>&#x0002F;</mo><mn>4</mn><mo>&#x0002B;</mo><mn>3</mn><mo>&#x000D7;</mo><mn>5</mn><mo>&#x0002F;</mo><mn>4</mn><mo>&#x0003D;</mo><mn>5.75</mn></mrow></math>。路由表还必须保存每一行的原词号和相应权重。</p>
 <div class="tablewrap"><table><thead><tr><th>专家</th><th>收到行数</th><th>有效输入</th><th>按固定容量 3 执行时的槽</th></tr></thead><tbody><tr><td>0</td><td>3</td><td>2、3、4</td><td>3 个有效槽</td></tr><tr><td>1</td><td>1</td><td>4</td><td>1 个有效槽，2 个空槽</td></tr></tbody></table></div>
@@ -6522,7 +6635,6 @@ np.testing.assert_array_equal(y[<span class="nu">0</span>, <span class="nu">0</s
 <span class="source-line" id="tpu-port-kernel-course-10-L58" data-line="58">        y = mul(act(g), u)</span>
 <span class="source-line" id="tpu-port-kernel-course-10-L59" data-line="59">    <span class="kw">return</span> y[:rows, :cols]</span></code></pre></div></div>
 <!-- /original-functions -->
-
 <p>同一端连续内存上的小算子，Triton 程序可以直接计算指针偏移，Pallas 的 TPU 程序则用网格把数组窗口分配给不同的核调用。先保持每个元素的运算相同，再根据硬件重新选择一组程序负责哪些元素。</p>
 <h3>CUDA 上的连续地址块</h3><p>这个算子把每个数乘 2、加 1，再把负结果改为零。各元素互不依赖，CUDA 上的 Triton 程序因此可以把整张连续数组按每 256 个元素分工。最后一组若不够 256 个，掩码会挡住越界的读写。</p>
 <pre><code class="language-python"><span class="kw">import</span> torch
