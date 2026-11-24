@@ -176,7 +176,10 @@
     if(element.style.backgroundPosition!==pos)element.style.backgroundPosition=pos;
   }
   function canBreathe(){
-    return (!active || active.loading) && (!journey || !journey.ready);
+    if(!active && !journey)return true;
+    if((active && !active.loading) || journey?.ready)return false;
+    // An interrupted performance stays on screen until the replacement is ready.
+    return !art.hidden && art.dataset.file==="poses/"+bodyPose+".webp";
   }
   function renderBody() {
     if(!canBreathe() || resting)return;
