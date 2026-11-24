@@ -395,9 +395,13 @@ def build(chapters, out):
             page = Path("accelerators") / platform / "index.html"
             (out / page.parent).mkdir(parents=True, exist_ok=True)
             shutil.copyfile(ROOT / page, out / page)
-            figures = page.parent / "figures"
-            if (ROOT / figures).is_dir():
-                shutil.copytree(ROOT / figures, out / figures, dirs_exist_ok=True)
+            for directory in ("figures", "examples"):
+                resources = page.parent / directory
+                if (ROOT / resources).is_dir():
+                    shutil.copytree(
+                        ROOT / resources, out / resources, dirs_exist_ok=True,
+                        ignore=shutil.ignore_patterns("__pycache__", "*.pyc"),
+                    )
     for name, data in GENERATED.items():
         write(out / "assets/figures" / name, data)
     appearance = (HERE / "appearance.html").read_text("utf8").strip()

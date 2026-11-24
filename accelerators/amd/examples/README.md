@@ -23,6 +23,17 @@ hipcc -std=c++17 -O2 --offload-arch=gfx942 benchmark.hip -o benchmark
 
 基础驱动对照转置、矩阵乘、规约、扫描、稀疏乘法、归一化和分页等小算例。进阶驱动在相同输入上比较直接 MFMA 与 LDS MFMA、按值列与按查询行块的 SDPA、两遍与融合量化、稳定路由、三种扫描、三种转置，以及共享邻居索引、残差融合和分页读回。出现不同结果时，程序打印第一个出错的下标、结果与期望值。
 
+## 平均池化与 CSR 图注意力
+
+`average_pool.hip` 对 3×3 窗口分别使用含补零和仅含有效像素的分母。`csr_attention.hip` 在一个 wave 内计算边 softmax，并按两通道节点特征加权。两个程序都自带设备结果对照。CPU 上可运行 `python csr_attention_reference.py`，检查空行、重复边和长度超过 wave 宽度的行。
+
+```bash
+hipcc -O2 -std=c++17 --offload-arch=gfx942 average_pool.hip -o average_pool
+./average_pool
+hipcc -O2 -std=c++17 --offload-arch=gfx942 csr_attention.hip -o csr_attention
+./csr_attention
+```
+
 ## HIP 算子的设备计时与吞吐率
 
 ```bash
