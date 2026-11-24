@@ -20,7 +20,7 @@
   }
 }
 @media print{html{color-scheme:light}header,.side,.skip,.lab input{display:none}.layout,main{display:block;width:auto;border:0;margin:0;padding:0}.sources{display:block}pre{white-space:pre-wrap}pre code{white-space:pre-wrap}figure,table,details{break-inside:avoid}}</style><link rel="stylesheet" href="../../assets/platform-terms.css"><link rel="stylesheet" href="../../assets/aira/aira.css?v=dc2057b169f7"></head>
-<body id="top"><a class="skip" href="#reader">跳到正文</a><header><div class="toolbar"><a href="../../index.html">AI Infra Course</a><select id="display-mode" aria-label="阅读主题"><option value="auto">跟随系统</option><option value="light">浅色主题</option><option value="dark">深色主题</option></select></div></header><div class="layout"><aside class="side"><details open><summary>本页目录</summary><nav aria-label="Google TPU 课程目录"><div class="part">芯片与数据通路</div><ul><li><a href="#tpu-01">TPU 上的线性层计算</a></li><li><a href="#tpu-02">脉动阵列的逐拍乘加</a></li><li><a href="#tpu-03">高带宽内存、片上缓冲与芯片代际</a></li><li><a href="#tpu-03b">第八代 TPU 的训练互连与推理互连</a></li><li><a href="#tpu-04">分块复用与显存带宽上界</a></li></ul><div class="part">JAX 与 Pallas 算子</div><ul><li><a href="#tpu-05">JAX 的张量计算与 XLA 编译</a></li><li><a href="#tpu-05b">TorchTPU 的逐算子调试与图编译</a></li><li><a href="#pallas-language">Pallas 的数组、引用与块程序</a></li><li><a href="#tpu-06">Pallas 的程序网格与数组窗口</a></li><li><a href="#tpu-07">Pallas 分块矩阵乘与 FP32 部分和</a></li><li><a href="#tpu-08">片上双缓冲与窗口大小</a></li><li><a href="#tpu-08b">按行 softmax 的向量归约</a></li><li><a href="#pallas-vocab-loss">跨词表分块的融合交叉熵</a></li><li><a href="#tpu-row-sums">跨列块的行归约与部分和</a></li><li><a href="#tpu-rms">RMSNorm 的行统计与通道增益</a></li><li><a href="#tpu-convolution">二维卷积的图像窗口与权重轴</a></li><li><a href="#pallas-depthwise">Depthwise 卷积的通道乘法与跨块取数</a></li><li><a href="#tpu-pooling">滑窗最大池化与重叠梯度</a></li></ul><div class="part">多芯片计算</div><ul><li><a href="#tpu-09">TPU 切片、ICI 与数据中心网络</a></li><li><a href="#tpu-10">JAX 设备网格与全局数组的分片</a></li><li><a href="#tpu-11">矩阵分片的归约与集体通信</a></li><li><a href="#tpu-11b">手动分片矩阵乘的局部核与求和</a></li><li><a href="#tpu-12">SparseCore 的嵌入表查找与合并</a></li><li><a href="#tpu-gather">推荐特征的 gather 与 scatter-add</a></li></ul><div class="part">注意力与推理服务</div><ul><li><a href="#tpu-13">分块注意力的分母与值向量</a></li><li><a href="#tpu-splash">SplashAttention 的因果块与归一化边界</a></li><li><a href="#tpu-14">长序列的上下文并行与因果负载</a></li><li><a href="#tpu-15">prefill、逐词解码与 KV 容量</a></li><li><a href="#tpu-16">vLLM JAX 的服务进程与变长批次</a></li><li><a href="#tpu-17">独立 prefill 池与解码池的 KV 交接</a></li><li><a href="#tpu-17b">前缀复用与分离服务的容量边界</a></li><li><a href="#tpu-17c">草稿验证的交付词数与成本</a></li></ul><div class="part">训练系统与性能诊断</div><ul><li><a href="#tpu-18">MaxText 的训练步与目标词</a></li><li><a href="#tpu-18b">Flax NNX 的图像分类与参数更新</a></li><li><a href="#tpu-19">数据并行、状态分片与重计算</a></li><li><a href="#tpu-19b">MaxText 的流水阶段与微批间隙</a></li><li><a href="#tpu-20">Qwix 的 scale 与点积</a></li><li><a href="#tpu-21">专家路由、变长矩阵乘与回写</a></li><li><a href="#tpu-22">Orbax 检查点与可恢复的训练进度</a></li><li><a href="#tpu-22b">Tunix 的采样、组内奖励与策略更新</a></li></ul><div class="part">实测方法与部署算例</div><ul><li><a href="#tpu-23">XProf 的稳定步骤与时间线采集</a></li><li><a href="#tpu-24">XProf 的热点、内存峰值与诊断顺序</a></li><li><a href="#tpu-25">跨主机输入、批次对齐与设备饥饿</a></li><li><a href="#tpu-26">训练与推理的单芯片预算</a></li><li><a href="#tpu-27">矩阵乘优化前后的对照实验</a></li><li><a href="#tpu-28">Llama 3 70B 在 v5e 上的解码预算</a></li><li><a href="#tpu-29">Llama 3 70B 在 v5p 上的训练量估算</a></li></ul><div class="part">NVIDIA 工作负载的 TPU 迁移</div><ul><li><a href="#tpu-port-training">PyTorch 训练步的设备与编译后端</a></li><li><a href="#tpu-port-vision">图像模型的卷积权重与通道布局</a></li><li><a href="#tpu-port-kernel">Triton 指针内核与 Pallas 窗口内核</a></li><li><a href="#tpu-port-distributed">NCCL 与 TorchTPU 的进程组归约</a></li><li><a href="#tpu-port-graph">图神经网络的邻居聚合与变长边表</a></li><li><a href="#tpu-port-attention">语言模型注意力的轴次序与因果掩码</a></li><li><a href="#tpu-port-serving">vLLM 推理服务的模型、请求与吞吐验收</a></li></ul></nav></details></aside><main id="reader"><div class="intro"><h1>Google TPU 架构与 AI 系统</h1><p>从一块矩阵在 TensorCore 中的乘加，读到 JAX 分片、Pallas 内核和多芯片上的训练与推理。</p></div>
+<body id="top"><a class="skip" href="#reader">跳到正文</a><header><div class="toolbar"><a href="../../index.html">AI Infra Course</a><select id="display-mode" aria-label="阅读主题"><option value="auto">跟随系统</option><option value="light">浅色主题</option><option value="dark">深色主题</option></select></div></header><div class="layout"><aside class="side"><details open><summary>本页目录</summary><nav aria-label="Google TPU 课程目录"><div class="part">芯片与数据通路</div><ul><li><a href="#tpu-01">TPU 上的线性层计算</a></li><li><a href="#tpu-02">脉动阵列的逐拍乘加</a></li><li><a href="#tpu-03">高带宽内存、片上缓冲与芯片代际</a></li><li><a href="#tpu-03b">第八代 TPU 的训练互连与推理互连</a></li><li><a href="#tpu-04">分块复用与显存带宽上界</a></li></ul><div class="part">JAX 与 Pallas 算子</div><ul><li><a href="#tpu-05">JAX 的张量计算与 XLA 编译</a></li><li><a href="#tpu-05b">TorchTPU 的逐算子调试与图编译</a></li><li><a href="#pallas-language">Pallas 的数组、引用与块程序</a></li><li><a href="#tpu-06">Pallas 的程序网格与数组窗口</a></li><li><a href="#tpu-07">Pallas 分块矩阵乘与 FP32 部分和</a></li><li><a href="#tpu-08">片上双缓冲与窗口大小</a></li><li><a href="#tpu-08b">按行 softmax 的向量归约</a></li><li><a href="#pallas-vocab-loss">跨词表分块的融合交叉熵</a></li><li><a href="#tpu-row-sums">跨列块的行归约与部分和</a></li><li><a href="#tpu-rms">RMSNorm 的行统计与通道增益</a></li><li><a href="#tpu-convolution">二维卷积的图像窗口与权重轴</a></li><li><a href="#pallas-depthwise">Depthwise 卷积的通道乘法与跨块取数</a></li><li><a href="#tpu-pooling">滑窗最大池化与重叠梯度</a></li></ul><div class="part">算子编程实验</div><ul><li><a href="#lab-smooth-l1-grad">Smooth L1 的预测梯度与分段斜率</a></li><li><a href="#lab-rope">RoPE 的半区配对与旋转</a></li><li><a href="#lab-space-to-depth">SpaceToDepth 的空间坐标与通道重排</a></li><li><a href="#lab-layernorm">LayerNorm 的两次行归约与通道参数</a></li><li><a href="#lab-bag-max">EmbeddingBag 的按通道最大值与空袋</a></li><li><a href="#lab-lora">LoRA 的秩二投影与基座输出合并</a></li><li><a href="#lab-moe-combine">MoE Top‑2 的专家槽位读回与加权合并</a></li><li><a href="#lab-attention-dv">因果注意力反向传播的值梯度</a></li><li><a href="#lab-block-sparse-mm">块稀疏矩阵乘的标量预取与片上累加</a></li></ul><div class="part">多芯片计算</div><ul><li><a href="#tpu-09">TPU 切片、ICI 与数据中心网络</a></li><li><a href="#tpu-10">JAX 设备网格与全局数组的分片</a></li><li><a href="#tpu-11">矩阵分片的归约与集体通信</a></li><li><a href="#tpu-11b">手动分片矩阵乘的局部核与求和</a></li><li><a href="#tpu-12">SparseCore 的嵌入表查找与合并</a></li><li><a href="#tpu-gather">推荐特征的 gather 与 scatter-add</a></li></ul><div class="part">注意力与推理服务</div><ul><li><a href="#tpu-13">分块注意力的分母与值向量</a></li><li><a href="#tpu-splash">SplashAttention 的因果块与归一化边界</a></li><li><a href="#tpu-14">长序列的上下文并行与因果负载</a></li><li><a href="#tpu-15">prefill、逐词解码与 KV 容量</a></li><li><a href="#tpu-16">vLLM JAX 的服务进程与变长批次</a></li><li><a href="#tpu-17">独立 prefill 池与解码池的 KV 交接</a></li><li><a href="#tpu-17b">前缀复用与分离服务的容量边界</a></li><li><a href="#tpu-17c">草稿验证的交付词数与成本</a></li></ul><div class="part">训练系统与性能诊断</div><ul><li><a href="#tpu-18">MaxText 的训练步与目标词</a></li><li><a href="#tpu-18b">Flax NNX 的图像分类与参数更新</a></li><li><a href="#tpu-19">数据并行、状态分片与重计算</a></li><li><a href="#tpu-19b">MaxText 的流水阶段与微批间隙</a></li><li><a href="#tpu-20">Qwix 的 scale 与点积</a></li><li><a href="#tpu-21">专家路由、变长矩阵乘与回写</a></li><li><a href="#tpu-22">Orbax 检查点与可恢复的训练进度</a></li><li><a href="#tpu-22b">Tunix 的采样、组内奖励与策略更新</a></li></ul><div class="part">实测方法与部署算例</div><ul><li><a href="#tpu-23">XProf 的稳定步骤与时间线采集</a></li><li><a href="#tpu-24">XProf 的热点、内存峰值与诊断顺序</a></li><li><a href="#tpu-25">跨主机输入、批次对齐与设备饥饿</a></li><li><a href="#tpu-26">训练与推理的单芯片预算</a></li><li><a href="#tpu-27">矩阵乘优化前后的对照实验</a></li><li><a href="#tpu-28">Llama 3 70B 在 v5e 上的解码预算</a></li><li><a href="#tpu-29">Llama 3 70B 在 v5p 上的训练量估算</a></li></ul><div class="part">NVIDIA 工作负载的 TPU 迁移</div><ul><li><a href="#tpu-port-training">PyTorch 训练步的设备与编译后端</a></li><li><a href="#tpu-port-vision">图像模型的卷积权重与通道布局</a></li><li><a href="#tpu-port-kernel">Triton 指针内核与 Pallas 窗口内核</a></li><li><a href="#tpu-port-distributed">NCCL 与 TorchTPU 的进程组归约</a></li><li><a href="#tpu-port-graph">图神经网络的邻居聚合与变长边表</a></li><li><a href="#tpu-port-attention">语言模型注意力的轴次序与因果掩码</a></li><li><a href="#tpu-port-serving">vLLM 推理服务的模型、请求与吞吐验收</a></li></ul></nav></details></aside><main id="reader"><div class="intro"><h1>Google TPU 架构与 AI 系统</h1><p>从一块矩阵在 TensorCore 中的乘加，读到 JAX 分片、Pallas 内核和多芯片上的训练与推理。</p></div>
 <section id="tpu-01" data-part="芯片与数据通路"><p class="part-title">芯片与数据通路</p><h2>TPU 上的线性层计算</h2>
 <p>给语言模型两个词，每个词暂用三个数表示。线性层把三个数混合成两个新数，下一层据此继续计算。Google 的张量处理器（TPU）专门为这类重复出现的数组运算设计。主机 CPU 负责读取样本、运行 Python、提交任务。TPU 接手已经编译好的计算，在芯片旁的高带宽内存（HBM）里保存输入、权重和结果。</p>
 <p>把两个词写成矩阵 <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mi>X</mi></mrow></math> 的两行，把混合规则写成权重 <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mi>W</mi></mrow></math> 的两列。每个输出由一行输入和一列权重对位相乘再相加。下式的示例数值取自教学设定，两行分别对应两个词。</p>
@@ -342,6 +342,7 @@ bias = -jnp.arange(<span class="nu">256</span>, dtype=jnp.float32)
 <p><code>def</code> 和 <code>lambda</code> 属于 Python 语法；<code>pl.when</code> 是 Pallas 提供的装饰器。若用 Python 的 <code>if</code> 判断运行时的块编号，跟踪函数时 Python 就得把尚未取值的编号当成真假。<code>pl.when</code> 能把这个判断留到块程序执行时。矩阵乘还要让同一输出块的 K 块按顺序累加。这个归约轴在本课示例中标为 <code>arbitrary</code>，置于网格最内层；另外两个轴的程序各写不同的输出块。</p>
 <div class="tablewrap"><table><thead><tr><th>已有算子</th><th>从哪一处改写</th><th>先核对的结果</th></tr></thead><tbody><tr><td><a href="#tpu-convolution">二维卷积</a></td><td>输出窗口给定后，再为输入窗口多读卷积核覆盖的邻行与邻列</td><td>两个相邻输出块交界处的像素</td></tr><tr><td><a href="#tpu-07">分块 GEMM</a></td><td>让左块地址随行块和 K 块变，右块地址随 K 块和列块变</td><td>只有第二个 K 块有非零值时的点积</td></tr><tr><td><a href="#tpu-splash">因果注意力</a></td><td>用查询与键的全局坐标生成掩码，同一行的分母跨键块延续</td><td>第 128 号位置能看到前一块及本块第一项</td></tr></tbody></table></div>
 <p><a href="https://docs.jax.dev/en/latest/pallas/grid_blockspec.html">JAX 的 Grid 与 BlockSpec 文档</a> · <a href="https://docs.jax.dev/en/latest/pallas/tpu/matmul.html">官方分块矩阵乘教程</a></p>
+<div data-operator-lab="tpu"><h3>算子编程实验与设备校验</h3><p><a href="#lab-smooth-l1-grad">Smooth L1 反向</a> · <a href="#lab-rope">RoPE</a> · <a href="#lab-space-to-depth">SpaceToDepth</a> · <a href="#lab-layernorm">LayerNorm</a> · <a href="#lab-bag-max">EmbeddingBag</a> · <a href="#lab-lora">LoRA</a> · <a href="#lab-moe-combine">MoE 合并</a> · <a href="#lab-attention-dv">注意力 dV</a> · <a href="#lab-block-sparse-mm">块稀疏矩阵乘</a></p><p>下载<a href="examples/operator-lab/operator-lab.zip">九个算子的源码与校验程序</a>，解压到同一目录。安装 JAX 后，用 <code>python pallas_operators.py</code> 运行。程序在 CPU 上使用 Pallas 解释器，在 TPU 上选设备后端。 前八个算子会对照两组输入，逐项检查输出，参考计算在 <a href="examples/operator-lab/operator_cases.py">operator_cases.py</a> 中。</p><p>本课还有<a href="#tpu-07">分块 GEMM</a>、<a href="#tpu-12">SparseCore 查表</a>、<a href="#tpu-convolution">二维卷积</a>、<a href="#tpu-splash">Splash Attention</a>、<a href="#tpu-21">专家打包与变长矩阵乘</a>、<a href="#pallas-vocab-loss">融合交叉熵</a>的完整例子。</p></div>
 </section>
 <section id="tpu-06" data-part="JAX 与 Pallas 算子"><h2>Pallas 的程序网格与数组窗口</h2>
 <p>当默认生成的算子在目标形状上留下了大量无用搬运，可以用 <strong>Pallas</strong> 指明每次处理的数组窗口。先写一个把矩阵的每个元素加倍再加一的算子。用 16 行、256 列的 FP32 输入，切成四片，每片 8 行、128 列。这个形状与 TPU 的向量布局相配，重点是看清程序编号和元素地址的关系。</p>
@@ -1559,6 +1560,180 @@ np.testing.assert_array_equal(dx[<span class="nu">0</span>, :, :, <span class="n
 </details>
 </div>
 <p class="sources"><a download href="examples/max_pool.py">下载max_pool.py</a> · <a href="https://docs.jax.dev/en/latest/_autosummary/jax.lax.reduce_window.html">JAX 的窗口归约</a> · <a href="https://openxla.org/stablehlo/spec#reduce_window">StableHLO 的 reduce_window</a></p>
+</section>
+<section id="lab-smooth-l1-grad" data-part="算子编程实验"><p class="part-title">算子编程实验</p><h2>Smooth L1 的预测梯度与分段斜率</h2>
+<p>训练框回归模型时，预测坐标偏了 1 个像素和偏了 30 个像素，损失对预测的推力可以不同。<button type="button" class="course-term" aria-haspopup="dialog" popovertarget="lang-tpu-3b1acb9204d2">Smooth L1</button> 用 β 规定两段的交界。例中 β＝2，三个输入都是 [8,128]：预测、目标和后续传回的梯度。按同一个位置取这三个数，算出损失对该预测的梯度。</p>
+<h3>阈值两边的七个位置</h3>
+<p>在第一行令前七个目标都为 0，预测依次为 −3、−2、−1、0、1、2、3。先把误差除以 2，再截到 [−1,1]，得到 [−1,−1,−½,0,½,1,1]。把它们乘上游梯度 [2,−1,4,7,2,3,−2]，输出就是 [−2,1,−2,0,1,3,−2]。例如误差 −2 在交界处，局部斜率 −1 乘上游的 −1，输出变为正 1。</p>
+<h3>逐位置梯度的 Pallas 块</h3>
+<p><a href="#pallas-language">Bias 与 ReLU</a>里已经有逐元素选择。这里同一块装入三张 [8,128] 表：预测和目标相减，先乘 ½，再用 <code>jnp.clip</code> 限制斜率，最后乘上游梯度。只有最后一个 <code>out[...]</code> 会写结果；不必中途把误差、斜率分别写回 HBM。若拓展到多块，三张输入须使用相同的行、列窗口。</p>
+<pre><code class="language-python"><span class="kw">def</span> <span class="fn">smooth_l1_grad</span>(x, target, upstream, *, interpret):
+    <span class="kw">def</span> <span class="fn">backward</span>(value, goal, grad, out):
+        slope = jnp.clip((value[...] - goal[...]) * <span class="nu">.5</span>, -<span class="nu">1.</span>, <span class="nu">1.</span>)
+        out[...] = slope * grad[...]
+    <span class="kw">return</span> one_tile(backward, x.shape, (x,target,upstream), interpret)</code></pre>
+<p>本例逐元素接收上游梯度。若整批损失在上一层取了平均，上游已包含平均的系数，再除一次元素数会让所有梯度偏小。</p>
+<p><a href="examples/operator-lab/pallas_operators.py">设备源码</a> · <a href="examples/operator-lab/operator_cases.py">输入与独立参考计算</a> · <a href="examples/operator-lab/operator-lab.zip">完整实验包</a> · <a href="https://docs.pytorch.org/docs/stable/generated/torch.nn.SmoothL1Loss.html">PyTorch 的 SmoothL1Loss</a></p>
+</section>
+<section id="lab-rope" data-part="算子编程实验"><h2>RoPE 的半区配对与旋转</h2>
+<p>RoPE 把查询或键的两个通道当作平面上的两个坐标，用当前位置对应的角度旋转它们。这一版沿用 Llama 的 <button type="button" class="course-term" aria-haspopup="dialog" popovertarget="lang-tpu-c8ecd89a5dba">rotate_half</button>。输入是 8 个位置，每个位置 256 个通道；一行的前 128 项和后 128 项逐一配对，角度表每行有 128 个 cos 和 128 个 sin。</p>
+<h3>同一对坐标的两次乘加</h3>
+<p>看位置 1 的第一对通道。通道 0 给出 3，通道 128 给出 4，该处 cos＝0、sin＝1。前半输出是 3×0−4×1＝−4，后半输出是 4×0＋3×1＝3。它们分别写回通道 0 和 128。位置 0 的 cos 全为 1、sin 全为 0，该行应与输入逐项相同。</p>
+<figure><img loading="lazy" width="800" height="234" src="../../assets/figures/operator-rope.svg" alt="通道 0、128 的两个输出，共用一对原始坐标和一个角度"></figure>
+<h3>两份输入窗口与两份输出窗口</h3>
+<p>先按列将 256 项切成两份 [8,128]。块程序同时取得两个半区及 cos、sin，分别写两份输出；调用端最后沿列拼回 256 项。<a href="#tpu-07">矩阵乘</a>要沿一条轴累加，这个旋转只需对应位置乘加，无需为归约分配 scratch。若将头宽扩至 512，并给每半区分块，第一个左窗仍须配第一个右窗。</p>
+<pre><code class="language-python"><span class="kw">def</span> <span class="fn">rope</span>(x, cosine, sine, *, interpret):
+    <span class="kw">def</span> <span class="fn">rotate</span>(left, right, co, si, y0, y1):
+        y0[...] = left[...] * co[...] - right[...] * si[...]
+        y1[...] = right[...] * co[...] + left[...] * si[...]
+    shape = jax.ShapeDtypeStruct((<span class="nu">8</span>,<span class="nu">128</span>), jnp.float32)
+    run = pl.pallas_call(rotate, grid=(<span class="nu">1</span>,), out_shape=(shape,shape), interpret=interpret)
+    y0, y1 = run(x[:,:<span class="nu">128</span>], x[:,<span class="nu">128</span>:], cosine, sine)
+    <span class="kw">return</span> jnp.concatenate((y0,y1),axis=<span class="nu">1</span>)</code></pre>
+<p>手算这对坐标旋转前后的平方和都是 25。检查时还应比较 −4 和 3 各自的下标；把整对旋转方向写反也能保持平方和。</p>
+<p><a href="examples/operator-lab/pallas_operators.py">设备源码</a> · <a href="examples/operator-lab/operator_cases.py">输入与独立参考计算</a> · <a href="examples/operator-lab/operator-lab.zip">完整实验包</a> · <a href="https://github.com/huggingface/transformers/blob/main/src/transformers/models/llama/modeling_llama.py">Transformers 的 Llama 旋转实现</a></p>
+</section>
+<section id="lab-space-to-depth" data-part="算子编程实验"><h2>SpaceToDepth 的空间坐标与通道重排</h2>
+<p>一张图要把高和宽各缩小一半，又要保留每个像素的数值，可以把相邻的四个像素依次放进同一个输出位置的通道轴。TensorFlow 的 <button type="button" class="course-term" aria-haspopup="dialog" popovertarget="lang-tpu-c2f5353423ae">SpaceToDepth</button> 对一张 [4,4,128] 的图产生 [2,2,512]。新通道的顺序是左上 128 项、右上 128 项、左下 128 项、右下 128 项。</p>
+<h3>右上输出块的四次取数</h3>
+<p>给输入通道 0 填入“行号乘 100，加列号乘 10”。输出位置 (0,1) 从输入列 2 开始：左上 (0,2) 是 20，右上 (0,3) 是 30，左下 (1,2) 是 120，右下 (1,3) 是 130。因此该输出位置的通道 0、128、256、384 依次为 20、30、120、130。每组随后还有同一像素的另外 127 个通道。</p>
+<figure><img loading="lazy" width="800" height="234" src="../../assets/figures/operator-space_to_depth.svg" alt="右上块的四个像素如何对应四段输出通道"></figure>
+<h3>BlockSpec 中的二维取窗地址</h3>
+<p><a href="#tpu-convolution">卷积</a>用了跨窗口取数；本例的 2×2 块互不重叠，输入地址可以完全交给 <code>BlockSpec</code>。网格的第三个坐标 k 从 0 到 3，<code>k//2</code> 选块内行，<code>k%2</code> 选块内列。每个程序看到的一份输入是一整像素的 128 个通道，输出映射把它写入该块的第 k 段。因此块函数里只有赋值，数据去向已经由两个索引映射决定。</p>
+<pre><code class="language-python"><span class="kw">def</span> <span class="fn">space_to_depth</span>(image, *, interpret):
+    <span class="kw">def</span> <span class="fn">copy_pixel</span>(pixel, target):
+        target[...] = pixel[...]
+    src = pl.BlockSpec((<span class="kw">None</span>,<span class="kw">None</span>,<span class="nu">1</span>,<span class="nu">128</span>), <span class="kw">lambda</span> y,x,k: (<span class="nu">2</span>*y+k//<span class="nu">2</span>,<span class="nu">2</span>*x+k%<span class="nu">2</span>,<span class="nu">0</span>,<span class="nu">0</span>))
+    dst = pl.BlockSpec((<span class="kw">None</span>,<span class="kw">None</span>,<span class="kw">None</span>,<span class="nu">1</span>,<span class="nu">128</span>), <span class="kw">lambda</span> y,x,k: (y,x,k,<span class="nu">0</span>,<span class="nu">0</span>))
+    run = pl.pallas_call(copy_pixel, grid=(<span class="nu">2</span>,<span class="nu">2</span>,<span class="nu">4</span>), in_specs=(src,), out_specs=dst,
+                         out_shape=jax.ShapeDtypeStruct((<span class="nu">2</span>,<span class="nu">2</span>,<span class="nu">4</span>,<span class="nu">1</span>,<span class="nu">128</span>),jnp.float32),
+                         interpret=interpret)
+    <span class="kw">return</span> run(image.reshape(<span class="nu">4</span>,<span class="nu">4</span>,<span class="nu">1</span>,<span class="nu">128</span>)).reshape(<span class="nu">2</span>,<span class="nu">2</span>,<span class="nu">512</span>)</code></pre>
+<p>这个算子只改存放位置，值的总和和元素个数都保持不变。仅比较这两项发现不了转置错误；用四个不同的位置值能检出右上与左下交换。</p>
+<p><a href="examples/operator-lab/pallas_operators.py">设备源码</a> · <a href="examples/operator-lab/operator_cases.py">输入与独立参考计算</a> · <a href="examples/operator-lab/operator-lab.zip">完整实验包</a> · <a href="https://www.tensorflow.org/api_docs/python/tf/nn/space_to_depth">TensorFlow 的 NHWC 空间重排及通道顺序</a></p>
+</section>
+<section id="lab-layernorm" data-part="算子编程实验"><h2>LayerNorm 的两次行归约与通道参数</h2>
+<p>同一个 token 的一整行特征如果整体增加 7，每项之间的相对差异并没有变。<button type="button" class="course-term" aria-haspopup="dialog" popovertarget="lang-tpu-981e3f5040df">LayerNorm</button> 在这里处理 [8,128] 的 8 行；每行各算自己的均值和方差，128 个通道增益 γ 与偏置 β 则在 8 行间共用。方差沿 128 项除以 128。</p>
+<h3>两个通道共用方差，各用自己的增益</h3>
+<p>第一行把 [1,3] 重复 64 次，均值为 2。减去均值后交替得到 −1、1，它们的平方都是 1，方差就是 1。取 ε＝0.00001，前两列的 γ 为 [2,½]，β 为 [1,−1]。第一列输出 1−2/√1.00001，约 −0.99999；第二列输出 −1＋0.5/√1.00001，约 −0.5000025。再看全为 7 的第二行：居中后全为 0，输出应逐项等于 β。</p>
+<p>式中 r 是行号，c 是通道号，μ 和 v 是该行的均值和方差。分子与分母分别是一个通道的离均差和全行共用的尺度。</p>
+<math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><mrow><msub><mi>y</mi><mrow><mi>r</mi><mo>,</mo><mi>c</mi></mrow></msub><mo>=</mo><msub><mi>γ</mi><mrow><mi>c</mi></mrow></msub><mo>·</mo><mfrac><mrow><msub><mi>x</mi><mrow><mi>r</mi><mo>,</mo><mi>c</mi></mrow></msub><mo>−</mo><msub><mi>μ</mi><mrow><mi>r</mi></mrow></msub></mrow><mrow><msqrt><msub><mi>v</mi><mrow><mi>r</mi></mrow></msub><mo>+</mo><mi>ε</mi></msqrt></mrow></mfrac><mo>+</mo><msub><mi>β</mi><mrow><mi>c</mi></mrow></msub></mrow></math>
+<h3>同一窗口的均值与平方和</h3>
+<p><a href="#tpu-rms">RMSNorm</a>只对平方求平均。现在要先对每行的 128 个输入求和，再把均值从各列减去，然后才能对真正的离均差求平方和。<code>keepdims=True</code> 保留 [8,1] 的统计量，使第 r 行只能使用自己的均值和方差；γ 和 β 按 [1,128] 广播。整行装进一个窗口，方差算好后还能直接使用片上的居中结果。</p>
+<pre><code class="language-python"><span class="kw">def</span> <span class="fn">layernorm</span>(x, gamma, bias, *, interpret):
+    <span class="kw">def</span> <span class="fn">normalize</span>(values, gain, shift, out):
+        mean = jnp.sum(values[...], axis=<span class="nu">1</span>, keepdims=<span class="kw">True</span>) / <span class="nu">128</span>
+        delta = values[...] - mean
+        variance = jnp.sum(delta*delta, axis=<span class="nu">1</span>, keepdims=<span class="kw">True</span>) / <span class="nu">128</span>
+        out[...] = delta * jax.lax.rsqrt(variance+<span class="nu">1e-5</span>) * gain[...] + shift[...]
+    <span class="kw">return</span> one_tile(normalize, x.shape, (x,gamma[<span class="kw">None</span>,:],bias[<span class="kw">None</span>,:]), interpret)</code></pre>
+<p>把 8 行放在一起求一个均值会把第二行的常数混入第一行。只拿一行或只填相同的 γ、β 做测试，很难看见归约轴或参数地址写错。</p>
+<p><a href="examples/operator-lab/pallas_operators.py">设备源码</a> · <a href="examples/operator-lab/operator_cases.py">输入与独立参考计算</a> · <a href="examples/operator-lab/operator-lab.zip">完整实验包</a> · <a href="https://docs.pytorch.org/docs/stable/generated/torch.nn.LayerNorm.html">PyTorch LayerNorm 的归约轴与方差定义</a></p>
+</section>
+<section id="lab-bag-max" data-part="算子编程实验"><h2>EmbeddingBag 的按通道最大值与空袋</h2>
+<p>一个样本可以含多个离散特征号。到 embedding 表中取出这些行后，可以让每个输出通道各自保留最大响应。<button type="button" class="course-term" aria-haspopup="dialog" popovertarget="lang-tpu-fb1f8193be37">EmbeddingBag</button> 本例的特征表是 [8,128]，每个样本给三个索引槽；−1 表示本槽空缺，全部空缺时输出全零。</p>
+<h3>全负特征中的重复编号</h3>
+<p>特征行 2 的前两个数为 [−5,−1]，行 0 为 [−2,−4]。样本 0 要取 [2,0,2]。第一列在 −5、−2、−5 之间取 −2，第二列在 −1、−4、−1 之间取 −1。输出 [−2,−1] 来自两个不同邻居；若把初始最大值设成 0，这两列都会错误地返回 0。样本 1 的三个槽全空，应返回零。样本 2 只有中间槽有效，结果必须等于行 0。</p>
+<h3>用标量预取为三个特征窗口选行</h3>
+<p>沿用<a href="#tpu-gather">TPU 的稀疏取数</a>。<code>PrefetchScalarGridSpec</code> 让索引表先到标量存储，三个 BlockSpec 据此定位同一张特征表的三行。对空槽，把地址映射到合法行 0，再在计算中以负无穷替代其读值；这是地址合法和数值有效两个独立条件。每个程序独占一个袋的输出，最后只对三项全空的袋选择零。</p>
+<pre><code class="language-python"><span class="kw">def</span> <span class="fn">bag_max</span>(table, ids, *, interpret):
+    <span class="kw">def</span> <span class="fn">pool</span>(index, f0, f1, f2, out):
+        row = pl.program_id(<span class="nu">0</span>)
+        a = jnp.where(index[row,<span class="nu">0</span>]&gt;=<span class="nu">0</span>, f0[...], -jnp.inf)
+        b = jnp.where(index[row,<span class="nu">1</span>]&gt;=<span class="nu">0</span>, f1[...], -jnp.inf)
+        c = jnp.where(index[row,<span class="nu">2</span>]&gt;=<span class="nu">0</span>, f2[...], -jnp.inf)
+        any_valid = (index[row,<span class="nu">0</span>]&gt;=<span class="nu">0</span>) | (index[row,<span class="nu">1</span>]&gt;=<span class="nu">0</span>) | (index[row,<span class="nu">2</span>]&gt;=<span class="nu">0</span>)
+        out[...] = jnp.where(any_valid,jnp.maximum(jnp.maximum(a,b),c),<span class="nu">0.</span>)
+    inputs = tuple(pl.BlockSpec((<span class="kw">None</span>,<span class="nu">1</span>,<span class="nu">128</span>), <span class="kw">lambda</span> r,idx,j=j: (jnp.maximum(idx[r,j],<span class="nu">0</span>),<span class="nu">0</span>,<span class="nu">0</span>))
+                   <span class="kw">for</span> j in range(<span class="nu">3</span>))
+    dst = pl.BlockSpec((<span class="kw">None</span>,<span class="nu">1</span>,<span class="nu">128</span>), <span class="kw">lambda</span> r,idx: (r,<span class="nu">0</span>,<span class="nu">0</span>))
+    spec = pltpu.PrefetchScalarGridSpec(num_scalar_prefetch=<span class="nu">1</span>,grid=(<span class="nu">8</span>,),
+                                       in_specs=inputs,out_specs=dst)
+    run = pl.pallas_call(pool,grid_spec=spec,out_shape=jax.ShapeDtypeStruct((<span class="nu">8</span>,<span class="nu">1</span>,<span class="nu">128</span>),jnp.float32),
+                         interpret=interpret)
+    features = table[:,<span class="kw">None</span>,:]
+    <span class="kw">return</span> run(ids,features,features,features)[:,<span class="nu">0</span>,:]</code></pre>
+<p>重复出现同一行不会改变最大值，但会改变求和结果。课里的求和版本可以共用行号表，两种聚合的初值和空袋写回要分别处理。−1 是这个算例的填充约定。</p>
+<p><a href="examples/operator-lab/pallas_operators.py">设备源码</a> · <a href="examples/operator-lab/operator_cases.py">输入与独立参考计算</a> · <a href="examples/operator-lab/operator-lab.zip">完整实验包</a> · <a href="https://docs.pytorch.org/docs/stable/generated/torch.nn.EmbeddingBag.html">PyTorch EmbeddingBag 的 max 与空袋行为</a></p>
+</section>
+<section id="lab-lora" data-part="算子编程实验"><h2>LoRA 的秩二投影与基座输出合并</h2>
+<p>线性层已给出基座输出，还要加上一项学到的修正。<button type="button" class="course-term" aria-haspopup="dialog" popovertarget="lang-tpu-c0f5e2c9f730">LoRA</button> 这里输入和基座输出都是 [8,128]。把降维、升维的两个方向各按行存成 [2,128]。每个 token 先与两个降维方向点积得到两个数，再用这两个数混合两个升维方向。</p>
+<h3>两个秩坐标的来源与去向</h3>
+<p>让输入第一行只有前两列非零 [2,3]，降维方向前两列为 [1,−1]、[2,1]。两个点积依次为 2−3＝−1 和 4＋3＝7。两个升维方向的前两列是 [2,0]、[1,−1]，混合后得到 [−2＋7,0−7]＝[5,−7]。令 α＝1、秩＝2，缩放系数为 ½。基座输出前两列 [3,4] 加上 [2.5,−3.5]，最终得到 [5.5,0.5]。</p>
+<p>式中 X 和基座输出都是 [8,128]，A、B 均为 [2,128]。X 乘 A 的转置得到 [8,2]，再乘 B 得到 [8,128]，形状正好可以与基座输出逐项相加。</p>
+<math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><mrow><mi>Y</mi><mo>=</mo><msub><mi>Y</mi><mtext>base</mtext></msub><mo>+</mo><mfrac><mrow><mi>α</mi></mrow><mrow><mi>r</mi></mrow></mfrac><mo>·</mo><mo>(</mo><mi>X</mi><mo>·</mo><msup><mi>A</mi><mo>⊤</mo></msup><mo>)</mo><mo>·</mo><mi>B</mi></mrow></math>
+<h3>向量归约后的两条低秩方向</h3>
+<p>和<a href="#tpu-07">分块矩阵乘</a>一样，每个输出依赖一条点积。秩只有 2 时，这个教学块可一次读下 [8,128] 输入，对两份 [1,128] 方向分别行归约。两个 [8,1] 的结果随后直接乘两行升维权重，片上累加后与基座相加。秩或批次很大时可改成两次矩阵乘，需要同时计入保存中间 [批,秩] 的成本。</p>
+<pre><code class="language-python"><span class="kw">def</span> <span class="fn">lora</span>(x, down, up, base, *, interpret):
+    <span class="kw">def</span> <span class="fn">adapt</span>(values, a0, a1, b0, b1, original, out):
+        t0 = jnp.sum(values[...]*a0[...],axis=<span class="nu">1</span>,keepdims=<span class="kw">True</span>)
+        t1 = jnp.sum(values[...]*a1[...],axis=<span class="nu">1</span>,keepdims=<span class="kw">True</span>)
+        out[...] = original[...] + <span class="nu">.5</span>*(t0*b0[...] + t1*b1[...])
+    <span class="kw">return</span> one_tile(adapt,x.shape,(x,down[:<span class="nu">1</span>],down[<span class="nu">1</span>:],up[:<span class="nu">1</span>],up[<span class="nu">1</span>:],base),interpret)</code></pre>
+<p>同一 token 的两个点积依赖全部输入通道。把输入分成多个通道块时，应先合并点积；如果每块都加一遍基座输出，最终叠加时基座会重复。此例采用标准 α/r 缩放。</p>
+<p><a href="examples/operator-lab/pallas_operators.py">设备源码</a> · <a href="examples/operator-lab/operator_cases.py">输入与独立参考计算</a> · <a href="examples/operator-lab/operator-lab.zip">完整实验包</a> · <a href="https://huggingface.co/docs/peft/main/en/package_reference/lora">PEFT 的 LoRA 秩与缩放配置</a></p>
+</section>
+<section id="lab-moe-combine" data-part="算子编程实验"><h2>MoE Top‑2 的专家槽位读回与加权合并</h2>
+<p>同一 token 被送给两名专家后，两份输出可能隔着许多别的 token。<button type="button" class="course-term" aria-haspopup="dialog" popovertarget="lang-tpu-6bd1454e4848">combine</button> 本例已有 16 行专家输出，每行 128 个通道，8 个原 token 各持两个槽号和两个权重。槽号指向排好队的输出行；专家编号本身不足以定位该专家处理的第几个 token。</p>
+<h3>路由表中相隔七行的两份结果</h3>
+<p>token 0 记录槽号 [9,2] 和权重 [¼,¾]。槽 9 的前两列为 [8,0]，槽 2 为 [0,4]。第一通道读 8 和 0，算 ¼×8＋¾×0＝2；第二通道读 0 和 4，算 ¼×0＋¾×4＝3。两项一起写到 token 0 的输出行。若误按槽号大小排序却没有同步交换权重，输出会变为 [6,1]。</p>
+<p>式中 t 是原 token，j 是两条路的序号，c 是通道号。s 是 [8,2] 槽号表，w 是 [8,2] 权重表，E 是 [16,128] 的专家输出表。</p>
+<math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><mrow><msub><mi>y</mi><mrow><mi>t</mi><mo>,</mo><mi>c</mi></mrow></msub><mo>=</mo><munderover><mo>∑</mo><mrow><mi>j</mi><mo>=</mo><mn>0</mn></mrow><mrow><mn>1</mn></mrow></munderover><msub><mi>w</mi><mrow><mi>t</mi><mo>,</mo><mi>j</mi></mrow></msub><mo>·</mo><msub><mi>E</mi><mrow><msub><mi>s</mi><mrow><mi>t</mi><mo>,</mo><mi>j</mi></mrow></msub><mo>,</mo><mi>c</mi></mrow></msub></mrow></math>
+<figure><img loading="lazy" width="800" height="234" src="../../assets/figures/operator-moe_combine.svg" alt="两路专家特征从槽位读回后合并为一个 token"></figure>
+<h3>两路动态输入窗口与固定输出窗口</h3>
+<p><a href="examples/expert_dispatch.py">专家分发示例</a>负责把 token 排到专家缓冲；回来时用它留下的反向映射。块 r 的两个输入窗口分别取 <code>routes[r,0]</code>、<code>routes[r,1]</code>，输出窗口保持在 r。权重通过第二张标量预取表传入。读到的两份 [1,128] 特征各乘一个标量，因此一次写回就能完成整个 token，也不需要不同块竞争写同一行。</p>
+<pre><code class="language-python"><span class="kw">def</span> <span class="fn">moe_combine</span>(slots, routes, weights, *, interpret):
+    <span class="kw">def</span> <span class="fn">combine</span>(indices, mix, a, b, out):
+        r = pl.program_id(<span class="nu">0</span>)
+        out[...] = a[...]*mix[r,<span class="nu">0</span>] + b[...]*mix[r,<span class="nu">1</span>]
+    inputs = tuple(pl.BlockSpec((<span class="kw">None</span>,<span class="nu">1</span>,<span class="nu">128</span>),<span class="kw">lambda</span> r,idx,w,j=j: (idx[r,j],<span class="nu">0</span>,<span class="nu">0</span>))
+                   <span class="kw">for</span> j in range(<span class="nu">2</span>))
+    dst = pl.BlockSpec((<span class="kw">None</span>,<span class="nu">1</span>,<span class="nu">128</span>),<span class="kw">lambda</span> r,idx,w: (r,<span class="nu">0</span>,<span class="nu">0</span>))
+    spec = pltpu.PrefetchScalarGridSpec(num_scalar_prefetch=<span class="nu">2</span>,grid=(<span class="nu">8</span>,),in_specs=inputs,out_specs=dst)
+    run = pl.pallas_call(combine,grid_spec=spec,out_shape=jax.ShapeDtypeStruct((<span class="nu">8</span>,<span class="nu">1</span>,<span class="nu">128</span>),jnp.float32),
+                         interpret=interpret)
+    x = slots[:,<span class="kw">None</span>,:]
+    <span class="kw">return</span> run(routes,weights,x,x)[:,<span class="nu">0</span>,:]</code></pre>
+<p>课里的路由权重已给定。两条路应该各乘一次权重；如果专家前序阶段已乘过权重，接口两边要约定在哪一步做这次乘法。</p>
+<p><a href="examples/operator-lab/pallas_operators.py">设备源码</a> · <a href="examples/operator-lab/operator_cases.py">输入与独立参考计算</a> · <a href="examples/operator-lab/operator-lab.zip">完整实验包</a> · <a href="https://docs.vllm.ai/en/latest/api/vllm/model_executor/layers/fused_moe/">vLLM 的 fused MoE 实现与算子接口</a></p>
+</section>
+<section id="lab-attention-dv" data-part="算子编程实验"><h2>因果注意力反向传播的值梯度</h2>
+<p>前向注意力用每个查询的概率混合多个 value。反过来，一个 value 支持过哪些查询，就要从这些查询收回相应份额的梯度。<i>P</i> 是 [8,8] 的概率矩阵，行是查询，列是键；<i>G</i> 是 [8,128] 的输出梯度。每个键对应的 128 个 value 梯度组成一行，结果形状为 [8,128]。</p>
+<h3>三个查询给同一个值传回的梯度</h3>
+<p>前三行的有效概率依次是 [1]、[¼,¾]、[½,¼,¼]。上游梯度各取前两列 [2,0]、[0,4]、[4,8]，其余五行对前三个键的概率设为 0。键 0 收到 [2,0]＋¼×[0,4]＋½×[4,8]＝[4,5]。键 1 收到 ¾×[0,4]＋¼×[4,8]＝[1,5]，键 2 只收到 ¼×[4,8]＝[1,2]。固定键号后沿查询轴读取，正对应矩阵乘中的转置。</p>
+<p>键号为 k，查询号为 q，通道号为 c。因果注意力中只有 q 大于等于 k 的行会给该键贡献梯度，故求和从 k 开始。</p>
+<math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><mrow><msub><mi>dV</mi><mrow><mi>k</mi><mo>,</mo><mi>c</mi></mrow></msub><mo>=</mo><munderover><mo>∑</mo><mrow><mi>q</mi><mo>=</mo><mi>k</mi></mrow><mrow><mn>7</mn></mrow></munderover><msub><mi>P</mi><mrow><mi>q</mi><mo>,</mo><mi>k</mi></mrow></msub><mo>·</mo><msub><mi>G</mi><mrow><mi>q</mi><mo>,</mo><mi>c</mi></mrow></msub></mrow></math>
+<figure><img loading="lazy" width="800" height="234" src="../../assets/figures/operator-attention_dv.svg" alt="从键 1 的概率列追到两个 value 梯度"></figure>
+<h3>转置概率块与 BF16 矩阵乘</h3>
+<p><a href="examples/online_attention.py">前向分块注意力</a>计算概率乘 V，这个反向算例以已给定的概率为起点。把 [8,8] 概率和 [8,128] 梯度补成 128 宽的矩阵块，补位全为零，算 <code>lax.dot(p.T,dy)</code>，以 FP32 累加，最后只取有效的八行。对照程序先把两个输入舍入到设备核所用的 BF16，再在 CPU 上计算参考矩阵乘；两边由此使用相同的乘数。</p>
+<pre><code class="language-python"><span class="kw">def</span> <span class="fn">attention_dv</span>(prob, grad, *, interpret):
+    <span class="kw">def</span> <span class="fn">accumulate</span>(p, dy, dv):
+        dv[...] = jax.lax.dot(p[...].T, dy[...], preferred_element_type=jnp.float32)
+    <span class="cm"># Pad both matrix dimensions to a full matrix tile; artificial positions carry no weight.</span>
+    p = jnp.pad(prob,((<span class="nu">0</span>,<span class="nu">120</span>),(<span class="nu">0</span>,<span class="nu">120</span>))).astype(jnp.bfloat16)
+    dy = jnp.pad(grad,((<span class="nu">0</span>,<span class="nu">120</span>),(<span class="nu">0</span>,<span class="nu">0</span>))).astype(jnp.bfloat16)
+    <span class="kw">return</span> one_tile(accumulate,(<span class="nu">128</span>,<span class="nu">128</span>),(p,dy),interpret)[:<span class="nu">8</span>]</code></pre>
+<p>因果遮罩让查询号小于键号的位置概率为零。换成双向注意力时，同一个矩阵导数仍成立，但跳过早期查询的循环边界也要一起改。</p>
+<p><a href="examples/operator-lab/pallas_operators.py">设备源码</a> · <a href="examples/operator-lab/operator_cases.py">输入与独立参考计算</a> · <a href="examples/operator-lab/operator-lab.zip">完整实验包</a> · <a href="https://docs.pytorch.org/docs/stable/generated/torch.nn.functional.scaled_dot_product_attention.html">PyTorch SDPA 的 softmax 与 value 加权</a></p>
+</section>
+<section id="lab-block-sparse-mm" data-part="算子编程实验"><h2>块稀疏矩阵乘的标量预取与片上累加</h2>
+<p>矩阵里若连续一整块都是零，可以省掉这块与右矩阵的乘法。<a href="https://docs.jax.dev/en/latest/pallas/tpu/sparse.html">JAX 的标量预取与块稀疏教程</a>用少量块索引决定接下来要搬哪些大块。这里让左矩阵有三行三列块，每块是 128×128；右矩阵只有一列块。左侧按块行保存三个非零块，空行也应有一块全零输出。</p>
+<p>设 I 是 128×128 单位矩阵。左侧第 0 块行在列 0 和 2 上分别放 2I 和 −I，第 1 块行为空，第 2 块行只在列 1 放 3I。右侧三个块是 I、2I、4I。于是第 0 块行只算两项，2I·I−I·4I＝−2I；第 1 块行直接写零；第 2 块行是 3I·2I＝6I。实际参与乘法的三对块可从行指针 [0,2,2,3] 和逻辑列号 [0,2,1] 还原。</p>
+<h3>压紧的左块编号与逻辑列号</h3>
+<p>左矩阵只存非零块，物理槽 1 放的是 −I。它的逻辑列号却是 2，因此与右矩阵的第 2 块相乘。若把物理槽号直接当右块号，就会错读 2I。计划表对每次迭代分别保存输出行、左侧物理槽、右侧逻辑行和是否清零、累加、写回三个标志。空行保留一次迭代，只清零和写回。</p>
+<pre><code class="language-python"><span class="kw">def</span> <span class="fn">compute</span>(schedule, left, rhs, result, acc):
+    e=pl.program_id(<span class="nu">0</span>)
+    @pl.when(schedule[<span class="nu">3</span>,e]!=<span class="nu">0</span>)
+    <span class="kw">def</span> <span class="fn">begin</span>():
+        acc[...]=jnp.zeros((size,size),jnp.float32)
+    @pl.when(schedule[<span class="nu">5</span>,e]!=<span class="nu">0</span>)
+    <span class="kw">def</span> <span class="fn">multiply</span>():
+        acc[...]=acc[...]+jax.lax.dot(left[...],rhs[...],preferred_element_type=jnp.float32)
+    @pl.when(schedule[<span class="nu">4</span>,e]!=<span class="nu">0</span>)
+    <span class="kw">def</span> <span class="fn">finish</span>():
+        result[...]=acc[...]</code></pre>
+<p><code>acc</code> 是 VMEM 中的一块 FP32 累加区。同一个输出块的有效乘积必须相邻执行，第一项到来时清零，最后一项完成后才写回。<code>BlockSpec</code> 给左、右操作数选择不同的计划表字段；每次都只把当前乘法真正需要的一对 BF16 块送进 kernel。完整程序还让所有块行都为空，检查没有一行沿用旧的累加值。</p>
+<p><a href="examples/operator-lab/block_sparse_mm.py">完整 Pallas 程序与稠密矩阵对照</a> · <a href="examples/operator-lab/operator-lab.zip">实验包</a>。解压后运行 <code>python block_sparse_mm.py</code>。</p>
 </section>
 <section id="tpu-09" data-part="多芯片计算"><p class="part-title">多芯片计算</p><h2>TPU 切片、ICI 与数据中心网络</h2>
 <p>模型或样本在一颗芯片上放不下，可以让多颗芯片共同执行。Google Cloud 把用高速芯片间互连 <strong>ICI</strong> 连接的整组 TPU 称为 Pod，从同一个 Pod 分给作业的一组芯片称为切片（slice）。v6e 芯片可按二维坐标排列。例如拓扑 <code>2x4</code> 有八颗芯片，Google Cloud 的配置表既列出了由一个 VM 驱动的形态，也列出了由两个 VM 驱动的形态。芯片数相同，主机进程数可以不同。</p>
@@ -3711,6 +3886,13 @@ print(first_step(<span class="nu">8000</span>))                        <span cla
 <aside class="platform-term-note" id="lang-tpu-7e204d6cb70d" role="dialog" popover="auto" aria-label="depthwise convolution"><div><strong>depthwise convolution</strong><button type="button" popovertarget="lang-tpu-7e204d6cb70d" popovertargetaction="hide" aria-label="关闭解释">×</button></div><p>逐通道做空间卷积。这里每个输入通道只生成一个输出通道，每个通道有自己的一张二维滤波器。</p></aside>
 <aside class="platform-term-note" id="lang-tpu-0269c4fb82df" role="dialog" popover="auto" aria-label="pl.program_id"><div><strong>pl.program_id</strong><button type="button" popovertarget="lang-tpu-0269c4fb82df" popovertargetaction="hide" aria-label="关闭解释">×</button></div><p>从当前程序的网格坐标中读取指定轴的编号。用它可以区分一次矩阵乘中的第一个和最后一个 K 块。</p></aside>
 <aside class="platform-term-note" id="lang-tpu-37061f6a898e" role="dialog" popover="auto" aria-label="scratch_shapes"><div><strong>scratch_shapes</strong><button type="button" popovertarget="lang-tpu-37061f6a898e" popovertargetaction="hide" aria-label="关闭解释">×</button></div><p>pallas_call 的片上临时空间声明。在连续处理同一输出的多个归约块时，可用它保存累加状态。</p></aside>
+<aside class="platform-term-note" id="lang-tpu-3b1acb9204d2" role="dialog" popover="auto" aria-label="Smooth L1"><div><strong>Smooth L1</strong><button type="button" popovertarget="lang-tpu-3b1acb9204d2" popovertargetaction="hide" aria-label="关闭解释">×</button></div><p>平滑的分段回归损失。误差小时采用二次函数，超过阈值后采用线性函数，因此大误差的斜率大小保持不变。</p></aside>
+<aside class="platform-term-note" id="lang-tpu-c8ecd89a5dba" role="dialog" popover="auto" aria-label="rotate_half"><div><strong>rotate_half</strong><button type="button" popovertarget="lang-tpu-c8ecd89a5dba" popovertargetaction="hide" aria-label="关闭解释">×</button></div><p>将最后一维平分，把后半段取负后放在前面，再接上原前半段。RoPE 将这份结果乘 sin，与原向量乘 cos 的结果相加。</p></aside>
+<aside class="platform-term-note" id="lang-tpu-c2f5353423ae" role="dialog" popover="auto" aria-label="SpaceToDepth"><div><strong>SpaceToDepth</strong><button type="button" popovertarget="lang-tpu-c2f5353423ae" popovertargetaction="hide" aria-label="关闭解释">×</button></div><p>将每个不重叠空间块中的像素排列到输出的通道维。这里使用 NHWC 及 2×2 块，块内先按行再按列编号。</p></aside>
+<aside class="platform-term-note" id="lang-tpu-981e3f5040df" role="dialog" popover="auto" aria-label="LayerNorm"><div><strong>LayerNorm</strong><button type="button" popovertarget="lang-tpu-981e3f5040df" popovertargetaction="hide" aria-label="关闭解释">×</button></div><p>在指定特征轴上求均值和方差，逐项居中、缩放，再应用该通道自己的可学习增益与偏置。</p></aside>
+<aside class="platform-term-note" id="lang-tpu-fb1f8193be37" role="dialog" popover="auto" aria-label="EmbeddingBag"><div><strong>EmbeddingBag</strong><button type="button" popovertarget="lang-tpu-fb1f8193be37" popovertargetaction="hide" aria-label="关闭解释">×</button></div><p>按样本把若干条 embedding 行聚合成一行。max 模式对每个通道分别取最大值，不同通道可能选中不同输入行。</p></aside>
+<aside class="platform-term-note" id="lang-tpu-c0f5e2c9f730" role="dialog" popover="auto" aria-label="LoRA"><div><strong>LoRA</strong><button type="button" popovertarget="lang-tpu-c0f5e2c9f730" popovertargetaction="hide" aria-label="关闭解释">×</button></div><p>用两张窄矩阵表示可训练的权重增量。行输入先投影到较小的秩，再投回输出宽度，并按配置缩放。</p></aside>
+<aside class="platform-term-note" id="lang-tpu-6bd1454e4848" role="dialog" popover="auto" aria-label="combine"><div><strong>combine</strong><button type="button" popovertarget="lang-tpu-6bd1454e4848" popovertargetaction="hide" aria-label="关闭解释">×</button></div><p>在专家完成计算后，按原 token 找回各路输出，乘对应的路由权重并相加。</p></aside>
 
 </main></div><script>const root=document.documentElement, mode=document.querySelector('#display-mode'), toc=document.querySelector('.side>details');
 try{const m=localStorage.getItem('accelerator-reader-mode');if(['light','dark'].includes(m)){root.dataset.mode=m;mode.value=m}}catch{}

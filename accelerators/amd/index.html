@@ -20,7 +20,7 @@
   }
 }
 @media print{html{color-scheme:light}header,.side,.skip,.lab input{display:none}.layout,main{display:block;width:auto;border:0;margin:0;padding:0}.sources{display:block}pre{white-space:pre-wrap}pre code{white-space:pre-wrap}figure,table,details{break-inside:avoid}}</style><link rel="stylesheet" href="../../assets/platform-terms.css"><link rel="stylesheet" href="../../assets/aira/aira.css?v=dc2057b169f7"></head>
-<body id="top"><a class="skip" href="#reader">跳到正文</a><header><div class="toolbar"><a href="../../index.html">AI Infra Course</a><select id="display-mode" aria-label="阅读主题"><option value="auto">跟随系统</option><option value="light">浅色主题</option><option value="dark">深色主题</option></select></div></header><div class="layout"><aside class="side"><details open><summary>本页目录</summary><nav aria-label="AMD Instinct 课程目录"><div class="part">Instinct 架构与存储</div><ul><li><a href="#instinct">Instinct 加速卡与 ROCm 软件栈</a></li><li><a href="#cdna">CDNA 的芯粒、计算单元与显存</a></li><li><a href="#wave">线程块、wavefront 与访存顺序</a></li><li><a href="#transpose-layout">转置的全局地址与 LDS 存储体</a></li></ul><div class="part">HIP 与算子开发</div><ul><li><a href="#hip-language">HIP C++ 的函数限定符与线程协作</a></li><li><a href="#hip-axpy">第一个 HIP 算子的启动与校验</a></li><li><a href="#streams">HIP 流、事件与双缓冲</a></li><li><a href="#lds-reduce">块内规约与跨块归并</a></li><li><a href="#hip-pool-padding">平均池化的窗口坐标与边缘分母</a></li><li><a href="#scan-cooperation">前缀和的树形进位与 wave 交换</a></li><li><a href="#tile-gemm">分块矩阵乘与矩阵单元</a></li><li><a href="#mfma-workgroup">双 wave 矩阵乘的 LDS 布局与 MFMA 寄存器</a></li><li><a href="#libraries">rocBLAS、hipBLASLt 与 MIOpen</a></li><li><a href="#sparse">图邻接表与 rocSPARSE 的稀疏乘法</a></li></ul><div class="part">模型框架与注意力</div><ul><li><a href="#pytorch">ROCm PyTorch 的张量与自动求导</a></li><li><a href="#triton">Triton 的行块与融合 softmax</a></li><li><a href="#attention">注意力得分与分块归一化</a></li><li><a href="#attention-tiles">行块 SDPA 的共享分数与在线归并</a></li><li><a href="#hip-csr-attention">CSR 图注意力的边归一化与特征聚合</a></li><li><a href="#precision">低精度表示、缩放与 Quark 校准</a></li><li><a href="#quant-wave">分组 INT8 的双遍量化、单遍融合与反量化</a></li></ul><div class="part">推理服务与长上下文</div><ul><li><a href="#kv-pages">prefill、解码与分页 KV cache</a></li><li><a href="#serve">vLLM 的推理服务与并发批处理</a></li><li><a href="#pd">SGLang 的分离式推理与 KV 交接</a></li><li><a href="#draft">并行草稿验证与有效交付量</a></li></ul><div class="part">通信与并行训练</div><ul><li><a href="#rccl">RCCL 集合通信与数据并行</a></li><li><a href="#parallel">张量并行、流水线与长序列分工</a></li><li><a href="#moe">MoE 的专家路由、重排与返回</a></li><li><a href="#routing-pack">专家分桶的局部名次与稳定写回</a></li><li><a href="#fsdp">训练显存、状态分片与恢复</a></li><li><a href="#finetune">Instinct 上的监督微调与 LoRA</a></li><li><a href="#rl">verl 的采样、奖励与策略更新</a></li></ul><div class="part">性能剖析与部署验收</div><ul><li><a href="#timeline">rocprofv3 的时间线与请求等待</a></li><li><a href="#counters">算术强度、硬件计数器与内核瓶颈</a></li><li><a href="#isa">GPU 指令、源码位置与优化复测</a></li><li><a href="#qwen-design">MI300X 上的 Qwen3 服务容量与验收</a></li></ul><div class="part">NVIDIA 工作负载的 Instinct 迁移</div><ul><li><a href="#port-hip">CUDA 算子到 HIP 的迁移</a></li><li><a href="#port-libraries">数值库、图算子与卷积模型的迁移</a></li><li><a href="#port-framework">训练、推理服务与性能记录的迁移</a></li></ul></nav></details></aside><main id="reader"><div class="intro"><h1>AMD Instinct 架构与 AI 系统</h1><p>沿一组线程的访存与矩阵乘，理解 CDNA、HIP 和 ROCm，再把同一套计算带到模型训练与推理服务。</p></div>
+<body id="top"><a class="skip" href="#reader">跳到正文</a><header><div class="toolbar"><a href="../../index.html">AI Infra Course</a><select id="display-mode" aria-label="阅读主题"><option value="auto">跟随系统</option><option value="light">浅色主题</option><option value="dark">深色主题</option></select></div></header><div class="layout"><aside class="side"><details open><summary>本页目录</summary><nav aria-label="AMD Instinct 课程目录"><div class="part">Instinct 架构与存储</div><ul><li><a href="#instinct">Instinct 加速卡与 ROCm 软件栈</a></li><li><a href="#cdna">CDNA 的芯粒、计算单元与显存</a></li><li><a href="#wave">线程块、wavefront 与访存顺序</a></li><li><a href="#transpose-layout">转置的全局地址与 LDS 存储体</a></li></ul><div class="part">HIP 与算子开发</div><ul><li><a href="#hip-language">HIP C++ 的函数限定符与线程协作</a></li><li><a href="#hip-axpy">第一个 HIP 算子的启动与校验</a></li><li><a href="#streams">HIP 流、事件与双缓冲</a></li><li><a href="#lds-reduce">块内规约与跨块归并</a></li><li><a href="#hip-pool-padding">平均池化的窗口坐标与边缘分母</a></li><li><a href="#scan-cooperation">前缀和的树形进位与 wave 交换</a></li><li><a href="#tile-gemm">分块矩阵乘与矩阵单元</a></li><li><a href="#mfma-workgroup">双 wave 矩阵乘的 LDS 布局与 MFMA 寄存器</a></li><li><a href="#libraries">rocBLAS、hipBLASLt 与 MIOpen</a></li><li><a href="#sparse">图邻接表与 rocSPARSE 的稀疏乘法</a></li></ul><div class="part">算子编程实验</div><ul><li><a href="#lab-smooth-l1-grad">Smooth L1 的预测梯度与分段斜率</a></li><li><a href="#lab-rope">RoPE 的半区配对与旋转</a></li><li><a href="#lab-space-to-depth">SpaceToDepth 的空间坐标与通道重排</a></li><li><a href="#lab-layernorm">LayerNorm 的两次行归约与通道参数</a></li><li><a href="#lab-bag-max">EmbeddingBag 的按通道最大值与空袋</a></li><li><a href="#lab-lora">LoRA 的秩二投影与基座输出合并</a></li><li><a href="#lab-moe-combine">MoE Top‑2 的专家槽位读回与加权合并</a></li><li><a href="#lab-attention-dv">因果注意力反向传播的值梯度</a></li><li><a href="#lab-welford">Welford 行方差的并行合并</a></li></ul><div class="part">模型框架与注意力</div><ul><li><a href="#pytorch">ROCm PyTorch 的张量与自动求导</a></li><li><a href="#triton">Triton 的行块与融合 softmax</a></li><li><a href="#attention">注意力得分与分块归一化</a></li><li><a href="#attention-tiles">行块 SDPA 的共享分数与在线归并</a></li><li><a href="#hip-csr-attention">CSR 图注意力的边归一化与特征聚合</a></li><li><a href="#precision">低精度表示、缩放与 Quark 校准</a></li><li><a href="#quant-wave">分组 INT8 的双遍量化、单遍融合与反量化</a></li></ul><div class="part">推理服务与长上下文</div><ul><li><a href="#kv-pages">prefill、解码与分页 KV cache</a></li><li><a href="#serve">vLLM 的推理服务与并发批处理</a></li><li><a href="#pd">SGLang 的分离式推理与 KV 交接</a></li><li><a href="#draft">并行草稿验证与有效交付量</a></li></ul><div class="part">通信与并行训练</div><ul><li><a href="#rccl">RCCL 集合通信与数据并行</a></li><li><a href="#parallel">张量并行、流水线与长序列分工</a></li><li><a href="#moe">MoE 的专家路由、重排与返回</a></li><li><a href="#routing-pack">专家分桶的局部名次与稳定写回</a></li><li><a href="#fsdp">训练显存、状态分片与恢复</a></li><li><a href="#finetune">Instinct 上的监督微调与 LoRA</a></li><li><a href="#rl">verl 的采样、奖励与策略更新</a></li></ul><div class="part">性能剖析与部署验收</div><ul><li><a href="#timeline">rocprofv3 的时间线与请求等待</a></li><li><a href="#counters">算术强度、硬件计数器与内核瓶颈</a></li><li><a href="#isa">GPU 指令、源码位置与优化复测</a></li><li><a href="#qwen-design">MI300X 上的 Qwen3 服务容量与验收</a></li></ul><div class="part">NVIDIA 工作负载的 Instinct 迁移</div><ul><li><a href="#port-hip">CUDA 算子到 HIP 的迁移</a></li><li><a href="#port-libraries">数值库、图算子与卷积模型的迁移</a></li><li><a href="#port-framework">训练、推理服务与性能记录的迁移</a></li></ul></nav></details></aside><main id="reader"><div class="intro"><h1>AMD Instinct 架构与 AI 系统</h1><p>沿一组线程的访存与矩阵乘，理解 CDNA、HIP 和 ROCm，再把同一套计算带到模型训练与推理服务。</p></div>
 <section data-part="Instinct 架构与存储" id="instinct"><p class="part-title">Instinct 架构与存储</p><h2>Instinct 加速卡与 ROCm 软件栈</h2>
 <p>给一句话做分类时，程序先把每个词表示成一排数。模型中的线性层把这排数分别与几列权重相乘、求和，得到下一排数。把几百个词叠成矩阵后，不同输出格可以同时算。AMD 的 Instinct 加速卡把大量这样的算术交给 GPU。CPU 准备输入、发起计算和处理结果，反复使用的权重可以一直留在卡上的高带宽显存（HBM）里。</p>
 <p>先用一行输入 [1，2] 和两列权重 [3，5]、[4，6] 算一次。第一个输出是 1 乘 3 加 2 乘 5，得 13；第二个是 1 乘 4 加 2 乘 6，得 16。下一行输入 [2，1] 仍用这两列权重，得到 11 和 14。一次调用让 GPU 产生四个输出。把两次输入排在一起，可以在卡内重复利用同一块权重。</p>
@@ -203,6 +203,7 @@ print(y.cpu().tolist(), out.cpu().tolist())</code></pre></figure>
 <p>一块 LDS 可以让不同 wave 的线程交接数据。如果参与者就在同一 wave，<code>__shfl</code> 可以直接取得指定 lane 的寄存器值，<code>__shfl_down</code> 可以取得编号相差指定距离的 lane 的值。两者都是设备内建函数。做行归约时，要让同组参与者执行相同的交换；没有输入的 lane 带上中性值参与，加法带 0，求最大值带负无穷。数值只需交给一个线程写回时，让 lane 0 写即可。</p>
 <p><button type="button" class="course-term" aria-haspopup="dialog" popovertarget="lang-amd-43db3f3ecced">warpSize</button> 给出当前目标的组宽。在主机端用 <code>hipGetDeviceProperties</code> 取 <code>warpSize</code> 安排启动；在设备函数里用内建值计算跨步和折半次数。<a href="#scan-cooperation">前缀和</a>需要让每个位置取得前面所有值的和，<a href="#lds-reduce">规约</a>只需把整组总和送到一个位置，两者使用相同的 lane 交换指令，却保留不同的中间结果。<a href="#transpose-layout">矩阵转置</a>还要交换二维坐标；一个线程所需的元素可能在另一个 wave，此时可在 LDS 中转。</p>
 <p>主机侧的 <code>kernel&lt;&lt;&lt;grid, block, shared_bytes, stream&gt;&gt;&gt;(...)</code> 决定工作量、动态共享存储字节数和提交的 stream。启动后先用 <code>hipGetLastError()</code> 检查提交，再在读取结果前等待该 stream 或设备完成。下一节的<a href="#hip-axpy">完整 HIP 程序</a>把这两处检查放在主机代码中。<a href="https://rocm.docs.amd.com/projects/HIP/en/latest/how-to/hip_cpp_language_extensions.html">AMD HIP C++ 语言扩展</a>。</p>
+<div data-operator-lab="amd"><h3>算子编程实验与设备校验</h3><p><a href="#lab-smooth-l1-grad">Smooth L1 反向</a> · <a href="#lab-rope">RoPE</a> · <a href="#lab-space-to-depth">SpaceToDepth</a> · <a href="#lab-layernorm">LayerNorm</a> · <a href="#lab-bag-max">EmbeddingBag</a> · <a href="#lab-lora">LoRA</a> · <a href="#lab-moe-combine">MoE 合并</a> · <a href="#lab-attention-dv">注意力 dV</a> · <a href="#lab-welford">Welford 方差</a></p><p>下载<a href="examples/operator-lab/operator-lab.zip">九个算子的源码与校验程序</a>，解压到同一目录。在装有 ROCm 与 PyTorch ROCm 的 Linux 环境中，对 MI300X 运行 <code>hipcc -O2 -std=c++17 --offload-arch=gfx942 -shared -fPIC operators.hip -o operators.so</code>，再运行 <code>python check_device.py</code>。其他型号使用对应的架构目标。 前八个算子会对照两组输入，逐项检查输出，参考计算在 <a href="examples/operator-lab/operator_cases.py">operator_cases.py</a> 中。</p><p>本课还有<a href="#transpose-layout">转置与 LDS 布局</a>、<a href="#scan-cooperation">前缀和</a>、<a href="#mfma-workgroup">MFMA 矩阵乘</a>、<a href="#hip-pool-padding">不同边界分母的池化</a>、<a href="#hip-csr-attention">CSR 图注意力</a>、<a href="#quant-wave">分组量化</a>的完整例子。</p></div>
 </section>
 <section data-part="HIP 与算子开发" id="hip-axpy"><h2>第一个 HIP 算子的启动与校验</h2>
 <p>在卡上把一列传感器读数放大两倍，再加上固定偏移 1。先用 130 个容易核对的数，位置 0 放 0，位置 129 放 129，期望两个端点输出 1 和 259。把下面的完整程序存为 <code>affine.hip</code>。主机端的错误检查会指出失败的 HIP 调用。</p>
@@ -775,6 +776,174 @@ features = [[<span class="nu">4</span>, <span class="nu">1</span>], [<span class
 <p class="sources"><a href="https://rocm.docs.amd.com/projects/rocSPARSE/en/latest/reference/generic.html">AMD · rocSPARSE 的 SpMV 阶段、格式与参数</a> · <a href="https://rocm.docs.amd.com/projects/HIP/en/docs-7.2.3/understand/programming_model.html">AMD · 波前与访问模式</a></p>
 </section>
 
+<section id="lab-smooth-l1-grad" data-part="算子编程实验"><p class="part-title">算子编程实验</p><h2>Smooth L1 的预测梯度与分段斜率</h2>
+<p>训练框回归模型时，预测坐标偏了 1 个像素和偏了 30 个像素，损失对预测的推力可以不同。<button type="button" class="course-term" aria-haspopup="dialog" popovertarget="lang-amd-3b1acb9204d2">Smooth L1</button> 用 β 规定两段的交界。例中 β＝2，三个输入都是 [8,128]：预测、目标和后续传回的梯度。按同一个位置取这三个数，算出损失对该预测的梯度。</p>
+<h3>阈值两边的七个位置</h3>
+<p>在第一行令前七个目标都为 0，预测依次为 −3、−2、−1、0、1、2、3。先把误差除以 2，再截到 [−1,1]，得到 [−1,−1,−½,0,½,1,1]。把它们乘上游梯度 [2,−1,4,7,2,3,−2]，输出就是 [−2,1,−2,0,1,3,−2]。例如误差 −2 在交界处，局部斜率 −1 乘上游的 −1，输出变为正 1。</p>
+<h3>HIP 线程中的误差与限幅</h3>
+<p>每块启动 128 个线程，每个线程使用 <code>blockIdx.x*128+threadIdx.x</code> 读取预测、目标及上游梯度。<code>fmaxf</code> 保留下界，<code>fminf</code> 再施加上界，斜率可以留在寄存器里。这里没有跨线程依赖。和<a href="#hip-axpy">AXPY</a>一样，邻近线程应读邻近地址；如果输入行末有填充，三张表各自的行距也得带入地址计算。</p>
+<pre><code class="language-cpp">__global__ <span class="kw">void</span> smooth_l1_grad(<span class="kw">const</span> <span class="kw">float</span>* x,<span class="kw">const</span> <span class="kw">float</span>* target,<span class="kw">const</span> <span class="kw">float</span>* grad,<span class="kw">float</span>* y) {
+    <span class="kw">const</span> <span class="kw">int</span> i=blockIdx.x*<span class="nu">128</span>+threadIdx.x;
+    <span class="kw">const</span> <span class="kw">float</span> slope=fminf(<span class="nu">1.0f</span>,fmaxf(<span class="nu">-1.0f</span>,(x[i]-target[i])*<span class="nu">0.5f</span>));
+    y[i]=grad[i]*slope;
+}</code></pre>
+<p>本例逐元素接收上游梯度。若整批损失在上一层取了平均，上游已包含平均的系数，再除一次元素数会让所有梯度偏小。</p>
+<p><a href="examples/operator-lab/operators.hip">设备源码</a> · <a href="examples/operator-lab/operator_cases.py">输入与独立参考计算</a> · <a href="examples/operator-lab/operator-lab.zip">完整实验包</a> · <a href="https://docs.pytorch.org/docs/stable/generated/torch.nn.SmoothL1Loss.html">PyTorch 的 SmoothL1Loss</a></p>
+</section>
+<section id="lab-rope" data-part="算子编程实验"><h2>RoPE 的半区配对与旋转</h2>
+<p>RoPE 把查询或键的两个通道当作平面上的两个坐标，用当前位置对应的角度旋转它们。这一版沿用 Llama 的 <button type="button" class="course-term" aria-haspopup="dialog" popovertarget="lang-amd-c8ecd89a5dba">rotate_half</button>。输入是 8 个位置，每个位置 256 个通道；一行的前 128 项和后 128 项逐一配对，角度表每行有 128 个 cos 和 128 个 sin。</p>
+<h3>同一对坐标的两次乘加</h3>
+<p>看位置 1 的第一对通道。通道 0 给出 3，通道 128 给出 4，该处 cos＝0、sin＝1。前半输出是 3×0−4×1＝−4，后半输出是 4×0＋3×1＝3。它们分别写回通道 0 和 128。位置 0 的 cos 全为 1、sin 全为 0，该行应与输入逐项相同。</p>
+<figure><img loading="lazy" width="800" height="234" src="../../assets/figures/operator-rope.svg" alt="通道 0、128 的两个输出，共用一对原始坐标和一个角度"></figure>
+<h3>相隔半个头宽的两次连续访问</h3>
+<p>128 个线程各管一对通道，线程 c 从本行偏移 c 与 128＋c 取数。两批读取各自都让相邻 lane 访问相邻浮点数。<code>angle</code> 则使用行距 128，因为每一对只需要一个 cos 和一个 sin。先把两个输入都读进寄存器，再计算两个输出；把角度表误用 256 的行距，第一行可能通过，第二行就会错。</p>
+<pre><code class="language-cpp">__global__ <span class="kw">void</span> rope(<span class="kw">const</span> <span class="kw">float</span>* x, <span class="kw">const</span> <span class="kw">float</span>* co, <span class="kw">const</span> <span class="kw">float</span>* si, <span class="kw">float</span>* y) {
+    <span class="kw">const</span> <span class="kw">int</span> r=blockIdx.x, c=threadIdx.x, i=r*<span class="nu">256</span>+c, angle=r*<span class="nu">128</span>+c;
+    <span class="kw">const</span> <span class="kw">float</span> a=x[i], b=x[i+<span class="nu">128</span>];
+    y[i]=a*co[angle]-b*si[angle];
+    y[i+<span class="nu">128</span>]=b*co[angle]+a*si[angle];
+}</code></pre>
+<p>手算这对坐标旋转前后的平方和都是 25。检查时还应比较 −4 和 3 各自的下标；把整对旋转方向写反也能保持平方和。</p>
+<p><a href="examples/operator-lab/operators.hip">设备源码</a> · <a href="examples/operator-lab/operator_cases.py">输入与独立参考计算</a> · <a href="examples/operator-lab/operator-lab.zip">完整实验包</a> · <a href="https://github.com/huggingface/transformers/blob/main/src/transformers/models/llama/modeling_llama.py">Transformers 的 Llama 旋转实现</a></p>
+</section>
+<section id="lab-space-to-depth" data-part="算子编程实验"><h2>SpaceToDepth 的空间坐标与通道重排</h2>
+<p>一张图要把高和宽各缩小一半，又要保留每个像素的数值，可以把相邻的四个像素依次放进同一个输出位置的通道轴。TensorFlow 的 <button type="button" class="course-term" aria-haspopup="dialog" popovertarget="lang-amd-c2f5353423ae">SpaceToDepth</button> 对一张 [4,4,128] 的图产生 [2,2,512]。新通道的顺序是左上 128 项、右上 128 项、左下 128 项、右下 128 项。</p>
+<h3>右上输出块的四次取数</h3>
+<p>给输入通道 0 填入“行号乘 100，加列号乘 10”。输出位置 (0,1) 从输入列 2 开始：左上 (0,2) 是 20，右上 (0,3) 是 30，左下 (1,2) 是 120，右下 (1,3) 是 130。因此该输出位置的通道 0、128、256、384 依次为 20、30、120、130。每组随后还有同一像素的另外 127 个通道。</p>
+<figure><img loading="lazy" width="800" height="234" src="../../assets/figures/operator-space_to_depth.svg" alt="右上块的四个像素如何对应四段输出通道"></figure>
+<h3>每个 block 搬运一个完整像素</h3>
+<p>给 16 个输入像素各分一个 block，块内线程号就是通道号。<code>pixel/4</code> 与 <code>pixel%4</code> 还原输入行列，把它们分别除以 2 得到输出块号，用余数定位块内偏移。一个 block 连续读 128 项，再连续写一段 128 项。和<a href="#transpose-layout">转置</a>不同，本例在空间轴重排，通道轴仍连续，各线程无需经 LDS 互换数据。</p>
+<pre><code class="language-cpp">__global__ <span class="kw">void</span> space_to_depth(<span class="kw">const</span> <span class="kw">float</span>* image,<span class="kw">float</span>* y) {
+    <span class="kw">const</span> <span class="kw">int</span> pixel=blockIdx.x, c=threadIdx.x;
+    <span class="kw">const</span> <span class="kw">int</span> r=pixel/<span class="nu">4</span>, col=pixel%<span class="nu">4</span>;
+    <span class="kw">const</span> <span class="kw">int</span> patch=(r/<span class="nu">2</span>)*<span class="nu">2</span>+col/<span class="nu">2</span>, offset=(r%<span class="nu">2</span>)*<span class="nu">2</span>+col%<span class="nu">2</span>;
+    y[(patch*<span class="nu">4</span>+offset)*<span class="nu">128</span>+c]=image[pixel*<span class="nu">128</span>+c];
+}</code></pre>
+<p>这个算子只改存放位置，值的总和和元素个数都保持不变。仅比较这两项发现不了转置错误；用四个不同的位置值能检出右上与左下交换。</p>
+<p><a href="examples/operator-lab/operators.hip">设备源码</a> · <a href="examples/operator-lab/operator_cases.py">输入与独立参考计算</a> · <a href="examples/operator-lab/operator-lab.zip">完整实验包</a> · <a href="https://www.tensorflow.org/api_docs/python/tf/nn/space_to_depth">TensorFlow 的 NHWC 空间重排及通道顺序</a></p>
+</section>
+<section id="lab-layernorm" data-part="算子编程实验"><h2>LayerNorm 的两次行归约与通道参数</h2>
+<p>同一个 token 的一整行特征如果整体增加 7，每项之间的相对差异并没有变。<button type="button" class="course-term" aria-haspopup="dialog" popovertarget="lang-amd-981e3f5040df">LayerNorm</button> 在这里处理 [8,128] 的 8 行；每行各算自己的均值和方差，128 个通道增益 γ 与偏置 β 则在 8 行间共用。方差沿 128 项除以 128。</p>
+<h3>两个通道共用方差，各用自己的增益</h3>
+<p>第一行把 [1,3] 重复 64 次，均值为 2。减去均值后交替得到 −1、1，它们的平方都是 1，方差就是 1。取 ε＝0.00001，前两列的 γ 为 [2,½]，β 为 [1,−1]。第一列输出 1−2/√1.00001，约 −0.99999；第二列输出 −1＋0.5/√1.00001，约 −0.5000025。再看全为 7 的第二行：居中后全为 0，输出应逐项等于 β。</p>
+<p>式中 r 是行号，c 是通道号，μ 和 v 是该行的均值和方差。分子与分母分别是一个通道的离均差和全行共用的尺度。</p>
+<math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><mrow><msub><mi>y</mi><mrow><mi>r</mi><mo>,</mo><mi>c</mi></mrow></msub><mo>=</mo><msub><mi>γ</mi><mrow><mi>c</mi></mrow></msub><mo>·</mo><mfrac><mrow><msub><mi>x</mi><mrow><mi>r</mi><mo>,</mo><mi>c</mi></mrow></msub><mo>−</mo><msub><mi>μ</mi><mrow><mi>r</mi></mrow></msub></mrow><mrow><msqrt><msub><mi>v</mi><mrow><mi>r</mi></mrow></msub><mo>+</mo><mi>ε</mi></msqrt></mrow></mfrac><mo>+</mo><msub><mi>β</mi><mrow><mi>c</mi></mrow></msub></mrow></math>
+<h3>LDS 中两次完整的 block 归约</h3>
+<p>调用 <code>block_sum</code> 时，线程先把一个贡献写到 LDS，以距离 64、32、16、8、4、2、1 逐次收拢。均值到手以后，每个线程在寄存器内形成自己的离均差，再复用同一块 LDS 求平方和。辅助函数在所有线程读完 <code>shared[0]</code> 后还有一次块同步，否则快线程可能在第二次归约开始时抢先覆盖第一次的和。对照<a href="#lds-reduce">LDS 归约</a>可跟踪每层的两个加数。</p>
+<pre><code class="language-cpp">__global__ <span class="kw">void</span> layernorm(<span class="kw">const</span> <span class="kw">float</span>* x,<span class="kw">const</span> <span class="kw">float</span>* gamma,<span class="kw">const</span> <span class="kw">float</span>* bias,<span class="kw">float</span>* y) {
+    __shared__ <span class="kw">float</span> shared[<span class="nu">128</span>];
+    <span class="kw">const</span> <span class="kw">int</span> c=threadIdx.x, i=blockIdx.x*<span class="nu">128</span>+c;
+    <span class="kw">const</span> <span class="kw">float</span> delta=x[i]-block_sum(x[i],shared)/<span class="nu">128.0f</span>;
+    <span class="kw">const</span> <span class="kw">float</span> variance=block_sum(delta*delta,shared)/<span class="nu">128.0f</span>;
+    y[i]=delta*rsqrtf(variance+<span class="nu">1e-5f</span>)*gamma[c]+bias[c];
+}</code></pre>
+<details><summary>block_sum 的共享存储与同步</summary><pre><code class="language-cpp">__device__ <span class="kw">float</span> block_sum(<span class="kw">float</span> value, <span class="kw">float</span>* shared) {
+    <span class="kw">int</span> c=threadIdx.x;
+    shared[c]=value;
+    __syncthreads();
+    <span class="kw">for</span> (<span class="kw">int</span> step=<span class="nu">64</span>; step; step/=<span class="nu">2</span>) {
+        <span class="kw">if</span> (c&lt;step) shared[c]+=shared[c+step];
+        __syncthreads();
+    }
+    <span class="kw">const</span> <span class="kw">float</span> sum=shared[<span class="nu">0</span>];
+    __syncthreads();  <span class="cm">// Release the slot only after all lanes have read the result.
+</span>    <span class="kw">return</span> sum;
+}</code></pre></details>
+<p>把 8 行放在一起求一个均值会把第二行的常数混入第一行。只拿一行或只填相同的 γ、β 做测试，很难看见归约轴或参数地址写错。</p>
+<p><a href="examples/operator-lab/operators.hip">设备源码</a> · <a href="examples/operator-lab/operator_cases.py">输入与独立参考计算</a> · <a href="examples/operator-lab/operator-lab.zip">完整实验包</a> · <a href="https://docs.pytorch.org/docs/stable/generated/torch.nn.LayerNorm.html">PyTorch LayerNorm 的归约轴与方差定义</a></p>
+</section>
+<section id="lab-bag-max" data-part="算子编程实验"><h2>EmbeddingBag 的按通道最大值与空袋</h2>
+<p>一个样本可以含多个离散特征号。到 embedding 表中取出这些行后，可以让每个输出通道各自保留最大响应。<button type="button" class="course-term" aria-haspopup="dialog" popovertarget="lang-amd-fb1f8193be37">EmbeddingBag</button> 本例的特征表是 [8,128]，每个样本给三个索引槽；−1 表示本槽空缺，全部空缺时输出全零。</p>
+<h3>全负特征中的重复编号</h3>
+<p>特征行 2 的前两个数为 [−5,−1]，行 0 为 [−2,−4]。样本 0 要取 [2,0,2]。第一列在 −5、−2、−5 之间取 −2，第二列在 −1、−4、−1 之间取 −1。输出 [−2,−1] 来自两个不同邻居；若把初始最大值设成 0，这两列都会错误地返回 0。样本 1 的三个槽全空，应返回零。样本 2 只有中间槽有效，结果必须等于行 0。</p>
+<h3>同一行号表上的 128 个通道</h3>
+<p>一个 block 负责一个袋，块内线程 c 只管第 c 列。三次读取由同一组邻居号指路；每次有效时，128 个线程同时读取那一行连续的 128 项。<code>seen</code> 记录是否有有效邻居，避免把“全负特征”和“没有特征”混在一起。相比<a href="#sparse">CSR 行求和</a>，这里无需累计边权，也无需原子更新。</p>
+<pre><code class="language-cpp">__global__ <span class="kw">void</span> bag_max(<span class="kw">const</span> <span class="kw">float</span>* features,<span class="kw">const</span> <span class="kw">int</span>* ids,<span class="kw">float</span>* y) {
+    <span class="kw">const</span> <span class="kw">int</span> r=blockIdx.x, c=threadIdx.x;
+    <span class="kw">float</span> best=-INFINITY;
+    <span class="kw">bool</span> seen=false;
+    <span class="kw">for</span> (<span class="kw">int</span> j=<span class="nu">0</span>; j&lt;<span class="nu">3</span>; ++j) {
+        <span class="kw">const</span> <span class="kw">int</span> n=ids[r*<span class="nu">3</span>+j];
+        <span class="kw">if</span> (n&gt;=<span class="nu">0</span>) { best=fmaxf(best,features[n*<span class="nu">128</span>+c]); seen=true; }
+    }
+    y[r*<span class="nu">128</span>+c]=seen ? best : <span class="nu">0.0f</span>;
+}</code></pre>
+<p>重复出现同一行不会改变最大值，但会改变求和结果。课里的求和版本可以共用行号表，两种聚合的初值和空袋写回要分别处理。−1 是这个算例的填充约定。</p>
+<p><a href="examples/operator-lab/operators.hip">设备源码</a> · <a href="examples/operator-lab/operator_cases.py">输入与独立参考计算</a> · <a href="examples/operator-lab/operator-lab.zip">完整实验包</a> · <a href="https://docs.pytorch.org/docs/stable/generated/torch.nn.EmbeddingBag.html">PyTorch EmbeddingBag 的 max 与空袋行为</a></p>
+</section>
+<section id="lab-lora" data-part="算子编程实验"><h2>LoRA 的秩二投影与基座输出合并</h2>
+<p>线性层已给出基座输出，还要加上一项学到的修正。<button type="button" class="course-term" aria-haspopup="dialog" popovertarget="lang-amd-c0f5e2c9f730">LoRA</button> 这里输入和基座输出都是 [8,128]。把降维、升维的两个方向各按行存成 [2,128]。每个 token 先与两个降维方向点积得到两个数，再用这两个数混合两个升维方向。</p>
+<h3>两个秩坐标的来源与去向</h3>
+<p>让输入第一行只有前两列非零 [2,3]，降维方向前两列为 [1,−1]、[2,1]。两个点积依次为 2−3＝−1 和 4＋3＝7。两个升维方向的前两列是 [2,0]、[1,−1]，混合后得到 [−2＋7,0−7]＝[5,−7]。令 α＝1、秩＝2，缩放系数为 ½。基座输出前两列 [3,4] 加上 [2.5,−3.5]，最终得到 [5.5,0.5]。</p>
+<p>式中 X 和基座输出都是 [8,128]，A、B 均为 [2,128]。X 乘 A 的转置得到 [8,2]，再乘 B 得到 [8,128]，形状正好可以与基座输出逐项相加。</p>
+<math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><mrow><mi>Y</mi><mo>=</mo><msub><mi>Y</mi><mtext>base</mtext></msub><mo>+</mo><mfrac><mrow><mi>α</mi></mrow><mrow><mi>r</mi></mrow></mfrac><mo>·</mo><mo>(</mo><mi>X</mi><mo>·</mo><msup><mi>A</mi><mo>⊤</mo></msup><mo>)</mo><mo>·</mo><mi>B</mi></mrow></math>
+<h3>复用 LDS 的两次点积</h3>
+<p>读取本行第 c 个特征之后，用同一个 <code>block_sum</code> 先归约它与第一条降维方向的乘积，再归约它与第二条的乘积。所有线程得到同一对标量，各自负责升维结果的一个通道。<code>down[128+c]</code> 指向另一条降维方向，<code>up[128+c]</code> 是另一条升维方向；它们来自两张不同的参数表。只有最后一步读取一次基座输出。</p>
+<pre><code class="language-cpp">__global__ <span class="kw">void</span> lora(<span class="kw">const</span> <span class="kw">float</span>* x,<span class="kw">const</span> <span class="kw">float</span>* down,<span class="kw">const</span> <span class="kw">float</span>* up,<span class="kw">const</span> <span class="kw">float</span>* base,<span class="kw">float</span>* y) {
+    __shared__ <span class="kw">float</span> shared[<span class="nu">128</span>];
+    <span class="kw">const</span> <span class="kw">int</span> c=threadIdx.x, i=blockIdx.x*<span class="nu">128</span>+c;
+    <span class="kw">const</span> <span class="kw">float</span> a=block_sum(x[i]*down[c],shared);
+    <span class="kw">const</span> <span class="kw">float</span> b=block_sum(x[i]*down[<span class="nu">128</span>+c],shared);
+    y[i]=base[i]+<span class="nu">0.5f</span>*(a*up[c]+b*up[<span class="nu">128</span>+c]);
+}</code></pre>
+<p>同一 token 的两个点积依赖全部输入通道。把输入分成多个通道块时，应先合并点积；如果每块都加一遍基座输出，最终叠加时基座会重复。此例采用标准 α/r 缩放。</p>
+<p><a href="examples/operator-lab/operators.hip">设备源码</a> · <a href="examples/operator-lab/operator_cases.py">输入与独立参考计算</a> · <a href="examples/operator-lab/operator-lab.zip">完整实验包</a> · <a href="https://huggingface.co/docs/peft/main/en/package_reference/lora">PEFT 的 LoRA 秩与缩放配置</a></p>
+</section>
+<section id="lab-moe-combine" data-part="算子编程实验"><h2>MoE Top‑2 的专家槽位读回与加权合并</h2>
+<p>同一 token 被送给两名专家后，两份输出可能隔着许多别的 token。<button type="button" class="course-term" aria-haspopup="dialog" popovertarget="lang-amd-6bd1454e4848">combine</button> 本例已有 16 行专家输出，每行 128 个通道，8 个原 token 各持两个槽号和两个权重。槽号指向排好队的输出行；专家编号本身不足以定位该专家处理的第几个 token。</p>
+<h3>路由表中相隔七行的两份结果</h3>
+<p>token 0 记录槽号 [9,2] 和权重 [¼,¾]。槽 9 的前两列为 [8,0]，槽 2 为 [0,4]。第一通道读 8 和 0，算 ¼×8＋¾×0＝2；第二通道读 0 和 4，算 ¼×0＋¾×4＝3。两项一起写到 token 0 的输出行。若误按槽号大小排序却没有同步交换权重，输出会变为 [6,1]。</p>
+<p>式中 t 是原 token，j 是两条路的序号，c 是通道号。s 是 [8,2] 槽号表，w 是 [8,2] 权重表，E 是 [16,128] 的专家输出表。</p>
+<math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><mrow><msub><mi>y</mi><mrow><mi>t</mi><mo>,</mo><mi>c</mi></mrow></msub><mo>=</mo><munderover><mo>∑</mo><mrow><mi>j</mi><mo>=</mo><mn>0</mn></mrow><mrow><mn>1</mn></mrow></munderover><msub><mi>w</mi><mrow><mi>t</mi><mo>,</mo><mi>j</mi></mrow></msub><mo>·</mo><msub><mi>E</mi><mrow><msub><mi>s</mi><mrow><mi>t</mi><mo>,</mo><mi>j</mi></mrow></msub><mo>,</mo><mi>c</mi></mrow></msub></mrow></math>
+<figure><img loading="lazy" width="800" height="234" src="../../assets/figures/operator-moe_combine.svg" alt="两路专家特征从槽位读回后合并为一个 token"></figure>
+<h3>按原 token 分配输出 block</h3>
+<p><a href="#routing-pack">路由打包</a>使同一专家的输入排到一起。回收阶段反过来按 token 分配 block，让同一线程处理同一通道的两份专家输出。读的行号来自 <code>indices</code>，写的行号来自 <code>blockIdx.x</code>。这种读回写法一次写定一项，无需预清零或原子加；若改成按专家槽向外散写，两路会落到同一个 token，必须另行安排合并。</p>
+<pre><code class="language-cpp">__global__ <span class="kw">void</span> moe_combine(<span class="kw">const</span> <span class="kw">float</span>* slots,<span class="kw">const</span> <span class="kw">int</span>* indices,<span class="kw">const</span> <span class="kw">float</span>* weights,<span class="kw">float</span>* y) {
+    <span class="kw">const</span> <span class="kw">int</span> r=blockIdx.x, c=threadIdx.x, p=r*<span class="nu">2</span>;
+    <span class="kw">const</span> <span class="kw">float</span> a=slots[indices[p]*<span class="nu">128</span>+c], b=slots[indices[p+<span class="nu">1</span>]*<span class="nu">128</span>+c];
+    y[r*<span class="nu">128</span>+c]=weights[p]*a+weights[p+<span class="nu">1</span>]*b;
+}</code></pre>
+<p>课里的路由权重已给定。两条路应该各乘一次权重；如果专家前序阶段已乘过权重，接口两边要约定在哪一步做这次乘法。</p>
+<p><a href="examples/operator-lab/operators.hip">设备源码</a> · <a href="examples/operator-lab/operator_cases.py">输入与独立参考计算</a> · <a href="examples/operator-lab/operator-lab.zip">完整实验包</a> · <a href="https://docs.vllm.ai/en/latest/api/vllm/model_executor/layers/fused_moe/">vLLM 的 fused MoE 实现与算子接口</a></p>
+</section>
+<section id="lab-attention-dv" data-part="算子编程实验"><h2>因果注意力反向传播的值梯度</h2>
+<p>前向注意力用每个查询的概率混合多个 value。反过来，一个 value 支持过哪些查询，就要从这些查询收回相应份额的梯度。<i>P</i> 是 [8,8] 的概率矩阵，行是查询，列是键；<i>G</i> 是 [8,128] 的输出梯度。每个键对应的 128 个 value 梯度组成一行，结果形状为 [8,128]。</p>
+<h3>三个查询给同一个值传回的梯度</h3>
+<p>前三行的有效概率依次是 [1]、[¼,¾]、[½,¼,¼]。上游梯度各取前两列 [2,0]、[0,4]、[4,8]，其余五行对前三个键的概率设为 0。键 0 收到 [2,0]＋¼×[0,4]＋½×[4,8]＝[4,5]。键 1 收到 ¾×[0,4]＋¼×[4,8]＝[1,5]，键 2 只收到 ¼×[4,8]＝[1,2]。固定键号后沿查询轴读取，正对应矩阵乘中的转置。</p>
+<p>键号为 k，查询号为 q，通道号为 c。因果注意力中只有 q 大于等于 k 的行会给该键贡献梯度，故求和从 k 开始。</p>
+<math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><mrow><msub><mi>dV</mi><mrow><mi>k</mi><mo>,</mo><mi>c</mi></mrow></msub><mo>=</mo><munderover><mo>∑</mo><mrow><mi>q</mi><mo>=</mo><mi>k</mi></mrow><mrow><mn>7</mn></mrow></munderover><msub><mi>P</mi><mrow><mi>q</mi><mo>,</mo><mi>k</mi></mrow></msub><mo>·</mo><msub><mi>G</mi><mrow><mi>q</mi><mo>,</mo><mi>c</mi></mrow></msub></mrow></math>
+<figure><img loading="lazy" width="800" height="234" src="../../assets/figures/operator-attention_dv.svg" alt="从键 1 的概率列追到两个 value 梯度"></figure>
+<h3>按键分工的梯度累加</h3>
+<p>令一个 block 固定键号，128 个线程各负责该键的一个特征通道。从 <code>q=key</code> 起，每次按行距 8 跳到下一查询的同一概率列；同一时刻各 lane 取上游梯度的相邻通道。把乘积留在寄存器中，遍历完所有查询才写一次。和<a href="#attention-tiles">按查询分块的前向</a>相比，选择键作写入单位，能让不同 block 写互不重叠的 dV。</p>
+<pre><code class="language-cpp">__global__ <span class="kw">void</span> attention_dv(<span class="kw">const</span> <span class="kw">float</span>* prob,<span class="kw">const</span> <span class="kw">float</span>* dy,<span class="kw">float</span>* dv) {
+    <span class="kw">const</span> <span class="kw">int</span> key=blockIdx.x, c=threadIdx.x;
+    <span class="kw">float</span> acc=<span class="nu">0</span>;
+    <span class="kw">for</span> (<span class="kw">int</span> q=key; q&lt;<span class="nu">8</span>; ++q) acc+=prob[q*<span class="nu">8</span>+key]*dy[q*<span class="nu">128</span>+c];
+    dv[key*<span class="nu">128</span>+c]=acc;
+}</code></pre>
+<p>因果遮罩让查询号小于键号的位置概率为零。换成双向注意力时，同一个矩阵导数仍成立，但跳过早期查询的循环边界也要一起改。</p>
+<p><a href="examples/operator-lab/operators.hip">设备源码</a> · <a href="examples/operator-lab/operator_cases.py">输入与独立参考计算</a> · <a href="examples/operator-lab/operator-lab.zip">完整实验包</a> · <a href="https://docs.pytorch.org/docs/stable/generated/torch.nn.functional.scaled_dot_product_attention.html">PyTorch SDPA 的 softmax 与 value 加权</a></p>
+</section>
+<section id="lab-welford" data-part="算子编程实验"><h2>Welford 行方差的并行合并</h2>
+<p>对均值很大、波动很小的一行数据，先求平方均值再减均值平方，要让两个很大的浮点数相减。用 <button type="button" class="course-term" aria-haspopup="dialog" popovertarget="lang-amd-dcd028e78a5e">Welford 状态</button> 可使每个线程记录自己看过的元素，再沿 LDS 归约树合成整行。要计算总体方差，最后用离均差平方和除以样本数。</p>
+<p>取四个数 [10000,10002,10004,10006]。为了看清合并，先按相邻两项分组。左组两个数的均值是 10001、离均差平方和是 2；右组均值是 10005、离均差平方和也是 2。合并后的均值是 10003。两个小组各自以本组均值为中心，还要补上两个中心相隔 4 造成的组间差异。修正项为 4²×2×2/4＝16，总平方和 2＋2＋16＝20，方差为 20/4＝5。若只把两组原有的平方和加起来，会得到 1。</p>
+<h3>一组线程的空状态与跨步读取</h3>
+<pre><code class="language-cpp">__device__ Moments merge(Moments a, Moments b) {
+    <span class="kw">if</span> (!a.n) <span class="kw">return</span> b;
+    <span class="kw">if</span> (!b.n) <span class="kw">return</span> a;
+    <span class="kw">const</span> <span class="kw">int</span> n=a.n+b.n;
+    <span class="kw">const</span> <span class="kw">float</span> delta=b.mean-a.mean;
+    <span class="kw">return</span> {n,a.mean+delta*(<span class="kw">float</span>(b.n)/n),
+            a.m2+b.m2+delta*delta*(<span class="kw">float</span>(a.n)*b.n/n)};</code></pre>
+<p>教学 kernel 用 128 个线程负责一行。线程先处理本列，再每隔 128 列读取一项，把新值当作数量为 1 的组。没有读到数据的线程交出计数为零的状态，合并时直接取另一边。LDS 中每轮将成对状态合并，所有线程都到达屏障；只有线程 0 写本行的均值和方差。手算为了展示组间修正采用相邻分组，实际归约树先合并相距 64 的槽，最终包含同一组样本。</p>
+<pre><code class="language-cpp">Moments local{<span class="nu">0</span>,<span class="nu">0</span>,<span class="nu">0</span>};
+<span class="kw">for</span>(<span class="kw">int</span> c=lane;c&lt;width;c+=<span class="nu">128</span>) local=merge(local,{<span class="nu">1</span>,x[r*width+c],<span class="nu">0</span>});
+tree[lane]=local;
+__syncthreads();
+<span class="kw">for</span>(<span class="kw">int</span> step=<span class="nu">64</span>;step;step/=<span class="nu">2</span>){
+    <span class="kw">if</span>(lane&lt;step) tree[lane]=merge(tree[lane],tree[lane+step]);</code></pre>
+<p><a href="https://rocm.docs.amd.com/projects/rocPRIM/en/docs-7.14.1/block_ops/ops_classes/reduce.html">rocPRIM 的 block_reduce 示例</a>以 256 个线程归约每线程的一个输入，也允许传入二元合并操作。本例直接写出树来展示三个字段如何同时更新。<a href="examples/operator-lab/row_variance.hip">HIP 源码</a>和<a href="examples/operator-lab/check_welford.py">CPU 归约树对照</a>内置宽度 0、1、4、129、259 的双精度主机对照；约定空行返回两个零。与 <a href="examples/operator-lab/operator-lab.zip">实验包</a>中的其他驱动独立，执行 <code>hipcc -O2 row_variance.hip -o row_variance</code> 后运行 <code>./row_variance</code>。</p>
+</section>
 <section data-part="模型框架与注意力" id="pytorch"><p class="part-title">模型框架与注意力</p><h2>ROCm PyTorch 的张量与自动求导</h2>
 <p>加载 ROCm 版 PyTorch 后，设备名称仍写 <code>cuda</code>，同一套上层接口会调到 HIP。<code>torch.version.hip</code> 给出这一构建所用的 HIP 版本；设备名称和属性可以在程序运行的环境里查询。用一个有两个参数的小模型，就能走完设备分配、前向、反向和参数更新。</p>
 <pre><code class="language-python"><span class="kw">import</span> torch
@@ -1764,6 +1933,14 @@ print(torch.cuda.get_device_name(<span class="nu">0</span>), torch.version.hip, 
 <aside class="platform-term-note" id="lang-amd-0dea47724568" role="dialog" popover="auto" aria-label="__device__"><div><strong>__device__</strong><button type="button" popovertarget="lang-amd-0dea47724568" popovertargetaction="hide" aria-label="关闭解释">×</button></div><p>把函数编译为可在 GPU 线程中调用的设备代码。普通设备辅助函数复用当前线程的上下文。</p></aside>
 <aside class="platform-term-note" id="lang-amd-4342aed7adbf" role="dialog" popover="auto" aria-label="__shared__"><div><strong>__shared__</strong><button type="button" popovertarget="lang-amd-4342aed7adbf" popovertargetaction="hide" aria-label="关闭解释">×</button></div><p>让同一 block 的线程访问同一块片上存储。各 block 有各自的副本。</p></aside>
 <aside class="platform-term-note" id="lang-amd-43db3f3ecced" role="dialog" popover="auto" aria-label="warpSize"><div><strong>warpSize</strong><button type="button" popovertarget="lang-amd-43db3f3ecced" popovertargetaction="hide" aria-label="关闭解释">×</button></div><p>当前编译目标的 wave 线程数。确定 shuffle 参与范围、每个 lane 下一次读取哪条边。</p></aside>
+<aside class="platform-term-note" id="lang-amd-3b1acb9204d2" role="dialog" popover="auto" aria-label="Smooth L1"><div><strong>Smooth L1</strong><button type="button" popovertarget="lang-amd-3b1acb9204d2" popovertargetaction="hide" aria-label="关闭解释">×</button></div><p>平滑的分段回归损失。误差小时采用二次函数，超过阈值后采用线性函数，因此大误差的斜率大小保持不变。</p></aside>
+<aside class="platform-term-note" id="lang-amd-c8ecd89a5dba" role="dialog" popover="auto" aria-label="rotate_half"><div><strong>rotate_half</strong><button type="button" popovertarget="lang-amd-c8ecd89a5dba" popovertargetaction="hide" aria-label="关闭解释">×</button></div><p>将最后一维平分，把后半段取负后放在前面，再接上原前半段。RoPE 将这份结果乘 sin，与原向量乘 cos 的结果相加。</p></aside>
+<aside class="platform-term-note" id="lang-amd-c2f5353423ae" role="dialog" popover="auto" aria-label="SpaceToDepth"><div><strong>SpaceToDepth</strong><button type="button" popovertarget="lang-amd-c2f5353423ae" popovertargetaction="hide" aria-label="关闭解释">×</button></div><p>将每个不重叠空间块中的像素排列到输出的通道维。这里使用 NHWC 及 2×2 块，块内先按行再按列编号。</p></aside>
+<aside class="platform-term-note" id="lang-amd-981e3f5040df" role="dialog" popover="auto" aria-label="LayerNorm"><div><strong>LayerNorm</strong><button type="button" popovertarget="lang-amd-981e3f5040df" popovertargetaction="hide" aria-label="关闭解释">×</button></div><p>在指定特征轴上求均值和方差，逐项居中、缩放，再应用该通道自己的可学习增益与偏置。</p></aside>
+<aside class="platform-term-note" id="lang-amd-fb1f8193be37" role="dialog" popover="auto" aria-label="EmbeddingBag"><div><strong>EmbeddingBag</strong><button type="button" popovertarget="lang-amd-fb1f8193be37" popovertargetaction="hide" aria-label="关闭解释">×</button></div><p>按样本把若干条 embedding 行聚合成一行。max 模式对每个通道分别取最大值，不同通道可能选中不同输入行。</p></aside>
+<aside class="platform-term-note" id="lang-amd-c0f5e2c9f730" role="dialog" popover="auto" aria-label="LoRA"><div><strong>LoRA</strong><button type="button" popovertarget="lang-amd-c0f5e2c9f730" popovertargetaction="hide" aria-label="关闭解释">×</button></div><p>用两张窄矩阵表示可训练的权重增量。行输入先投影到较小的秩，再投回输出宽度，并按配置缩放。</p></aside>
+<aside class="platform-term-note" id="lang-amd-6bd1454e4848" role="dialog" popover="auto" aria-label="combine"><div><strong>combine</strong><button type="button" popovertarget="lang-amd-6bd1454e4848" popovertargetaction="hide" aria-label="关闭解释">×</button></div><p>在专家完成计算后，按原 token 找回各路输出，乘对应的路由权重并相加。</p></aside>
+<aside class="platform-term-note" id="lang-amd-dcd028e78a5e" role="dialog" popover="auto" aria-label="Welford 状态"><div><strong>Welford 状态</strong><button type="button" popovertarget="lang-amd-dcd028e78a5e" popovertargetaction="hide" aria-label="关闭解释">×</button></div><p>用样本数、均值和离均差平方和表示一组数据。两个这样的状态可以合并为更大一组的统计量。</p></aside>
 
 </main></div><script>const root=document.documentElement, mode=document.querySelector('#display-mode'), toc=document.querySelector('.side>details');
 try{const m=localStorage.getItem('accelerator-reader-mode');if(['light','dark'].includes(m)){root.dataset.mode=m;mode.value=m}}catch{}
