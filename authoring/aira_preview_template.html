@@ -51,10 +51,17 @@ function timings([id,,group]){
  const ms=group==="姿势过渡"?760/24:({poke:38,hearthands:52,tinyheart:55}[id]||40);
  return Array(25).fill(ms);
 }
-function choose(row){halt();selected=row;const [id,title,group]=row;location.replace("#"+id);$("title").textContent=title;$("original").href=(native[id]?"../":"")+id+".webp";
+let choice=0;
+async function choose(row){
+ const ticket=++choice;
+ const [id,title,group]=row,film=native[id];
+ try{await img(film?"data:image/webp;base64,"+film.sheets[0]:id+".webp");}
+ catch(e){if(ticket===choice)$("status").textContent=e.message;return;}
+ if(ticket!==choice)return;
+ halt();selected=row;location.replace("#"+id);$("title").textContent=title;$("original").href=(film?"../":"")+id+".webp";
  $("rate").value=group==="日常随机动作"?"{{DAILY_RATE}}":"1";$("loop").checked=group!=="日常随机动作";
  $("direction").value="";$("rev").checked=false;$("dirlabel").hidden=group!=="待机";$("revlabel").hidden=group!=="姿势过渡";
- let t=0;ends=timings(row).map(n=>t+=n);duration=t;$("seek").max=ends.length-1;position=0;drawn=-1;ctx.clearRect(0,0,$("screen").width,$("screen").height);list();paint(0).then(()=>{if(selected===row && drawn===0 && !matchMedia("(prefers-reduced-motion: reduce)").matches)start();});}
+ let t=0;ends=timings(row).map(n=>t+=n);duration=t;$("seek").max=ends.length-1;position=0;drawn=-1;list();paint(0).then(()=>{if(selected===row && drawn===0 && !matchMedia("(prefers-reduced-motion: reduce)").matches)start();});}
 async function paint(n){
  $("seek").value=n;$("frame").textContent="第 "+(n+1)+" / "+ends.length+" 帧";$("time").textContent=(position/1000).toFixed(2)+" / "+(duration/1000).toFixed(2)+" 秒";
  if(n===drawn)return;drawn=n;const id=selected[0],token=++stamp,film=native[id],view=$("direction").value;

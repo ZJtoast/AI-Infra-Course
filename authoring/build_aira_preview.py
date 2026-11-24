@@ -13,13 +13,12 @@ ART = HERE.parent / "assets" / "aira"
 POSES = ART / "poses"
 GROUPS = {
     "演出": {"maid-duster": "羽毛掸子", "maid-flying-squirrel": "挑衅飞踢"},
-    "待机": dict(breathe="站立呼吸", idle_sway="站立轻摇", idle_squat="蹲着", idle_kneel="跪坐",
+    "待机": dict(breathe="站立呼吸", idle_sway="站立轻摇", idle_kneel="跪坐",
                idle_sit="盘坐", idle_side="侧卧", idle_prone="趴着", idle_tokens="盘坐拨珠", idle_pipeline="拨动流水灯"),
-    "姿势过渡": dict(stand_squat="站立 → 蹲下", squat_kneel="蹲下 → 跪坐", squat_sit="蹲下 → 盘坐",
-                   sit_side="盘坐 → 侧卧", side_prone="侧卧 → 趴下"),
+    "姿势过渡": dict(sit_side="盘坐 → 侧卧", side_prone="侧卧 → 趴下"),
     "触碰与表情": dict(poke="轻戳", tinyheart="指尖比心", hearthands="双手比心", winkpose="眨眼示意",
                    react_kneel="跪坐时被戳", react_prone="趴着时被戳", react_side="侧卧时被戳",
-                   react_sit="盘坐时被戳", react_squat="蹲着时被戳", amused="偷笑", curious="好奇",
+                   react_sit="盘坐时被戳", amused="偷笑", curious="好奇",
                    downcast="垂下眼睛", grateful="道谢", pout="噘嘴", proud="得意", relieved="松口气", shy="害羞", startle="吓一跳"),
     "组件互动": dict(sidehide="从侧边探头", ledgehide="从上沿探头"),
     "学习与算子": dict(chart="展示图表", fold="折纸", inspect="检查", kvpage="整理 KV 页", matrixtiles="摆矩阵分块",

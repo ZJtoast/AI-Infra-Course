@@ -113,7 +113,11 @@
         if(image.decode)await image.decode();
         else if(!image.complete)await new Promise((ok,fail)=>{image.onload=ok;image.onerror=fail;});
         resident.set(file,image);
-        if(resident.size>5)resident.delete(resident.keys().next().value);
+        if(resident.size>8){
+          const current="poses/"+bodyPose+".webp";
+          const oldest=[...resident.keys()].find(key=>key!==current && key!==art.dataset.file);
+          resident.delete(oldest);
+        }
       })().finally(()=>textures.delete(file));
       textures.set(file,task);
     }
@@ -144,18 +148,18 @@
     art.dataset.frame=String(index);
   }
   const postureNames = new Map([
-    ["breathe","站着"], ["idle_squat","蹲着"], ["idle_sit","盘坐"], ["idle_side","侧卧"],
+    ["breathe","站着"], ["idle_sit","盘坐"], ["idle_side","侧卧"],
     ["idle_prone","趴着"], ["idle_kneel","跪坐"], ["idle_sway","站着轻摇"],
     ["idle_tokens","盘坐拨 token 珠"], ["idle_pipeline","拨动流水灯"]
   ]);
   const postureEdges = [
-    ["breathe","idle_squat","stand_squat"], ["idle_squat","idle_sit","squat_sit"],
+    ["breathe","idle_kneel",""], ["idle_kneel","idle_sit",""],
     ["idle_sit","idle_side","sit_side"], ["idle_side","idle_prone","side_prone"],
-    ["idle_squat","idle_kneel","squat_kneel"], ["breathe","idle_sway",""], ["idle_sit","idle_tokens",""], ["breathe","idle_pipeline",""]
+    ["breathe","idle_sway",""], ["idle_sit","idle_tokens",""], ["breathe","idle_pipeline",""]
   ];
   const directions=["e","se","s","sw","w","nw","n","ne"];
   const faces={breathe:[51,19],idle_sway:[52,20],idle_sit:[52,38],idle_side:[24,67],
-    idle_prone:[33,70],idle_kneel:[50,32],idle_squat:[51,42],idle_tokens:[52,38],idle_pipeline:[51,20]};
+    idle_prone:[33,70],idle_kneel:[50,32],idle_tokens:[52,38],idle_pipeline:[51,20]};
   const standing=id=>["breathe","idle_sway","idle_pipeline"].includes(id);
   const reactionFor=id=>standing(id)?"poke":id==="idle_tokens"?"react_sit":id.replace("idle_","react_");
   let warmPose="",pendingEye="";
@@ -171,10 +175,13 @@
     }
     if(element.style.backgroundPosition!==pos)element.style.backgroundPosition=pos;
   }
+  function canBreathe(){
+    return (!active || active.loading) && (!journey || !journey.ready);
+  }
   function renderBody() {
-    if(active || journey || resting)return;
+    if(!canBreathe() || resting)return;
     const index=calm.matches?0:phase;
-    widget.dataset.posture=bodyPose;delete widget.dataset.transition;
+    widget.dataset.posture=bodyPose;if(!journey)delete widget.dataset.transition;
     tile("poses/"+bodyPose+".webp",index,5,5);
     eyes.style.clipPath="";
     const eyeFile=gaze<0 || performance.now()<centerEyesUntil?"":"poses/"+bodyPose+"-"+directions[gaze]+".webp";
@@ -193,7 +200,8 @@
           if(bodyPose!==id || document.hidden)return;
           load("poses/"+reactionFor(id)+".webp").catch(()=>{});
           const next=poseOrder[(poseOrder.indexOf(id)+1)%poseOrder.length],edge=firstEdge(id,next);
-          load("poses/"+(edge.file||edge.to)+".webp").catch(()=>{});
+          load("poses/"+next+".webp").catch(()=>{});
+          if(edge.file)load("poses/"+edge.file+".webp").catch(()=>{});
         };
         if(window.requestIdleCallback)window.requestIdleCallback(warm,{timeout:500});else setTimeout(warm,40);
       }).catch(()=>{});
@@ -290,14 +298,14 @@
     function step(){
       const now=performance.now(),dt=Math.min(now-lastBodyTime,550);lastBodyTime=now;
       let wait=140;
-      if(!journey && !active){
+      if(canBreathe()){
         breathTime+=dt;heldTime+=dt;
         const moment=breathTime%breathMs,ends=phaseEnds.get(bodyPose);
         const next=ends.findIndex(end=>end>moment);
         wait=Math.max(8,ends[next]-moment+1);
         if(next!==phase){phase=next;renderBody();}
         if(choice!=="auto" && heldTime>=36000 && bodyPose===choice)choice="auto";
-        if(choice==="auto" && heldTime>=17000 && !busy() && bubble.hidden){
+        if(!active && !journey && choice==="auto" && heldTime>=17000 && !busy() && bubble.hidden){
           const adjacent=near(homePose).map(e=>e.to), alternatives=adjacent.filter(p=>p!==previousHome);
           const options=alternatives.length?alternatives:adjacent;
           setPosture(options[Math.floor(Math.random()*options.length)],false);
@@ -311,7 +319,17 @@
     duster:{file:"maid-duster",duration:6880,label:"羽毛掸子"},
     flying_squirrel:{file:"maid-flying-squirrel",duration:7040,label:"挑衅飞踢"}
   };
-  const playbackSlot=new Map();
+  const movies=new Map(),playbackSlot=new Map();
+  function movieBytes(url){
+    if(!movies.has(url)){
+      const bytes=fetch(url).then(response=>{
+        if(!response.ok)throw Error("动画下载失败");
+        return response.blob();
+      }).catch(error=>{movies.delete(url);throw error;});
+      movies.set(url,bytes);
+    }
+    return movies.get(url);
+  }
   // Each envelope covers both neighbouring time intervals in the original transparent animation.
   const inkBounds={"duster":{"width":720,"height":672,"step":160,"boxes":[[272,220,453,602],[272,220,453,602],[272,220,454,602],[272,216,457,602],[266,213,458,602],[141,213,553,605],[141,213,553,606],[141,213,553,606],[147,213,553,606],[147,180,553,607],[142,142,558,612],[137,138,561,616],[135,138,563,617],[134,138,564,617],[130,154,568,620],[130,204,599,620],[130,210,599,620],[130,184,599,620],[130,184,576,619],[117,184,563,614],[117,197,565,614],[117,161,566,615],[119,161,566,615],[119,161,566,615],[119,125,565,614],[123,94,564,614],[116,94,562,614],[116,90,561,613],[116,84,560,612],[129,84,559,611],[130,84,559,611],[125,100,562,610],[113,107,563,610],[113,154,563,610],[113,154,585,610],[113,152,585,612],[125,152,585,612],[126,152,611,612],[125,137,611,612],[125,137,613,611],[125,137,613,611],[126,178,613,609],[127,178,613,608],[127,178,612,608],[127,212,562,608]],"still":[151,219,550,603]},"flying_squirrel":{"width":720,"height":672,"step":160,"boxes":[[303,236,451,555],[303,232,463,567],[307,226,481,571],[289,218,522,571],[278,204,529,571],[275,202,558,571],[275,202,565,571],[275,202,565,573],[275,195,565,573],[296,195,562,573],[336,195,524,573],[348,195,517,573],[343,201,506,572],[343,209,499,571],[343,212,490,570],[344,216,472,566],[340,216,470,561],[330,209,469,563],[317,209,467,563],[308,205,464,563],[295,201,454,563],[281,201,448,562],[277,201,434,559],[277,201,423,557],[277,203,416,551],[281,220,441,547],[283,220,441,543],[285,220,443,543],[304,217,450,543],[306,216,457,544],[306,212,471,544],[307,206,494,555],[307,190,506,561],[319,173,521,563],[310,160,521,573],[290,134,532,582],[289,134,543,594],[289,134,547,594],[289,134,552,594],[289,134,552,594],[279,134,552,594],[279,136,552,588],[279,151,537,578],[286,173,498,568],[290,200,449,557],[290,213,435,557]],"still":[278,205,528,566]}};
   function placePerformance(motion,image,still){
@@ -354,7 +372,7 @@
       schedulePerformance();
     },80000+Math.random()*60000);
   }
-  const poseOrder=["breathe","idle_sway","idle_pipeline","idle_squat","idle_kneel","idle_sit","idle_tokens","idle_side","idle_prone"];
+  const poseOrder=["breathe","idle_sway","idle_pipeline","idle_kneel","idle_sit","idle_tokens","idle_side","idle_prone"];
   let expressionTimer=0,pendingExpression=null;
   function cancelExpression(){
     clearTimeout(expressionTimer);pendingExpression=null;
@@ -366,7 +384,6 @@
     const target=poseOrder[(poseOrder.indexOf(from)+1)%poseOrder.length];
     const name=drawFromBag("pose-expressions",["wink","look-around","look-down"]);
     const views=name==="look-around"?["w","e"]:name==="look-down"?["s","se"]:[];
-    for(const dir of views)load("poses/"+target+"-"+dir+".webp").catch(()=>{});
     const request=pendingExpression={target,name,arrived:false,deadline:performance.now()+3000+Math.random()*2000};
     function deliver(){
       if(pendingExpression!==request || !request.arrived)return;
@@ -379,7 +396,11 @@
     const interrupted=!!active;if(interrupted)stopMotion(true);
     choice=target;homePose=target;heldTime=0;save("aira-posture",target);
     expressionTimer=setTimeout(deliver,Math.max(0,request.deadline-performance.now())+1);
-    go(target,()=>{request.arrived=true;deliver();},interrupted);
+    go(target,()=>{
+      request.arrived=true;
+      for(const dir of views)load("poses/"+target+"-"+dir+".webp").catch(()=>{});
+      deliver();
+    },interrupted);
   }
   function showExpression(expression){
     const blink=closedPhase(bodyPose);
@@ -460,6 +481,7 @@
     }else if(scene)leaveScene();
     pendingPoke="";delete art.dataset.pokeGroup;delete art.dataset.pokeVariant;
     clearTimeout(tick);if(active?.raf)cancelAnimationFrame(active.raf);
+    if(active?.objectURL)URL.revokeObjectURL(active.objectURL);
     generation++;active=null;delete widget.dataset.expression;
     if(!holdFrame)neutral();
   }
@@ -494,7 +516,7 @@
     const {code}=intent;
     if (resting || document.hidden) return;
     clearTimeout(tick);const epoch=++generation;
-    const motion=active={code,reduced:calm.matches,frame:0,direction:1,looped:false,reaction:!!intent.reaction,group:intent.group,returnPose:intent.returnPose||bodyPose};
+    const motion=active={code,loading:true,reduced:calm.matches,frame:0,direction:1,looped:false,reaction:!!intent.reaction,group:intent.group,returnPose:intent.returnPose||bodyPose};
     const file="poses/"+code+".webp";
     const daily=dailyActions.includes(code);
     const pace=(pacing[code]||40)/(daily?dailyRate:1);
@@ -502,7 +524,7 @@
     const ready=()=>epoch===generation && active===motion;
     const finishIfCurrent=()=>{if(ready()) finish();};
     const show=(frame)=>{
-      eyes.hidden=true;eyes.style.clipPath="";
+      motion.loading=false;eyes.hidden=true;eyes.style.clipPath="";
       if(intent.reaction){art.dataset.pokeGroup=intent.group;art.dataset.pokeVariant=intent.variant;}
       motion.frame=frame;art.hidden=false;art.dataset.action=code;
       tile(file,frame,5,5);toggle.title="Aira · 轻点互动，右键换姿势";
@@ -521,13 +543,21 @@
       load("poses/"+(code==="flying_squirrel"?"breathe":motion.returnPose)+".webp").catch(()=>{});
       const still=calm.matches,image=petImage(still?"aira-poster":"aira-duster"),filename=native.file+(still?"-still":"")+".webp";
       const url=new URL(resource(filename));
-      if(!still){
-        const slot=1-(playbackSlot.get(code)??1);
-        playbackSlot.set(code,slot);url.searchParams.set("play",String(slot));
-      }
-      image.src=url.href;
-      (image.decode?image.decode():load(filename)).then(()=>{
+      async function prepare(){
+        if(!still && /^https?:$/.test(url.protocol)){
+          const bytes=await movieBytes(url.href);
+          if(!ready())return;
+          motion.objectURL=URL.createObjectURL(bytes);image.src=motion.objectURL;
+        }else{
+          if(!still){
+            const slot=1-(playbackSlot.get(code)??1);
+            playbackSlot.set(code,slot);url.searchParams.set("play",String(slot));
+          }
+          image.src=url.href;
+        }
+        await image.decode();
         if(!ready())return;
+        motion.loading=false;
         releaseHeldScene();eyes.hidden=true;scaleVisual(AiraFraming.scale(native.file));
         duster.remove();poster.remove();duster.removeAttribute("src");poster.removeAttribute("src");
         if(still)poster=image;else duster=image;
@@ -535,7 +565,8 @@
         toggle.append(image);image.hidden=false;art.hidden=true;placePerformance(motion,image,still);layout();
         art.dataset.action=code;art.dataset.frame="0";toggle.title=native.label;
         tick=setTimeout(finishIfCurrent,still?850:native.duration);
-      }).catch(finishIfCurrent);
+      }
+      prepare().catch(finishIfCurrent);
       return;
     }
     (code==="plane"?Promise.all([load(file),load("maid-plane.webp")]):load(file)).then(()=>{
@@ -819,7 +850,7 @@
     const code=intent.code,file="poses/"+code+".webp",epoch=generation;
     const start=toggle.getBoundingClientRect();
     const s=scene={code,node,startX:start.left,startY:start.top,position:null,changed:true,raf:0};
-    active={code,returnPose:intent.returnPose||bodyPose};
+    active={code,loading:true,returnPose:intent.returnPose||bodyPose};
     widget.dataset.stage=code;
     let walkReady=false;
     if(!calm.matches)load("poses/run.webp").then(()=>{walkReady=true;}).catch(()=>{});
@@ -830,7 +861,7 @@
       const started=performance.now();let lastGeom=0;
       function draw(now){
         if(scene!==s) return;
-        releaseHeldScene();eyes.hidden=true;
+        active.loading=false;releaseHeldScene();eyes.hidden=true;
         const elapsed=now-started;
         const walk=calm.matches?1:Math.min(1,elapsed/540);
         const phase=calm.matches?1:Math.max(0,(elapsed-540)/630);
