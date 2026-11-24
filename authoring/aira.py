@@ -36,5 +36,6 @@ def reading_companion(page, prefix, cards):
     payload = json.dumps(cards, ensure_ascii=False, separators=(",", ":")).replace("<", "\\u003c")
     return page.replace("</head>", f'<link rel="stylesheet" href="{url("aira.css")}"></head>', 1).replace(
         "</body>", f'<script type="application/json" id="aira-cards">{payload}</script>'
+        f'<script defer src="{url("framing.js")}"></script>'
         f'<script defer src="{url("aira.js")}" data-art-version="{artwork_version()}"></script></body>', 1
     )

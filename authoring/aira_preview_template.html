@@ -8,7 +8,7 @@
 <style>
 :root{color-scheme:light dark;--bg:#eef4fa;--surface:#fff;--ink:#172438;--muted:#4e647a;--line:#c5d4e1;--tint:#e4f1fc;--blue:#174e81;--tile:#f2f7fc;--square:#eaf1f7}
 @media(prefers-color-scheme:dark){:root{--bg:#15212d;--surface:#1e2a38;--ink:#edf4ff;--muted:#b4c4d5;--line:#46596d;--tint:#263f55;--blue:#b2d8ff;--tile:#263849;--square:#2b3e50}}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 "Times New Roman",SimHei,sans-serif}header,main{max-width:1180px;margin:auto}header{padding:1.2rem 1.25rem .8rem;display:flex;align-items:baseline;gap:1rem}h1,h2,p{margin:0}h1{font-size:1.65rem}h2{font-size:1.35rem}small,.meta{color:var(--muted)}main{padding:0 1.25rem 1.25rem;display:grid;grid-template-columns:minmax(190px,270px) minmax(0,1fr);gap:1rem}.panel{background:var(--surface);border:1px solid var(--line);border-radius:.85rem;min-width:0}.catalog{padding:.75rem;display:flex;flex-direction:column;gap:.55rem}.list{overflow:auto;max-height:65vh;min-height:130px;scrollbar-width:thin}.list h3{margin:.55rem .45rem .2rem;font-size:.85rem;color:var(--muted)}button,input,select{font:inherit;color:inherit}button,select,input[type=search]{background:var(--surface);border:1px solid var(--line);border-radius:.4rem;padding:.36rem .53rem}button,select{cursor:pointer}.catalog input,.catalog select{width:100%}.list button{display:block;width:100%;border:0;background:transparent;text-align:left;padding:.38rem .6rem}.list button:hover,.list button[aria-pressed=true]{background:var(--tint);color:var(--blue)}.list button[aria-pressed=true]{font-weight:bold}.viewer{padding:1rem;align-self:start}.title,.controls,.row{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap}.title{justify-content:space-between}.title a{color:var(--blue)}.stage{margin:.7rem 0;display:grid;place-items:center;overflow:hidden;border:1px solid var(--line);border-radius:.6rem;background-color:var(--tile);background-image:conic-gradient(var(--square) 25%,transparent 0 50%,var(--square) 0 75%,transparent 0);background-size:24px 24px;height:clamp(260px,52vh,500px)}canvas{max-width:100%;height:100%;object-fit:contain}.meta,output{font-variant-numeric:tabular-nums}.row{justify-content:space-between;margin:.5rem 0}input[type=range]{width:100%;margin:.25rem 0;accent-color:var(--blue)}.controls{margin-top:.4rem}.controls label{display:inline-flex;align-items:center;gap:.25rem}.mainbutton{font-weight:bold;min-width:4.5rem;background:var(--tint);color:var(--blue)}button:focus-visible,input:focus-visible,select:focus-visible,a:focus-visible{outline:3px solid #4488bc;outline-offset:2px}[hidden]{display:none!important}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 "Times New Roman",SimHei,sans-serif}header,main{max-width:1180px;margin:auto}header{padding:1.2rem 1.25rem .8rem;display:flex;align-items:baseline;gap:1rem}h1,h2,p{margin:0}h1{font-size:1.65rem}h2{font-size:1.35rem}small,.meta{color:var(--muted)}main{padding:0 1.25rem 1.25rem;display:grid;grid-template-columns:minmax(190px,270px) minmax(0,1fr);gap:1rem}.panel{background:var(--surface);border:1px solid var(--line);border-radius:.85rem;min-width:0}.catalog{padding:.75rem;display:flex;flex-direction:column;gap:.55rem}.list{overflow:auto;max-height:65vh;min-height:130px;scrollbar-width:thin}.list h3{margin:.55rem .45rem .2rem;font-size:.85rem;color:var(--muted)}button,input,select{font:inherit;color:inherit}button,select,input[type=search]{background:var(--surface);border:1px solid var(--line);border-radius:.4rem;padding:.36rem .53rem}button,select{cursor:pointer}.catalog input,.catalog select{width:100%}.list button{display:block;width:100%;border:0;background:transparent;text-align:left;padding:.38rem .6rem}.list button:hover,.list button[aria-pressed=true]{background:var(--tint);color:var(--blue)}.list button[aria-pressed=true]{font-weight:bold}.viewer{padding:1rem;align-self:start}.title,.controls,.row{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap}.title{justify-content:space-between}.title a{color:var(--blue)}.stage{margin:.7rem 0;display:grid;place-items:center;overflow:hidden;border:1px solid var(--line);border-radius:.6rem;background-color:var(--tile);background-image:conic-gradient(var(--square) 25%,transparent 0 50%,var(--square) 0 75%,transparent 0);background-size:24px 24px;height:clamp(260px,52vh,500px)}canvas{display:block;width:100%;height:100%;min-height:0;object-fit:contain}.meta,output{font-variant-numeric:tabular-nums}.row{justify-content:space-between;margin:.5rem 0}input[type=range]{width:100%;margin:.25rem 0;accent-color:var(--blue)}.controls{margin-top:.4rem}.controls label{display:inline-flex;align-items:center;gap:.25rem}.mainbutton{font-weight:bold;min-width:4.5rem;background:var(--tint);color:var(--blue)}button:focus-visible,input:focus-visible,select:focus-visible,a:focus-visible{outline:3px solid #4488bc;outline-offset:2px}[hidden]{display:none!important}
 @media(max-width:690px){header{padding:.7rem}.catalog{padding:.6rem}.list{max-height:16vh;min-height:60px}main{grid-template-columns:1fr;padding:0 .65rem .65rem;gap:.55rem}.viewer{padding:.65rem}.stage{height:clamp(205px,36vh,360px)}.controls{gap:.35rem}h1{font-size:1.35rem}}
 </style>
 </head>
@@ -18,7 +18,7 @@
 <aside class="panel catalog"><input id="query" type="search" aria-label="搜索动作名称或文件名" placeholder="搜索动作或文件名"><select id="group" aria-label="动作分类"><option value="">全部动作</option></select><nav class="list" aria-label="动作列表" id="list"></nav></aside>
 <section class="panel viewer" aria-label="动作播放器">
 <div class="title"><h2 id="title"></h2><a id="original" target="_blank" rel="noopener">原始资源</a></div>
-<div class="stage"><canvas id="screen" role="img" aria-label="当前动作画面"></canvas></div>
+<div class="stage"><canvas width="720" height="740" id="screen" role="img" aria-label="当前动作画面"></canvas></div>
 <div class="row"><output id="frame"></output><output id="time"></output></div>
 <input type="range" id="seek" min="0" value="0" aria-label="帧位置">
 <div class="controls"><button id="prev" aria-label="上一帧">上一帧</button><button class="mainbutton" id="play">播放</button><button id="next" aria-label="下一帧">下一帧</button><label>速度 <select id="rate"><option value=".25">0.25×</option><option value=".5">0.5×</option><option value="{{DAILY_RATE}}">{{DAILY_RATE}}×</option><option value="1" selected>1×</option><option value="1.5">1.5×</option><option value="2">2×</option></select></label>
@@ -27,6 +27,7 @@
 </main>
 <script type="application/json" id="rows">{{ACTION_ROWS}}</script>
 <script type="application/json" id="media">{{NATIVE_MEDIA}}</script>
+<script src="../framing.js?v={{FRAMING_HASH}}"></script>
 <script>
 "use strict";
 const $=id=>document.getElementById(id);
@@ -58,9 +59,18 @@ async function paint(n){
  $("seek").value=n;$("frame").textContent="第 "+(n+1)+" / "+ends.length+" 帧";$("time").textContent=(position/1000).toFixed(2)+" / "+(duration/1000).toFixed(2)+" 秒";
  if(n===drawn)return;drawn=n;const id=selected[0],token=++stamp,film=native[id],view=$("direction").value;
  try{let image,overlay,w,h,x,y;
+ const f=$("rev").checked?24-n:n;
  if(film){const page=Math.floor(n/12);image=await img("data:image/webp;base64,"+film.sheets[page]);w=360;h=336;x=n%4*w;y=Math.floor(n%12/4)*h;}
- else{image=await img(id+".webp");if(view&&!$("dirlabel").hidden)overlay=await img(id+"-"+view+".webp");w=image.naturalWidth/5;h=image.naturalHeight/5;const f=$("rev").checked?24-n:n;x=f%5*w;y=Math.floor(f/5)*h;}
- if(token!==stamp)return;const c=$("screen");if(c.width!==w||c.height!==h){c.width=w;c.height=h;}ctx.clearRect(0,0,w,h);ctx.drawImage(image,x,y,w,h,0,0,w,h);if(overlay)ctx.drawImage(overlay,x,y,w,h,0,0,w,h);$("status").textContent="";
+ else{image=await img(id+".webp");if(view&&!$("dirlabel").hidden)overlay=await img(id+"-"+view+".webp");w=image.naturalWidth/5;h=image.naturalHeight/5;x=f%5*w;y=Math.floor(f/5)*h;}
+ if(token!==stamp)return;
+ const c=$("screen"),scale=AiraFraming.scale(id,f);
+ const [footX,footY]=film?AiraFraming.films[id].foot:[144,313];
+ const dx=c.width/2-footX*scale,dy=660-footY*scale;
+ const dw=(film?720:288)*scale,dh=(film?672:320)*scale;
+ ctx.clearRect(0,0,c.width,c.height);
+ ctx.drawImage(image,x,y,w,h,dx,dy,dw,dh);
+ if(overlay)ctx.drawImage(overlay,x,y,w,h,dx,dy,dw,dh);
+ $("status").textContent="";
  }catch(e){if(token===stamp){halt();$("status").textContent=e.message;drawn=-1;}}}
 function halt(){playing=false;cancelAnimationFrame(raf);$("play").textContent="播放";}
 function start(){if(playing)return;if(position>=duration)position=0;playing=true;last=performance.now();$("play").textContent="暂停";raf=requestAnimationFrame(tick);}

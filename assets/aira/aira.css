@@ -26,7 +26,7 @@ body:has(dialog[open]) .aira { display: none !important; }
   outline: 3px solid #4385b3; outline-offset: 2px;
 }
 .aira .aira-toggle {
-  display: block; pointer-events: auto; width: calc(var(--aira-width) * var(--aira-pose-scale, 1)); height: auto; aspect-ratio: 144 / 160;
+  display: block; pointer-events: auto; width: calc(min(var(--aira-width), 51vw, 42vh) * var(--aira-pose-scale, 1)); height: auto; aspect-ratio: 144 / 160;
   position: relative; margin: 0; padding: 0; border: 0; background: transparent;
   touch-action: none; cursor: grab; border-radius: .5rem;
   -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;

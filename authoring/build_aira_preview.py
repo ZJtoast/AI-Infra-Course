@@ -1,5 +1,6 @@
 """Build the file:// action preview alongside Aira's pose atlases."""
 import base64
+from hashlib import sha256
 import io
 import json
 import re
@@ -76,6 +77,8 @@ def build():
     for code in sorted(files - names - aliases):
         rows.append([code, code, "其他动作"])
     layout = (HERE / "aira_preview_template.html").read_text("utf8")
+    framing = (ART / "framing.js").read_bytes()
+    layout = layout.replace("{{FRAMING_HASH}}", sha256(framing).hexdigest()[:12])
     for token, data in (("ACTION_ROWS", rows), ("NATIVE_MEDIA", native), ("DAILY_RATE", daily_rate)):
         layout = layout.replace("{{" + token + "}}", json.dumps(data, ensure_ascii=False, separators=(",", ":")))
     (POSES / "preview.html").write_bytes(layout.encode("utf8"))

@@ -14,10 +14,10 @@
   }
   const pacing={poke:38,tinyheart:55,hearthands:52};
   const dailyActions=["seal","sip","spin","starhug","stretch","sweep","watch","water","wave","whisk","yawn","plane","polish","pour","bell","bow","bubbles","sketch","stack","study","think"];
-  const dailyRate=0.6,standingScale=1.42;
+  const dailyRate=0.6;
   const forward=new Set(["hearthands","tinyheart"]);
   const transitionMs=760,breathMs=24*158,support=313/320;
-  let visualScale=1,centerEyesUntil=0,landingTime=null;
+  let visualScale=1,centerEyesUntil=0;
   const calm = matchMedia("(prefers-reduced-motion: reduce)");
   const widget = document.createElement("div");
   widget.className = "aira";
@@ -63,9 +63,10 @@
   function range() {
     const view=viewport(),box=toggle.getBoundingClientRect(),w=box.width,h=box.height;
     if(resting)return {left:view.x+8,top:view.y+8,dx:Math.max(0,view.w-w-16),dy:Math.max(0,view.h-h-16)};
-    const normal=parseFloat(getComputedStyle(widget).getPropertyValue("--aira-width")),height=normal*160/144;
-    return {left:view.x+8+(normal-w)/2,top:view.y+8+(height-h)*support,
-      dx:Math.max(0,view.w-normal-16),dy:Math.max(0,view.h-height-16)};
+    const unit=w/(visualScale*288),reach=AiraFraming.reach;
+    const left=view.x+8+reach.left*unit-w/2,top=view.y+8+reach.above*unit-h*support;
+    return {left,top,dx:Math.max(0,view.w-16-(reach.left+reach.right)*unit),
+      dy:Math.max(0,view.h-16-(reach.above+reach.below)*unit)};
   }
   function moveTo(x,y) {
     const r = range();
@@ -78,7 +79,7 @@
     const staged=scene?.position||heldScene?.position;
     widget.style.left=(staged?.x??(r.left+anchor.x*r.dx))+"px";
     const petY=r.top+anchor.y*r.dy;
-    widget.style.top=(staged?.y??(visualScale>1?Math.max(viewport().y-2,petY):petY))+"px";
+    widget.style.top=(staged?.y??petY)+"px";
     widget.style.bottom = widget.style.right = "auto";
     const floating=bubble;
     if (floating.hidden) return;
@@ -120,6 +121,7 @@
   }
   function scaleVisual(factor){
     if(factor===visualScale)return;
+    if(scene)scene.changed=true;
     visualScale=factor;widget.style.setProperty("--aira-pose-scale",String(factor));layout();
   }
   function showCanvas(){
@@ -129,17 +131,8 @@
   }
   function tile(file,index,cols,rows) {
     showCanvas();
-    const large=file==="poses/breathe.webp" || file==="poses/idle_sway.webp" ||
-      (active?.reaction && ["breathe","idle_sway"].includes(bodyPose) && file!=="poses/stand_squat.webp");
-    let stand=standingScale;
-    if(landingTime!==null){
-      if(!active && file==="poses/breathe.webp"){
-        const t=Math.min(1,(performance.now()-landingTime)/900);
-        stand=1.1+(standingScale-1.1)*t*t*(3-2*t);
-        if(t>=1)landingTime=null;
-      }else landingTime=null;
-    }
-    scaleVisual(large?stand:file==="poses/stand_squat.webp"?1+(24-index)*(standingScale-1)/24:1);
+    const code=file.slice("poses/".length,-".webp".length);
+    scaleVisual(AiraFraming.scale(code,index));
     if(art.dataset.file===file && art.dataset.frame===String(index))return;
     if (art.dataset.file!==file) {
       if(art.dataset.file==="poses/plane.webp"){art.style.clipPath="";art.style.transform="";}
@@ -205,12 +198,6 @@
         if(window.requestIdleCallback)window.requestIdleCallback(warm,{timeout:500});else setTimeout(warm,40);
       }).catch(()=>{});
     }
-  }
-  function settleStandingSize(){
-    if(landingTime===null)return;
-    if(active || journey || resting || document.hidden || bodyPose!=="breathe"){landingTime=null;return;}
-    renderBody();
-    if(landingTime!==null)requestAnimationFrame(settleStandingSize);
   }
   function near(pose) {
     return postureEdges.filter(([a,b])=>a===pose || b===pose).map(([a,b,file])=>
@@ -326,11 +313,12 @@
   };
   const playbackSlot=new Map();
   // Each envelope covers both neighbouring time intervals in the original transparent animation.
-  const inkBounds={"duster":{"width":720,"height":672,"foot":[360,581],"step":160,"boxes":[[272,220,453,602],[272,220,453,602],[272,220,454,602],[272,216,457,602],[266,213,458,602],[141,213,553,605],[141,213,553,606],[141,213,553,606],[147,213,553,606],[147,180,553,607],[142,142,558,612],[137,138,561,616],[135,138,563,617],[134,138,564,617],[130,154,568,620],[130,204,599,620],[130,210,599,620],[130,184,599,620],[130,184,576,619],[117,184,563,614],[117,197,565,614],[117,161,566,615],[119,161,566,615],[119,161,566,615],[119,125,565,614],[123,94,564,614],[116,94,562,614],[116,90,561,613],[116,84,560,612],[129,84,559,611],[130,84,559,611],[125,100,562,610],[113,107,563,610],[113,154,563,610],[113,154,585,610],[113,152,585,612],[125,152,585,612],[126,152,611,612],[125,137,611,612],[125,137,613,611],[125,137,613,611],[126,178,613,609],[127,178,613,608],[127,178,612,608],[127,212,562,608]],"still":[151,219,550,603]},"flying_squirrel":{"width":720,"height":672,"foot":[360,550],"step":160,"boxes":[[303,236,451,555],[303,232,463,567],[307,226,481,571],[289,218,522,571],[278,204,529,571],[275,202,558,571],[275,202,565,571],[275,202,565,573],[275,195,565,573],[296,195,562,573],[336,195,524,573],[348,195,517,573],[343,201,506,572],[343,209,499,571],[343,212,490,570],[344,216,472,566],[340,216,470,561],[330,209,469,563],[317,209,467,563],[308,205,464,563],[295,201,454,563],[281,201,448,562],[277,201,434,559],[277,201,423,557],[277,203,416,551],[281,220,441,547],[283,220,441,543],[285,220,443,543],[304,217,450,543],[306,216,457,544],[306,212,471,544],[307,206,494,555],[307,190,506,561],[319,173,521,563],[310,160,521,573],[290,134,532,582],[289,134,543,594],[289,134,547,594],[289,134,552,594],[289,134,552,594],[279,134,552,594],[279,136,552,588],[279,151,537,578],[286,173,498,568],[290,200,449,557],[290,213,435,557]],"still":[278,205,528,566]}};
+  const inkBounds={"duster":{"width":720,"height":672,"step":160,"boxes":[[272,220,453,602],[272,220,453,602],[272,220,454,602],[272,216,457,602],[266,213,458,602],[141,213,553,605],[141,213,553,606],[141,213,553,606],[147,213,553,606],[147,180,553,607],[142,142,558,612],[137,138,561,616],[135,138,563,617],[134,138,564,617],[130,154,568,620],[130,204,599,620],[130,210,599,620],[130,184,599,620],[130,184,576,619],[117,184,563,614],[117,197,565,614],[117,161,566,615],[119,161,566,615],[119,161,566,615],[119,125,565,614],[123,94,564,614],[116,94,562,614],[116,90,561,613],[116,84,560,612],[129,84,559,611],[130,84,559,611],[125,100,562,610],[113,107,563,610],[113,154,563,610],[113,154,585,610],[113,152,585,612],[125,152,585,612],[126,152,611,612],[125,137,611,612],[125,137,613,611],[125,137,613,611],[126,178,613,609],[127,178,613,608],[127,178,612,608],[127,212,562,608]],"still":[151,219,550,603]},"flying_squirrel":{"width":720,"height":672,"step":160,"boxes":[[303,236,451,555],[303,232,463,567],[307,226,481,571],[289,218,522,571],[278,204,529,571],[275,202,558,571],[275,202,565,571],[275,202,565,573],[275,195,565,573],[296,195,562,573],[336,195,524,573],[348,195,517,573],[343,201,506,572],[343,209,499,571],[343,212,490,570],[344,216,472,566],[340,216,470,561],[330,209,469,563],[317,209,467,563],[308,205,464,563],[295,201,454,563],[281,201,448,562],[277,201,434,559],[277,201,423,557],[277,203,416,551],[281,220,441,547],[283,220,441,543],[285,220,443,543],[304,217,450,543],[306,216,457,544],[306,212,471,544],[307,206,494,555],[307,190,506,561],[319,173,521,563],[310,160,521,573],[290,134,532,582],[289,134,543,594],[289,134,547,594],[289,134,552,594],[289,134,552,594],[279,134,552,594],[279,136,552,588],[279,151,537,578],[286,173,498,568],[290,200,449,557],[290,213,435,557]],"still":[278,205,528,566]}};
   function placePerformance(motion,image,still){
     const profile=inkBounds[motion.code];
     if(!profile || image.naturalWidth!==profile.width)return;
-    const started=performance.now(),offsetX=144-profile.foot[0],offsetY=313-profile.foot[1];
+    const foot=AiraFraming.films[performances[motion.code].file].foot;
+    const started=performance.now(),offsetX=144-foot[0],offsetY=313-foot[1];
     Object.assign(image.style,{left:offsetX/288*100+"%",top:offsetY/320*100+"%",right:"auto",bottom:"auto",
       width:profile.width/288*100+"%",height:profile.height/320*100+"%"});
     function place(){
@@ -481,13 +469,12 @@
       if(epoch!==generation || active!==ended)return;
       const further=pendingPoke;
       if(ended?.code==="flying_squirrel"){
-        landingTime=calm.matches?null:performance.now();centerEyesUntil=performance.now()+240;homePose="breathe";choice="auto";heldTime=0;save("aira-posture","auto");
+        centerEyesUntil=performance.now()+240;homePose="breathe";choice="auto";heldTime=0;save("aira-posture","auto");
       }else if(!ended?.reaction && choice==="auto" && homePose!==pose){
         previousHome=homePose;homePose=pose;heldTime=0;
       }
       if(!ended?.reaction || pose!==bodyPose){phase=0;breathTime=0;lastBodyTime=performance.now();}
       bodyPose=pose;goal=pose;widget.dataset.posture=pose;stopMotion();
-      if(landingTime!==null)requestAnimationFrame(settleStandingSize);
       if(further)poke(further);
       else if(choice!=="auto" && choice!==pose)scheduleReturn();
     }
@@ -541,7 +528,7 @@
       image.src=url.href;
       (image.decode?image.decode():load(filename)).then(()=>{
         if(!ready())return;
-        releaseHeldScene();eyes.hidden=true;scaleVisual(1);
+        releaseHeldScene();eyes.hidden=true;scaleVisual(AiraFraming.scale(native.file));
         duster.remove();poster.remove();duster.removeAttribute("src");poster.removeAttribute("src");
         if(still)poster=image;else duster=image;
         image.dataset.performance=code;
@@ -844,6 +831,15 @@
       function draw(now){
         if(scene!==s) return;
         releaseHeldScene();eyes.hidden=true;
+        const elapsed=now-started;
+        const walk=calm.matches?1:Math.min(1,elapsed/540);
+        const phase=calm.matches?1:Math.max(0,(elapsed-540)/630);
+        const breathe=calm.matches?0:Math.sin(Math.max(0,phase-1)*1.15);
+        const frame=walk<1?Math.min(6,Math.floor(walk*6)):phase<1?6+Math.floor(phase*17):
+          calm.matches?18:Math.round(18+6*breathe);
+        const walking=walkReady && walk<1,picked=walking?6+Math.floor(walk*18):frame;
+        const image=walking?"poses/run.webp":file;
+        if(picked!==previousFrame || art.dataset.file!==image){tile(image,picked,5,5);previousFrame=picked;}
         if(s.changed || !s.geometry || now-lastGeom>250){
           let g=geometry(s.node,code);
           if(!g){s.node=findSurface(code);g=geometry(s.node,code);}
@@ -851,11 +847,7 @@
           s.geometry=g;lastGeom=now;s.changed=false;
         }
         const g=s.geometry,w=toggle.offsetWidth,h=toggle.offsetHeight;
-        const elapsed=now-started;
-        const walk=calm.matches?1:Math.min(1,elapsed/540);
-        const phase=calm.matches?1:Math.max(0,(elapsed-540)/630);
         const tuck=Math.min(1,phase);
-        const breathe=calm.matches?0:Math.sin(Math.max(0,phase-1)*1.15);
         const peak=Math.min(.398,g.cap??.398);
         const excursion=Math.min(.043,Math.max(0,(peak-.14)/2));
         const show=1-tuck*(1-peak+excursion-excursion*breathe);
@@ -876,11 +868,6 @@
             "inset("+t+"px "+margin+"% "+b+"px 0)";
         }
 
-        const frame=walk<1?Math.min(6,Math.floor(walk*6)):phase<1?6+Math.floor(phase*17):
-          calm.matches?18:Math.round(18+6*breathe);
-        const walking=walkReady && walk<1,picked=walking?6+Math.floor(walk*18):frame;
-        const image=walking?"poses/run.webp":file;
-        if(picked!==previousFrame || art.dataset.file!==image){tile(image,picked,5,5);previousFrame=picked;}
         const [low,high]=edgeInk[code][picked];
         if(!walking && code==="ledgehide"){
           const faceDepth=bound(.68+(show-.355)*1.8,.46,.81);
