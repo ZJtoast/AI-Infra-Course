@@ -1,0 +1,47 @@
+.course-term {
+  appearance: none;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--accent);
+  font: inherit;
+  font-weight: 700;
+  text-decoration: underline dotted;
+  text-underline-offset: .16em;
+  cursor: pointer;
+}
+.course-term:focus-visible, .platform-term-note button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.platform-term-note {
+  box-sizing: border-box;
+  width: min(29rem, calc(100vw - 2rem));
+  max-height: 65vh;
+  padding: 1rem 1.2rem;
+  color: var(--ink);
+  background: var(--sheet);
+  border: 1px solid var(--line);
+  border-top: 3px solid var(--accent);
+  border-radius: .55rem;
+  box-shadow: 0 .5rem 2rem #0003;
+}
+.platform-term-note > div {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+.platform-term-note button {
+  font: inherit;
+  font-size: 1.35em;
+  border: 0;
+  background: transparent;
+  color: var(--accent);
+  cursor: pointer;
+}
+.platform-term-note p {
+  margin: .65rem 0 0;
+  line-height: 1.65;
+  text-indent: 0;
+}

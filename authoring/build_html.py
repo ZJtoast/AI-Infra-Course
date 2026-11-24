@@ -223,7 +223,7 @@ def course_navigation(groups, current=None, *, handbook=False):
     return '<nav class="booknav" aria-label="按主题浏览课程">' + "".join(modules) + "</nav>"
 
 
-def reader(title, eyebrow, lead, download, aside, body, prefix):
+def reader(title, eyebrow, lead_html, download, aside, body, prefix):
     s = (
         (HERE / "reader.html")
         .read_text("utf8")
@@ -236,7 +236,7 @@ def reader(title, eyebrow, lead, download, aside, body, prefix):
     )
     s = s.replace('data-root=""', 'data-root="' + prefix + '"')
     hero = (
-        f'<div class="eyebrow">{escape(eyebrow)}</div><h1>{escape(title)}</h1><p>{escape(lead)}</p><div class="actions">'
+        f'<div class="eyebrow">{escape(eyebrow)}</div><h1>{escape(title)}</h1><p>{lead_html}</p><div class="actions">'
         + link(prefix + "word/" + download + ".docx", "下载 Word ↓", "btn")
         + "</div>"
     )
@@ -280,7 +280,10 @@ def build(chapters, out):
             handbook_cards["ch-" + slug[:2]] = chapter_cards[stops[0]]
             handbook_cards.update(chapter_cards)
         title = ch.get("title")
-        lead = text(ch.find("lead"))
+        lead = ch.find("lead")
+        lead_html = escape(lead.text or "") + "".join(
+            markup(child) + escape(child.tail or "") for child in lead
+        )
         group = ch.get("group")
         prefix = "../" if i else ""
         adjacent = (
@@ -297,7 +300,7 @@ def build(chapters, out):
         files[chapter_url(ch)] = reader(
             title,
             f"第 {i:02d} 课　/　{group}" if i else group,
-            lead,
+            lead_html,
             slug,
             course_navigation(groups, ch) if i else
             f'<details class="tocbox" open><summary>路线站点</summary>{toc(ch)}</details>',

@@ -431,7 +431,7 @@ document.addEventListener("click", async e => {
 
 
 (() => {
-  const page = document.querySelector("article");
+  const page = document.querySelector("main.reader");
   if (!page) return;
   const card = document.createElement("aside");
   card.className = "term-card";
